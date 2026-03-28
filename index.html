@@ -211,10 +211,10 @@ select option{background:var(--surf2);}
 .lfc-meta{font-size:11px;color:var(--txt2);font-family:'DM Mono',monospace;}
 .lfc-count{display:inline-block;background:rgba(232,200,74,.12);color:var(--acc);border:1px solid rgba(232,200,74,.3);border-radius:4px;padding:1px 8px;font-size:10px;font-family:'DM Mono',monospace;margin-top:5px;}
 .lfc-days{padding:8px 14px 12px;display:flex;flex-direction:column;gap:6px;}
-.lfc-day-name{font-size:10px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}
+.lfc-day-name{font-size:11px;font-weight:700;color:var(--acc);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}
 .lfc-slots{display:flex;flex-wrap:wrap;gap:4px;}
 .lfc-slot{display:inline-flex;align-items:center;gap:4px;background:var(--surf2);border:1px solid var(--bdr);border-radius:5px;padding:3px 8px;}
-.lfc-slot-time{font-weight:700;color:var(--txt);font-family:'DM Mono',monospace;font-size:11px;}
+.lfc-slot-time{font-weight:700;color:var(--txt);font-family:'DM Mono',monospace;font-size:12px;}
 .lfc-slot-sala{color:var(--txt2);font-size:10px;font-family:'DM Mono',monospace;}
 .lv{display:flex;flex-direction:column;gap:3px;}
 .li{display:grid;grid-template-columns:110px 1fr 90px 115px 105px 85px;gap:10px;
@@ -403,6 +403,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
   #btnGlobalOpt .btn-label{display:none;}
   /* Hide the + button in header on mobile (FAB handles it) */
   #btnAddShow{display:none;}
+  #btnTheme{display:none;}
 
   /* Tabs: smaller, scrollable */
   .tabs{padding:0 8px;gap:0;}
@@ -507,6 +508,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
   </div>
   <div class="hact">
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
+    <button id="btnTheme" class="btn bg" onclick="toggleTheme()" title="Cambia tema" style="font-size:16px;padding:5px 10px;">☀</button>
     <button id="btnGlobalOpt" class="btn bg" onclick="openGlobalOpt()" style="color:var(--acc);border-color:rgba(232,200,74,.4)">⚡ <span class="btn-label">Ottimizza Tutto</span></button>
     <button id="btnAddShow" class="btn ba" onclick="openShow()">＋ Aggiungi Spettacolo</button>
   </div>
@@ -612,23 +614,87 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
 <!-- EMAIL -->
 <div id="page-mail" class="page">
   <div class="sh"><div class="st">Invio Email Programmazione</div></div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
-    <div class="ps">
-      <h3>📧 Destinatari</h3>
-      <div style="display:flex;gap:7px;margin-bottom:10px">
-        <input type="email" id="ne" placeholder="email@esempio.com" style="flex:1">
-        <button class="btn ba" onclick="addMail()">Aggiungi</button>
+
+  <!-- TAB EMAIL -->
+  <div style="display:flex;gap:2px;margin-bottom:16px;border-bottom:1px solid var(--bdr);padding-bottom:0">
+    <div class="tab on" onclick="gMailTab('gen')" id="mtab-gen">📧 Destinatari Generali</div>
+    <div class="tab" onclick="gMailTab('dist')" id="mtab-dist">🏢 Distributori</div>
+    <div class="tab" onclick="gMailTab('media')" id="mtab-media">📰 Media</div>
+  </div>
+
+  <!-- TAB: GENERALI -->
+  <div id="mtab-gen-content">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+      <div class="ps">
+        <h3>📧 Destinatari</h3>
+        <div style="display:flex;gap:7px;margin-bottom:10px">
+          <input type="email" id="ne" placeholder="email@esempio.com" style="flex:1">
+          <button class="btn ba" onclick="addMail()">Aggiungi</button>
+        </div>
+        <div class="el" id="el"></div>
       </div>
-      <div class="el" id="el"></div>
+      <div class="ps">
+        <h3>✉️ Invio Programma Completo</h3>
+        <div class="fr"><label class="flb">Oggetto</label><input type="text" id="ms" value="Programmazione Settimanale Cinema"></div>
+        <div class="fr"><label class="flb">Note</label><textarea id="mn" placeholder="Testo aggiuntivo..."></textarea></div>
+        <div style="background:var(--surf2);border:1px solid var(--bdr);border-radius:5px;padding:9px 12px;font-size:11px;color:var(--txt2);margin-bottom:10px">
+          ℹ️ Apre il client di posta con il programma completo nel corpo.
+        </div>
+        <button class="btn ba" style="width:100%" onclick="sendMail()">📧 Prepara Email</button>
+      </div>
     </div>
-    <div class="ps">
-      <h3>✉️ Invio</h3>
-      <div class="fr"><label class="flb">Oggetto</label><input type="text" id="ms" value="Programmazione Settimanale Cinema"></div>
-      <div class="fr"><label class="flb">Note</label><textarea id="mn" placeholder="Testo aggiuntivo..."></textarea></div>
-      <div style="background:var(--surf2);border:1px solid var(--bdr);border-radius:5px;padding:9px 12px;font-size:11px;color:var(--txt2);margin-bottom:10px">
-        ℹ️ Apre il client di posta con il programma nel corpo.
+  </div>
+
+  <!-- TAB: DISTRIBUTORI -->
+  <div id="mtab-dist-content" style="display:none">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+      <div class="ps">
+        <h3>🏢 Distributori</h3>
+        <p style="font-size:11px;color:var(--txt2);margin-bottom:10px">Associa email al distributore inserito nelle schede film. Verrà inviata solo la programmazione dei loro film.</p>
+        <div style="display:flex;gap:7px;margin-bottom:10px">
+          <input type="text" id="dist-name" placeholder="Nome distributore" style="flex:1">
+          <input type="email" id="dist-email" placeholder="email@dist.com" style="flex:1">
+          <button class="btn ba" onclick="addDist()">＋</button>
+        </div>
+        <div class="el" id="dist-list"></div>
       </div>
-      <button class="btn ba" style="width:100%" onclick="sendMail()">📧 Prepara Email</button>
+      <div class="ps">
+        <h3>✉️ Invia a tutti i Distributori</h3>
+        <div class="fr"><label class="flb">Oggetto</label><input type="text" id="dist-subj" value="Programmazione dei vostri film — Cinema Multisala Teatro Mendrisio"></div>
+        <div style="background:var(--surf2);border:1px solid var(--bdr);border-radius:5px;padding:9px 12px;font-size:11px;color:var(--txt2);margin-bottom:10px">
+          ℹ️ Ogni distributore riceve solo i propri film con titolo, giorno e orario.
+        </div>
+        <div id="dist-preview" style="margin-bottom:10px"></div>
+        <button class="btn bg" style="width:100%;margin-bottom:7px" onclick="previewDist()">👁 Anteprima</button>
+        <button class="btn ba" style="width:100%" onclick="sendDistMails()">📧 Invia a tutti i distributori</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: MEDIA -->
+  <div id="mtab-media-content" style="display:none">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+      <div class="ps">
+        <h3>📰 Lista Media</h3>
+        <p style="font-size:11px;color:var(--txt2);margin-bottom:10px">Testate giornalistiche e siti ai quali inviare il programma per pubblicazione.</p>
+        <div style="display:flex;gap:7px;margin-bottom:10px">
+          <input type="text" id="media-name" placeholder="Nome testata" style="flex:1">
+          <input type="email" id="media-email" placeholder="email@media.com" style="flex:1">
+          <button class="btn ba" onclick="addMedia()">＋</button>
+        </div>
+        <div class="el" id="media-list"></div>
+      </div>
+      <div class="ps">
+        <h3>✉️ Invia ai Media</h3>
+        <div class="fr"><label class="flb">Oggetto</label><input type="text" id="media-subj" value="Programmazione Settimanale — Cinema Multisala Teatro Mendrisio"></div>
+        <div class="fr"><label class="flb">Note per i media</label><textarea id="media-note" placeholder="Comunicato stampa, note aggiuntive..."></textarea></div>
+        <div style="background:var(--surf2);border:1px solid var(--bdr);border-radius:5px;padding:9px 12px;font-size:11px;color:var(--txt2);margin-bottom:10px">
+          ℹ️ Ricevono il programma completo + link CSV per pubblicazione.
+        </div>
+        <button class="btn bg" style="width:100%;margin-bottom:7px" onclick="genCSVLink()">🔗 Genera Link CSV</button>
+        <div id="csv-link-box" style="display:none;background:var(--surf2);border:1px solid var(--bdr);border-radius:6px;padding:8px 12px;font-size:11px;font-family:'DM Mono',monospace;word-break:break-all;margin-bottom:10px;color:var(--acc)"></div>
+        <button class="btn ba" style="width:100%" onclick="sendMediaMails()">📧 Invia ai Media</button>
+      </div>
     </div>
   </div>
 </div>
@@ -849,12 +915,15 @@ function startListeners(){
     rs();rl();syncSet('ok','Sincronizzato');
   },()=>syncSet('err','Errore sync'));
   onSnapshot(doc(db,'settings','emails'),snap=>{S.emails=snap.exists()?snap.data().list||[]:[];rem();});
+  onSnapshot(doc(db,'settings','distributors'),snap=>{S.distributors=snap.exists()?snap.data().list||[]:[]; if(document.getElementById('dist-list'))renderDist();});
+  onSnapshot(doc(db,'settings','media'),snap=>{S.media=snap.exists()?snap.data().list||[]:[];if(document.getElementById('media-list'))renderMedia();});
 }
 async function fbSF(film){syncSet('busy','Salvataggio…');await setDoc(doc(db,'films',film.id),film);}
 async function fbDF(id){syncSet('busy','Salvataggio…');await deleteDoc(doc(db,'films',id));}
 async function fbSS(show){syncSet('busy','Salvataggio…');await setDoc(doc(db,'shows',show.id),show);}
 async function fbDS(id){syncSet('busy','Salvataggio…');await deleteDoc(doc(db,'shows',id));}
 async function fbSE(list){await setDoc(doc(db,'settings','emails'),{list});}
+async function fbSetDoc(db2,col,docId,data){await setDoc(doc(db2,col,docId),data);}
 
 // ── TABS ──────────────────────────────────────────────────
 const TABS=['prog','lista','arch','prnt','mail'];
@@ -1738,6 +1807,17 @@ window.pPDF=pPDF;
 
 
 // ── EMAIL ─────────────────────────────────────────────────
+
+// Mail tab navigation
+function gMailTab(t){
+  ['gen','dist','media'].forEach(x=>{
+    document.getElementById('mtab-'+x).classList.toggle('on',x===t);
+    document.getElementById('mtab-'+x+'-content').style.display=x===t?'block':'none';
+  });
+}
+window.gMailTab=gMailTab;
+
+// ── Destinatari generali ──
 async function addMail(){
   const v=document.getElementById('ne').value.trim();
   if(!v||!v.includes('@')){toast('Email non valida','err');return;}
@@ -1769,6 +1849,157 @@ function sendMail(){
   toast('Client email aperto','ok');
 }
 window.addMail=addMail;window.remMail=remMail;window.sendMail=sendMail;
+
+// ── Distributori ──
+async function addDist(){
+  const name=document.getElementById('dist-name').value.trim();
+  const email=document.getElementById('dist-email').value.trim();
+  if(!name||!email||!email.includes('@')){toast('Nome e email obbligatori','err');return;}
+  if(!S.distributors)S.distributors=[];
+  if(S.distributors.find(d=>d.email===email)){toast('Già presente','err');return;}
+  S.distributors.push({name,email});
+  document.getElementById('dist-name').value='';
+  document.getElementById('dist-email').value='';
+  await fbSetDoc(db,'settings','distributors',{list:S.distributors});
+  renderDist();toast('Distributore aggiunto','ok');
+}
+async function remDist(email){
+  S.distributors=S.distributors.filter(d=>d.email!==email);
+  await fbSetDoc(db,'settings','distributors',{list:S.distributors});
+  renderDist();
+}
+function renderDist(){
+  const w=document.getElementById('dist-list');
+  if(!S.distributors||!S.distributors.length){
+    w.innerHTML='<div style="color:var(--txt2);text-align:center;padding:10px;font-size:12px">Nessun distributore</div>';return;
+  }
+  w.innerHTML=S.distributors.map(d=>`<div class="ei"><span>🏢 <strong>${d.name}</strong> — ${d.email}</span><button class="btn bd bs" onclick="remDist('${d.email}')">✕</button></div>`).join('');
+}
+function previewDist(){
+  if(!S.distributors||!S.distributors.length){toast('Aggiungi distributori','err');return;}
+  const days=wdays();const wd=wdates();
+  const shows=S.shows.filter(s=>wd.includes(s.day));
+  const box=document.getElementById('dist-preview');
+  let html='';
+  S.distributors.forEach(dist=>{
+    // Find films by this distributor
+    const distFilms=S.films.filter(f=>(f.distributor||'').toLowerCase()===dist.name.toLowerCase());
+    if(!distFilms.length)return;
+    const distShows=shows.filter(s=>distFilms.find(f=>f.id===s.filmId));
+    if(!distShows.length)return;
+    html+=`<div style="margin-bottom:8px;padding:8px 10px;background:var(--surf2);border:1px solid var(--bdr);border-radius:6px;font-size:11px">
+      <strong style="color:var(--acc)">${dist.name}</strong> — ${dist.email}<br>
+      <span style="color:var(--txt2)">${distFilms.map(f=>f.title).join(', ')} (${distShows.length} spettacoli)</span>
+    </div>`;
+  });
+  box.innerHTML=html||'<div style="font-size:11px;color:var(--txt2)">Nessun film abbinato ai distributori presenti</div>';
+}
+function buildDistBody(dist){
+  const days=wdays();const wd=wdates();
+  const shows=S.shows.filter(s=>wd.includes(s.day));
+  const distFilms=S.films.filter(f=>(f.distributor||'').toLowerCase()===dist.name.toLowerCase());
+  if(!distFilms.length)return null;
+  const distShows=shows.filter(s=>distFilms.find(f=>f.id===s.filmId));
+  if(!distShows.length)return null;
+  let body=`Gentile ${dist.name},\n\ndi seguito la programmazione dei vostri film per la settimana ${fd(days[0])} - ${fd(days[6])}:\n\n`;
+  distFilms.forEach(film=>{
+    const fShows=distShows.filter(s=>s.filmId===film.id).sort((a,b)=>a.day.localeCompare(b.day)||a.start.localeCompare(b.start));
+    if(!fShows.length)return;
+    body+=`\n== ${film.title.toUpperCase()} ==\n`;
+    const byDay={};
+    fShows.forEach(s=>{if(!byDay[s.day])byDay[s.day]=[];byDay[s.day].push(s);});
+    Object.keys(byDay).sort().forEach(ds=>{
+      const di=wd.indexOf(ds);
+      const dayLabel=di>=0?DIT[di]+' '+fs(days[di]):ds;
+      const times=byDay[ds].map(s=>s.start+' ('+sn(s.sala)+')').join('  ');
+      body+=`${dayLabel}: ${times}\n`;
+    });
+  });
+  body+='\n——\nCinema Multisala Teatro Mendrisio';
+  return body;
+}
+async function sendDistMails(){
+  if(!S.distributors||!S.distributors.length){toast('Aggiungi distributori','err');return;}
+  const subj=encodeURIComponent(document.getElementById('dist-subj').value);
+  let sent=0;
+  for(const dist of S.distributors){
+    const body=buildDistBody(dist);
+    if(!body)continue;
+    window.open(`mailto:${dist.email}?subject=${subj}&body=${encodeURIComponent(body)}`,'_blank');
+    sent++;
+    await new Promise(r=>setTimeout(r,600));
+  }
+  toast(sent?`${sent} email preparate`:'Nessun film abbinato ai distributori','ok');
+}
+window.addDist=addDist;window.remDist=remDist;window.previewDist=previewDist;window.sendDistMails=sendDistMails;
+
+// ── Media ──
+async function addMedia(){
+  const name=document.getElementById('media-name').value.trim();
+  const email=document.getElementById('media-email').value.trim();
+  if(!name||!email||!email.includes('@')){toast('Nome e email obbligatori','err');return;}
+  if(!S.media)S.media=[];
+  if(S.media.find(m=>m.email===email)){toast('Già presente','err');return;}
+  S.media.push({name,email});
+  document.getElementById('media-name').value='';
+  document.getElementById('media-email').value='';
+  await fbSetDoc(db,'settings','media',{list:S.media});
+  renderMedia();toast('Media aggiunto','ok');
+}
+async function remMedia(email){
+  S.media=S.media.filter(m=>m.email!==email);
+  await fbSetDoc(db,'settings','media',{list:S.media});
+  renderMedia();
+}
+function renderMedia(){
+  const w=document.getElementById('media-list');
+  if(!S.media||!S.media.length){
+    w.innerHTML='<div style="color:var(--txt2);text-align:center;padding:10px;font-size:12px">Nessun media</div>';return;
+  }
+  w.innerHTML=S.media.map(m=>`<div class="ei"><span>📰 <strong>${m.name}</strong> — ${m.email}</span><button class="btn bd bs" onclick="remMedia('${m.email}')">✕</button></div>`).join('');
+}
+function genCSVLink(){
+  const days=wdays();const wd=wdates();
+  const shows=S.shows.filter(s=>wd.includes(s.day)).sort((a,b)=>a.day.localeCompare(b.day)||a.start.localeCompare(b.start));
+  let csv='Data,Giorno,Ora,Fine,Sala,Film,Durata,Distributore\n';
+  shows.forEach(s=>{
+    const film=S.films.find(f=>f.id===s.filmId);
+    const di=wd.indexOf(s.day);
+    const dataFmt=di>=0?fs(days[di]):'';
+    const giorno=di>=0?DIT[di]:'';
+    const row=[dataFmt,giorno,s.start,s.end,sn(s.sala),
+      '"'+(film?.title||'').replace(/"/g,'""')+'"',
+      film?.duration?Math.floor(film.duration/60)+'h'+String(film.duration%60).padStart(2,'0'):'',
+      '"'+(film?.distributor||'').replace(/"/g,'""')+'"'
+    ].join(',');
+    csv+=row+'\n';
+  });
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const box=document.getElementById('csv-link-box');
+  box.style.display='block';
+  box.innerHTML=`<a href="${url}" download="programmazione_${fd(days[0]).replace(/\//g,'-')}.csv" style="color:var(--acc)">⬇ Scarica CSV programmazione</a><br><span style="font-size:10px;color:var(--txt2)">${shows.length} spettacoli esportati</span>`;
+  toast('CSV pronto','ok');
+}
+async function sendMediaMails(){
+  if(!S.media||!S.media.length){toast('Aggiungi media','err');return;}
+  const subj=encodeURIComponent(document.getElementById('media-subj').value);
+  const note=document.getElementById('media-note').value;
+  const days=wdays();const wd=wdates();
+  const shows=S.shows.filter(s=>wd.includes(s.day)).sort((a,b)=>a.day.localeCompare(b.day)||a.start.localeCompare(b.start));
+  let body=`PROGRAMMAZIONE SETTIMANALE\nCinema Multisala Teatro Mendrisio\n${fd(days[0])} - ${fd(days[6])}\n\n`;
+  if(note)body+=note+'\n\n';
+  body+='——————————————\n';
+  shows.forEach(s=>{
+    const film=S.films.find(f=>f.id===s.filmId),di=wd.indexOf(s.day);
+    body+=`\n${di>=0?DIT[di]+' '+fs(days[di]):s.day}  ${s.start}  ${sn(s.sala)}  ${film?.title||'?'}`;
+  });
+  body+='\n\n——————————————\nInviato da CineManager\nhttps://lucamora1970.github.io/cinemanager';
+  const to=S.media.map(m=>m.email).join(',');
+  window.location.href=`mailto:${to}?subject=${subj}&body=${encodeURIComponent(body)}`;
+  toast('Client email aperto','ok');
+}
+window.addMedia=addMedia;window.remMedia=remMedia;window.genCSVLink=genCSVLink;window.sendMediaMails=sendMediaMails;
 
 // ── OTTIMIZZA ORARI ──────────────────────────────────────
 // State for optimize modal
