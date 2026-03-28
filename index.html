@@ -12,8 +12,14 @@
   --c1:#4a9ee8;--c2:#e89a3a;--c3:#3ae8aa;--c4:#c84ae8;
   --red:#e84a4a;--grn:#4ae87a;--shd:0 4px 28px rgba(0,0,0,.55);
 }
+body.light{
+  --bg:#f4f4f6;--surf:#ffffff;--surf2:#f0f0f4;--bdr:#d8d8e8;
+  --acc:#d4820a;--txt:#111118;--txt2:#55558a;
+  --c1:#1a6fb8;--c2:#c07010;--c3:#0a8860;--c4:#8020b8;
+  --red:#cc2222;--grn:#228844;--shd:0 4px 20px rgba(0,0,0,.12);
+}
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;font-size:14px;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;font-size:15px;}
 
 header{background:var(--surf);border-bottom:1px solid var(--bdr);padding:0 20px;
   display:flex;align-items:center;justify-content:space-between;height:58px;position:sticky;top:0;z-index:100;}
@@ -1651,8 +1657,9 @@ async function pPDF(type){
       const fS=allShows.filter(s=>s.filmId===fid);
       if(!film||!fS.length)return;
       const meta=[film.distributor,film.duration?durFmt(film.duration):'',film.rating||'',film.genre].filter(Boolean).join(' · ');
+      // byDay includes ALL shows for this film (not just current week)
       const byDay={};
-      fS.forEach(function(s){if(!byDay[s.day])byDay[s.day]=[];byDay[s.day].push(s);});
+      S.shows.filter(function(s){return s.filmId===fid;}).forEach(function(s){if(!byDay[s.day])byDay[s.day]=[];byDay[s.day].push(s);});
       // Martedi e Mercoledi settimana precedente
       const prevTue=new Date(days[0]);prevTue.setDate(prevTue.getDate()-2);
       const prevWed=new Date(days[0]);prevWed.setDate(prevWed.getDate()-1);
@@ -1895,6 +1902,16 @@ function toast(msg,t='ok'){
 }
 document.querySelectorAll('.ov').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('on');}));
 window.co=co;window.toast=toast;
+
+// ── THEME ───────────────────────────────────────────────
+function toggleTheme(){
+  const isLight=document.body.classList.toggle('light');
+  document.getElementById('btnTheme').textContent=isLight?'☽':'☀';
+  localStorage.setItem('cm_theme',isLight?'light':'dark');
+}
+// restore saved theme
+(function(){if(localStorage.getItem('cm_theme')==='light'){document.body.classList.add('light');const b=document.getElementById('btnTheme');if(b)b.textContent='☽';}})();
+window.toggleTheme=toggleTheme;
 
 // ── INIT ──────────────────────────────────────────────────
 uwl();
