@@ -196,6 +196,20 @@ select option{background:var(--surf2);}
 .wsp:hover{opacity:.85;}
 
 /* list */
+/* lista card per film */
+.lfc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px;}
+.lfc{background:var(--surf);border:1px solid var(--bdr);border-radius:10px;overflow:hidden;border-top:3px solid var(--acc);transition:transform .15s;}
+.lfc:hover{transform:translateY(-2px);border-color:var(--acc);}
+.lfc-head{padding:12px 14px 8px;border-bottom:1px solid var(--bdr);}
+.lfc-title{font-family:'Playfair Display',serif;font-size:14px;font-weight:700;margin-bottom:3px;}
+.lfc-meta{font-size:11px;color:var(--txt2);font-family:'DM Mono',monospace;}
+.lfc-count{display:inline-block;background:rgba(232,200,74,.12);color:var(--acc);border:1px solid rgba(232,200,74,.3);border-radius:4px;padding:1px 8px;font-size:10px;font-family:'DM Mono',monospace;margin-top:5px;}
+.lfc-days{padding:8px 14px 12px;display:flex;flex-direction:column;gap:6px;}
+.lfc-day-name{font-size:10px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}
+.lfc-slots{display:flex;flex-wrap:wrap;gap:4px;}
+.lfc-slot{display:inline-flex;align-items:center;gap:4px;background:var(--surf2);border:1px solid var(--bdr);border-radius:5px;padding:3px 8px;}
+.lfc-slot-time{font-weight:700;color:var(--txt);font-family:'DM Mono',monospace;font-size:11px;}
+.lfc-slot-sala{color:var(--txt2);font-size:10px;font-family:'DM Mono',monospace;}
 .lv{display:flex;flex-direction:column;gap:3px;}
 .li{display:grid;grid-template-columns:110px 1fr 90px 115px 105px 85px;gap:10px;
   align-items:center;background:var(--surf);border:1px solid var(--bdr);border-radius:6px;padding:8px 14px;}
@@ -526,10 +540,13 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
 <div id="page-lista" class="page">
   <div class="sh">
     <div class="st">Lista Spettacoli</div>
-    <select id="ls" onchange="rl()">
-      <option value="dt">Per Data/Ora</option><option value="sala">Per Sala</option>
-      <option value="film">Per Film</option><option value="day">Per Giorno</option>
-    </select>
+    <div style="display:flex;align-items:center;gap:10px"><span class="fl">Vista:</span>
+      <select id="ls" onchange="rl()">
+        <option value="cards">Card per Film</option>
+        <option value="dt">Lista per Data/Ora</option>
+        <option value="sala">Lista per Sala</option>
+        <option value="day">Lista per Giorno</option>
+      </select></div>
   </div>
   <div id="lw"></div>
 </div>
@@ -983,24 +1000,51 @@ function rl(){
   const sort=document.getElementById('ls').value;
   const wd=wdates();const days=wdays();
   let shows=S.shows.filter(s=>wd.includes(s.day));
+  const w=document.getElementById('lw');
+  if(!shows.length){w.innerHTML='<div class="empty"><div class="ei2">\u{1F3AC}</div><div class="et">Nessuno spettacolo questa settimana</div></div>';return;}
+
+  if(sort==='cards'){
+    const filmIds=[...new Set(shows.map(s=>s.filmId))];
+    const sortedFilms=filmIds.map(id=>S.films.find(f=>f.id===id)).filter(Boolean).sort((a,b)=>a.title.localeCompare(b.title,'it'));
+    let h='<div class="lfc-grid">';
+    sortedFilms.forEach(film=>{
+      const fShows=shows.filter(s=>s.filmId===film.id).sort((a,b)=>a.day.localeCompare(b.day)||a.start.localeCompare(b.start));
+      const byDay={};
+      fShows.forEach(s=>{if(!byDay[s.day])byDay[s.day]=[];byDay[s.day].push(s);});
+      const dur=film.duration?Math.floor(film.duration/60)+'h'+String(film.duration%60).padStart(2,'0'):'';
+      const meta=[film.distributor,dur,film.rating,film.genre].filter(Boolean).join(' \xb7 ');
+      h+=`<div class="lfc"><div class="lfc-head"><div class="lfc-title">${film.title}</div><div class="lfc-meta">${meta}</div><div class="lfc-count">${fShows.length} spettacol${fShows.length===1?'o':'i'}</div></div><div class="lfc-days">`;
+      Object.keys(byDay).sort().forEach(ds=>{
+        const di=wd.indexOf(ds);
+        const dayLabel=di>=0?DIT[di]+' '+fs(days[di]):'?';
+        h+=`<div><div class="lfc-day-name">${dayLabel}</div><div class="lfc-slots">`;
+        byDay[ds].forEach(s=>{
+          h+=`<span class="lfc-slot"><span class="lfc-slot-time">${s.start}</span><span class="lfc-slot-sala">${sn(s.sala)}</span></span>`;
+        });
+        h+='</div></div>';
+      });
+      h+='</div></div>';
+    });
+    h+='</div>';
+    w.innerHTML=h;
+    return;
+  }
+
   if(sort==='dt')  shows.sort((a,b)=>a.day.localeCompare(b.day)||a.start.localeCompare(b.start));
   if(sort==='sala')shows.sort((a,b)=>a.sala-b.sala||a.day.localeCompare(b.day)||a.start.localeCompare(b.start));
-  if(sort==='film')shows.sort((a,b)=>(S.films.find(f=>f.id===a.filmId)?.title||'').localeCompare(S.films.find(f=>f.id===b.filmId)?.title||'','it'));
   if(sort==='day') shows.sort((a,b)=>a.day.localeCompare(b.day)||a.sala-b.sala||a.start.localeCompare(b.start));
-  const w=document.getElementById('lw');
-  if(!shows.length){w.innerHTML=`<div class="empty"><div class="ei2">🎬</div><div class="et">Nessuno spettacolo questa settimana</div></div>`;return;}
-  let h=`<div class="lv"><div class="li lih"><span>GIORNO</span><span>FILM</span><span>SALA</span><span>INIZIO→FINE</span><span>DURATA+INT.</span><span>AZIONI</span></div>`;
+  let h=`<div class="lv"><div class="li lih"><span>GIORNO</span><span>FILM</span><span>SALA</span><span>INIZIO\u2192FINE</span><span>DURATA</span><span>AZIONI</span></div>`;
   shows.forEach(s=>{
     const film=S.films.find(f=>f.id===s.filmId),di=wd.indexOf(s.day);
     h+=`<div class="li">
       <span>${di>=0?DIT[di]+' '+fs(days[di]):s.day}</span>
-      <span style="font-weight:600">${film?.title||'—'}</span>
+      <span style="font-weight:600">${film?.title||'\u2014'}</span>
       <span><span class="sb ${SALE[s.sala]?.bc||''}">${sn(s.sala)}</span></span>
-      <span style="font-family:'DM Mono',monospace;font-size:12px">${s.start} → ${s.end}</span>
-      <span style="font-size:11px;color:var(--txt2)">${film?.duration||0}' + ${s.interval}'</span>
+      <span style="font-family:'DM Mono',monospace;font-size:12px">${s.start} \u2192 ${s.end}</span>
+      <span style="font-size:11px;color:var(--txt2)">${film?.duration||0}'</span>
       <div class="lac">
-        <button class="btn bg bs" onclick="editShow('${s.id}')">✏</button>
-        <button class="btn bd bs" onclick="delShow('${s.id}')">✕</button>
+        <button class="btn bg bs" onclick="editShow('${s.id}')">&#9999;</button>
+        <button class="btn bd bs" onclick="delShow('${s.id}')">&#10005;</button>
       </div>
     </div>`;
   });
@@ -1609,14 +1653,20 @@ async function pPDF(type){
       const meta=[film.distributor,film.duration?durFmt(film.duration):'',film.rating||'',film.genre].filter(Boolean).join(' · ');
       const byDay={};
       fS.forEach(function(s){if(!byDay[s.day])byDay[s.day]=[];byDay[s.day].push(s);});
-      const dayCells=days.map(function(d,di){
+      // Martedi e Mercoledi settimana precedente
+      const prevTue=new Date(days[0]);prevTue.setDate(prevTue.getDate()-2);
+      const prevWed=new Date(days[0]);prevWed.setDate(prevWed.getDate()-1);
+      const allCartDays=[prevTue,prevWed].concat(days);
+      const allCartDAB=['Mar','Mer'].concat(DAB);
+      const dayCells=allCartDays.map(function(d,di){
         const ds=d.toISOString().slice(0,10);
         const dS=byDay[ds]||[];
-        const dn=DAB[di]+' '+String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0');
+        const isPrev=di<2;
+        const dn=allCartDAB[di]+' '+String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+(isPrev?' ▸':' ');
         const rows=dS.length
           ? dS.map(function(s){return '<div class="cart-show-row"><span class="cart-show-time">'+s.start+'</span><span class="cart-show-sala">'+sn(s.sala)+'</span></div>';}).join('')
           : '<div class="cart-no-show">—</div>';
-        return '<div class="cart-day-card">'
+        return '<div class="cart-day-card'+(isPrev?' cart-prev-day':'')+'">'
           +'<div class="cart-day-head"><div class="cart-day-name">'+dn+'</div></div>'
           +'<div class="cart-day-body">'+rows+'</div>'
           +'</div>';
