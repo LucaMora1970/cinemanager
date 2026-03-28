@@ -542,6 +542,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
   <div class="tab"     onclick="gt('arch')">🎬 Archivio Film</div>
   <div class="tab"     onclick="gt('prnt')">🖨 Stampa & PDF</div>
   <div class="tab"     onclick="gt('mail')">📧 Email</div>
+  <div class="tab" id="tab-book" onclick="gt('book')">📋 Prenotazioni</div>
   <div class="tab" id="tab-users" onclick="gt('users')" style="display:none">👥 Utenti</div>
 </div>
 
@@ -565,6 +566,23 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     </div>
   </div>
   <div id="sw"></div>
+  <!-- OPEN AIR SECTION -->
+  <div id="oa-section" style="display:none">
+    <div class="oa-section">
+      <div class="oa-header">
+        <div class="oa-title"><span class="oa-star">★</span> CineTour Open Air</div>
+        <div class="oa-toggle-wrap">
+          <span id="oa-count" class="oa-count" style="display:none"></span>
+          <label class="toggle" title="Attiva/Disattiva OpenAir">
+            <input type="checkbox" id="oaToggle" onchange="toggleOA(this.checked)">
+            <span class="toggle-slider"></span>
+          </label>
+          <span style="font-size:11px;color:rgba(255,255,255,.7)">Attivo</span>
+        </div>
+      </div>
+      <div id="oa-body"></div>
+    </div>
+  </div>
 </div>
 
 <!-- LISTA -->
@@ -732,6 +750,27 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
   </div>
 </div>
 
+<!-- PRENOTAZIONI -->
+<div id="page-book" class="page">
+  <div class="sh">
+    <div class="st">Prenotazioni</div>
+    <button class="btn ba" id="btnAddBook" onclick="openBook()">＋ Nuova Prenotazione</button>
+  </div>
+  <div class="ctl">
+    <div class="fg"><span class="fl">Filtro:</span>
+      <select id="book-filter" onchange="renderBookings()">
+        <option value="upcoming">Prossime</option>
+        <option value="all">Tutte</option>
+        <option value="privato">Solo Privati</option>
+        <option value="compleanno">Solo Compleanni</option>
+        <option value="scolastica">Solo Scolastiche</option>
+        <option value="ricorrente">Solo Ricorrenti</option>
+      </select>
+    </div>
+  </div>
+  <div id="book-list" class="book-grid"></div>
+</div>
+
 <!-- UTENTI (solo admin) -->
 <div id="page-users" class="page">
   <div class="sh">
@@ -744,7 +783,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
       <div style="display:flex;gap:7px;margin-bottom:10px">
         <input type="email" id="new-user-email" placeholder="email@gmail.com" style="flex:1">
         <input type="text" id="new-user-name" placeholder="Nome" style="width:120px">
-        <select id="new-user-role" style="width:100px"><option value="operator">Operatore</option><option value="admin">Admin</option></select>
+        <select id="new-user-role" style="width:100px"><option value="operator">Operatore</option><option value="segretaria">Segretaria</option><option value="admin">Admin</option></select>
         <button class="btn ba" onclick="addUser()">＋</button>
       </div>
       <div class="el" id="users-list" style="max-height:350px"></div>
@@ -779,9 +818,10 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     </div>
     <div class="fgr">
       <div class="fr"><label class="flb">Sala *</label>
-        <select id="mSala" onchange="ce()">
+        <select id="mSala" onchange="ce();toggleLocation()">
           <option value="1">Teatro</option><option value="2">Ciak</option>
           <option value="3">1908</option><option value="4">Mignon</option>
+          <option value="OA1">★ CineTour A</option><option value="OA2">★ CineTour B</option>
         </select>
       </div>
       <div class="fr"><label class="flb">Giorno *</label><select id="mDay"></select></div>
@@ -808,6 +848,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div id="cb" class="cbox" style="display:none"></div>
     <div id="cfb" class="cfbox" style="display:none"><span class="cbadge">⚠ Conflitto orario nella sala selezionata</span></div>
     <div id="suggBox" style="display:none"></div>
+    <div class="fr" id="locationRow" style="display:none"><label class="flb">Luogo Open Air *</label><input type="text" id="mLocation" placeholder="Es. Piazza Grande Mendrisio, Parco Besso Lugano..."></div>
     <div class="fr" style="margin-top:10px"><label class="flb">Note</label><textarea id="mNote"></textarea></div>
     <input type="hidden" id="mId">
     <div class="mft">
@@ -907,6 +948,104 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
 
 <div class="toast" id="tst"></div>
 
+<!-- MODAL PRENOTAZIONE -->
+<div class="ov" id="ovBook">
+  <div class="modal modal-wide">
+    <div class="mtitle" id="ovBookT">Nuova Prenotazione</div>
+
+    <!-- Tipo evento -->
+    <div class="fgr">
+      <div class="fr"><label class="flb">Tipo evento *</label>
+        <select id="bType">
+          <option value="compleanno">Compleanno / Ricorrenza</option>
+          <option value="privato">Evento Privato</option>
+          <option value="scolastica">Proiezione Scolastica</option>
+          <option value="ricorrente">Evento Ricorrente</option>
+        </select>
+      </div>
+      <div class="fr"><label class="flb">Posti riservati</label>
+        <input type="number" id="bSeats" min="1" max="500" placeholder="es. 20 — lascia vuoto = sala intera">
+      </div>
+    </div>
+
+    <!-- Nome e contatto cliente -->
+    <div class="fgr">
+      <div class="fr"><label class="flb">Nome cliente / evento *</label>
+        <input type="text" id="bName" placeholder="Es. Compleanno Rossi, Classe 3A Scuola Media...">
+      </div>
+      <div class="fr"><label class="flb">Contatto (tel / email)</label>
+        <input type="text" id="bContact" placeholder="Tel o email del referente">
+      </div>
+    </div>
+
+    <!-- Film: aggancia a spettacolo O inserisci manualmente -->
+    <div class="fr">
+      <label class="flb">Film e spettacolo</label>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <button type="button" class="btn bg bs" id="bModeExist" onclick="setBMode('exist')" style="flex:1">📅 Aggancia a spettacolo esistente</button>
+        <button type="button" class="btn bg bs" id="bModeManual" onclick="setBMode('manual')" style="flex:1">✏ Inserisci manualmente</button>
+      </div>
+      <!-- Existing show picker -->
+      <div id="bExistPanel" style="display:none">
+        <div class="fgr3">
+          <div><label class="flb">Settimana</label>
+            <select id="bWeekSel" onchange="fillBShows()">
+              <option value="cur">Settimana corrente</option>
+              <option value="next">Settimana prossima</option>
+            </select>
+          </div>
+          <div><label class="flb">Film</label>
+            <select id="bFilmSel" onchange="fillBShowTimes()"><option value="">— Seleziona —</option></select>
+          </div>
+          <div><label class="flb">Spettacolo</label>
+            <select id="bShowSel" onchange="onBShowSelect()"><option value="">— Seleziona —</option></select>
+          </div>
+        </div>
+        <div id="bShowInfo" style="display:none;background:var(--surf2);border:1px solid var(--bdr);border-radius:6px;padding:8px 12px;font-size:11px;font-family:'DM Mono',monospace;color:var(--acc);margin-top:6px"></div>
+      </div>
+      <!-- Manual entry -->
+      <div id="bManualPanel" style="display:none">
+        <div class="fgr">
+          <div class="fr"><label class="flb">Film (dall'archivio)</label>
+            <select id="bFilmManual"><option value="">— Nessun film specifico —</option></select>
+          </div>
+          <div class="fr"><label class="flb">Sala</label>
+            <select id="bSala">
+              <option value="1">Teatro</option><option value="2">Ciak</option>
+              <option value="3">1908</option><option value="4">Mignon</option>
+            </select>
+          </div>
+        </div>
+        <div class="fr">
+          <label class="flb">Date e orari</label>
+          <div style="display:flex;gap:7px;margin-bottom:6px">
+            <input type="date" id="bDateInput" style="flex:1">
+            <input type="time" id="bStart" value="20:30">
+            <span style="align-self:center;color:var(--txt2);font-size:12px">→</span>
+            <input type="time" id="bEnd" value="22:30">
+            <button type="button" class="btn ba" onclick="addBookDate()">＋</button>
+          </div>
+          <div class="date-chips" id="bDates"></div>
+          <div style="font-size:10px;color:var(--txt2);margin-top:4px">Per eventi ricorrenti aggiungi tutte le date</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="fr"><label class="flb">Note</label>
+      <textarea id="bNote" placeholder="Richieste speciali, menu, decorazioni, info tecnici..."></textarea>
+    </div>
+
+    <input type="hidden" id="bId">
+    <input type="hidden" id="bMode" value="manual">
+    <input type="hidden" id="bLinkedShowId">
+
+    <div class="mft">
+      <button class="btn bg" onclick="co('ovBook')">Annulla</button>
+      <button class="btn ba" onclick="svBook()">Salva Prenotazione</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL OTTIMIZZA ORARI -->
 <div class="ov" id="ovOpt">
   <div class="modal">
@@ -946,10 +1085,11 @@ const SALE={
   '3':{n:'1908',  hc:'sgh3',sc:'sp3',bc:'sb3',col:'#3ae8aa'},
   '4':{n:'Mignon',hc:'sgh4',sc:'sp4',bc:'sb4',col:'#c84ae8'},
 };
-const sn=id=>SALE[id]?.n||'Sala '+id;
+const OA_SALES={'OA1':{n:'CineTour A',col:'#0d5c8a'},'OA2':{n:'CineTour B',col:'#1a7a5c'}};
+const sn=id=>SALE[id]?.n||(OA_SALES[id]?.n)||'Sala '+id;
 
 // ── STATE ─────────────────────────────────────────────────
-let S={films:[],shows:[],emails:[],ws:thurDay(new Date())};
+let S={films:[],shows:[],bookings:[],oaShows:[],oaActive:false,emails:[],ws:thurDay(new Date())};
 
 // ── DATE ──────────────────────────────────────────────────
 function thurDay(d){const dt=new Date(d),dy=dt.getDay(),diff=dy>=4?dy-4:dy+3;dt.setDate(dt.getDate()-diff);dt.setHours(0,0,0,0);return dt;}
@@ -982,6 +1122,9 @@ function startListeners(){
     rs();rl();syncSet('ok','Sincronizzato');
   },()=>syncSet('err','Errore sync'));
   onSnapshot(doc(db,'settings','emails'),snap=>{S.emails=snap.exists()?snap.data().list||[]:[];rem();});
+  onSnapshot(collection(db,'bookings'),snap=>{S.bookings=snap.docs.map(d=>({id:d.id,...d.data()}));rs();renderBookings();});
+  onSnapshot(collection(db,'oaShows'),snap=>{S.oaShows=snap.docs.map(d=>({id:d.id,...d.data()}));renderOA();});
+  onSnapshot(doc(db,'settings','oa'),snap=>{S.oaActive=snap.exists()?snap.data().active||false:false;renderOAToggle();renderOA();});
   onSnapshot(doc(db,'settings','distributors'),snap=>{S.distributors=snap.exists()?snap.data().list||[]:[]; if(document.getElementById('dist-list'))renderDist(); fillFilmDistDropdown();});
   onSnapshot(doc(db,'settings','media'),snap=>{S.media=snap.exists()?snap.data().list||[]:[];if(document.getElementById('media-list'))renderMedia();});
 }
@@ -993,7 +1136,7 @@ async function fbSE(list){await setDoc(doc(db,'settings','emails'),{list});}
 async function fbSetDoc(db2,col,docId,data){await setDoc(doc(db2,col,docId),data);}
 
 // ── TABS ──────────────────────────────────────────────────
-const TABS=['prog','lista','arch','prnt','mail','users'];
+const TABS=['prog','lista','arch','prnt','mail','book','users'];
 function gt(id){
   document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('on',TABS[i]===id));
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
@@ -1108,7 +1251,30 @@ function rs(){
         // Shows whose nearest fascia is this rowKey
         const rowShows=salaShows.filter(s=>nearestFascia(s.start)===rowKey);
 
+        // Bookings for this sala/day that fall in this row slot
+        const rowBookings=(S.bookings||[]).filter(function(b){
+          if(b.sala!=sid)return false;
+          return (b.dates||[]).some(function(bd){
+            return bd.date===ds&&nearestFascia(bd.start)===rowKey;
+          });
+        });
+
         html.push(`<div class="sg-cell${isMain?' main-slot-row':''}" onclick="openShowSlot('${ds}','${rowKey}','${sid}')">`);
+
+        // Render bookings first
+        rowBookings.forEach(function(b){
+          const bDate=(b.dates||[]).find(function(bd){return bd.date===ds;});
+          const canEdit=currentUser&&(currentUser.role==='admin'||currentUser.role==='segretaria'||currentUser.role==='operator');
+          const bpDiv=document.createElement('div');
+          bpDiv.className='book-pill';
+          if(canEdit){bpDiv.onclick=function(e){e.stopPropagation();editBook(b.id);}; const bpDel=document.createElement('button');bpDel.className='bp-del';bpDel.textContent='×';bpDel.onclick=function(e){e.stopPropagation();delBook(b.id);};bpDiv.appendChild(bpDel);}
+          const bFilm=b.filmId?S.films.find(function(f){return f.id===b.filmId;}):null;
+          bpDiv.innerHTML+='<div class="book-pill-type">'+(BOOK_TYPES[b.type]||b.type)+'</div>'
+            +'<div class="book-pill-name">'+b.name+'</div>'
+            +(bFilm?'<div class="book-pill-time" style="color:var(--acc)">'+bFilm.title+'</div>':'')
+            +(b.seats?'<div class="book-pill-seats">'+b.seats+' posti riservati</div>':'');
+          html.push(bpDiv.outerHTML);
+        });
 
         if(rowShows.length){
           html.push(`<div class="add-above" onclick="event.stopPropagation();openShowSlot('${ds}','${rowKey}','${sid}')" title="Aggiungi spettacolo in questa fascia">＋ aggiungi</div>`);
@@ -1296,6 +1462,8 @@ function editShow(id){
   document.getElementById('mStart').value=s.start;
   document.getElementById('mInt').value=s.interval;
   document.getElementById('mNote').value=s.note||'';
+  if(document.getElementById('mLocation'))document.getElementById('mLocation').value=s.location||'';
+  toggleLocation();
   document.getElementById('mId').value=id;
   document.getElementById('suggBox').style.display='none';
   syncFasce();ce();
@@ -1333,12 +1501,19 @@ async function svShow(){
   const intv=parseInt(document.getElementById('mInt').value),note=document.getElementById('mNote').value;
   const eid=document.getElementById('mId').value;
   if(!fid||!stRaw){toast('Seleziona film e ora inizio','err');return;}
-  const st=r5(stRaw); // always round down to nearest 5 min
+  const st=r5(stRaw);
   const film=S.films.find(f=>f.id===fid),end=am(st,film.duration);
-  const show={id:eid||uid(),filmId:fid,sala,day,start:st,end,interval:intv,note};
-  await fbSS(show);co('ovS');toast(eid?'Aggiornato':'Aggiunto','ok');
+  const location=document.getElementById('mLocation')?.value||'';
+  const isOA=sala==='OA1'||sala==='OA2';
+  const show={id:eid||uid(),filmId:fid,sala,day,start:st,end,interval:intv,note,location:isOA?location:''};
+  if(isOA){
+    await setDoc(doc(db,'oaShows',show.id),show);
+    co('ovS');toast(eid?'Aggiornato':'Aggiunto','ok');
+  } else {
+    await fbSS(show);co('ovS');toast(eid?'Aggiornato':'Aggiunto','ok');
+  }
 }
-async function delShow(id){if(!confirm('Eliminare?'))return;await fbDS(id);toast('Eliminato','ok');}
+async function delShow(id){if(!confirm('Eliminare?'))return;const s=S.shows.find(x=>x.id===id)||S.oaShows.find(x=>x.id===id);if(s&&(s.sala==='OA1'||s.sala==='OA2')){await deleteDoc(doc(db,'oaShows',id));}else{await fbDS(id);}toast('Eliminato','ok');}
 window.openShow=openShow;window.openShowSlot=openShowSlot;window.editShow=editShow;
 window.ce=ce;window.svShow=svShow;window.delShow=delShow;
 
@@ -1654,6 +1829,49 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:8.5px;color:#111;backgroun
 .D-row:last-child{border-bottom:none;}
 .D-t{font-weight:700;}.D-s{color:#555;font-size:7.5px;}.D-f{}.D-d{color:#aaa;font-size:7px;}
 /* ── CARTELLO ── */
+
+
+/* ── OPEN AIR ── */
+.oa-section{margin-top:16px;border:1px solid var(--bdr);border-radius:10px;overflow:hidden;}
+.oa-header{background:linear-gradient(135deg,#1a3a5c,#0d5c8a);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;}
+.oa-title{font-family:'Playfair Display',serif;font-size:15px;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px;}
+.oa-star{color:#f0c040;font-size:16px;}
+.oa-days{display:grid;gap:0;}
+.oa-day{border-bottom:1px solid var(--bdr);padding:8px 14px;display:grid;grid-template-columns:90px 1fr;gap:10px;align-items:start;}
+.oa-day:last-child{border-bottom:none;}
+.oa-day-name{font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.4px;padding-top:2px;}
+.oa-cards{display:flex;flex-direction:column;gap:5px;}
+.oa-card{background:rgba(13,92,138,.08);border:1px solid rgba(13,92,138,.2);border-left:3px solid #0d5c8a;border-radius:5px;padding:5px 9px;position:relative;cursor:pointer;transition:transform .1s;}
+.oa-card:hover{transform:translateX(2px);}
+.oa-label{font-size:9px;font-weight:700;color:#0d5c8a;text-transform:uppercase;letter-spacing:.5px;}
+.oa-film{font-size:11px;font-weight:600;color:var(--txt);margin-top:1px;}
+.oa-location{font-size:10px;color:var(--txt2);}
+.oa-time{font-size:10px;font-family:'DM Mono',monospace;color:var(--txt2);}
+.oa-del{position:absolute;top:3px;right:3px;background:none;border:none;color:var(--txt2);cursor:pointer;font-size:13px;opacity:0;padding:0;}
+.oa-card:hover .oa-del{opacity:1;}.oa-del:hover{color:var(--red);}
+.oa-empty{font-size:11px;color:var(--txt2);padding:4px 0;font-style:italic;}
+.oa-add{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--txt2);padding:4px 0;cursor:pointer;}
+.oa-add:hover{color:var(--acc);}
+.oa-toggle-wrap{display:flex;align-items:center;gap:8px;}
+.oa-count{font-size:10px;background:rgba(240,192,64,.2);color:#f0c040;border:1px solid rgba(240,192,64,.3);border-radius:4px;padding:1px 7px;font-family:'DM Mono',monospace;}
+
+/* ── PRENOTAZIONI ── */
+.book-pill{border-radius:5px;padding:5px 7px;margin-bottom:3px;border-left:3px solid #e84a4a;background:rgba(232,74,74,.12);position:relative;cursor:pointer;transition:transform .1s;}
+.book-pill:hover{transform:translateX(2px);}
+.book-pill-type{font-size:9px;font-weight:700;color:#e84a4a;text-transform:uppercase;letter-spacing:.5px;}
+.book-pill-name{font-size:11px;font-weight:600;color:var(--txt);line-height:1.3;}
+.book-pill-time{font-size:10px;color:var(--txt2);font-family:'DM Mono',monospace;margin-top:1px;}
+.book-pill-seats{font-size:9px;color:#e84a4a;}
+.bp-del{position:absolute;top:3px;right:3px;background:none;border:none;color:var(--txt2);cursor:pointer;font-size:13px;opacity:0;padding:0;}
+.book-pill:hover .bp-del{opacity:1;}.bp-del:hover{color:var(--red);}
+.date-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;min-height:32px;padding:4px;background:var(--surf2);border:1px solid var(--bdr);border-radius:6px;}
+.date-chip{display:inline-flex;align-items:center;gap:4px;background:rgba(232,74,74,.15);border:1px solid rgba(232,74,74,.3);color:var(--red);border-radius:4px;padding:2px 8px;font-size:11px;font-family:'DM Mono',monospace;}
+.date-chip button{background:none;border:none;color:var(--red);cursor:pointer;font-size:12px;padding:0;line-height:1;}
+.book-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;}
+.book-card{background:var(--surf);border:1px solid var(--bdr);border-top:3px solid #e84a4a;border-radius:8px;padding:12px 14px;}
+.book-card-type{font-size:10px;font-weight:700;color:#e84a4a;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+.book-card-name{font-size:14px;font-weight:700;margin-bottom:4px;}
+.book-card-info{font-size:11px;color:var(--txt2);line-height:1.7;}
 .cart-page{
   page-break-after:always;
   display:grid;
@@ -1704,13 +1922,58 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:8.5px;color:#111;backgroun
 .fc-slot-sala{font-size:7px;font-weight:400;color:#888;margin-left:2px;}
 @page{size:A4 portrait;margin:15mm;}
 @page cartello{size:A4 landscape;margin:12mm;}
+
+
+/* ── OPEN AIR ── */
+.oa-section{margin-top:16px;border:1px solid var(--bdr);border-radius:10px;overflow:hidden;}
+.oa-header{background:linear-gradient(135deg,#1a3a5c,#0d5c8a);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;}
+.oa-title{font-family:'Playfair Display',serif;font-size:15px;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px;}
+.oa-star{color:#f0c040;font-size:16px;}
+.oa-days{display:grid;gap:0;}
+.oa-day{border-bottom:1px solid var(--bdr);padding:8px 14px;display:grid;grid-template-columns:90px 1fr;gap:10px;align-items:start;}
+.oa-day:last-child{border-bottom:none;}
+.oa-day-name{font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.4px;padding-top:2px;}
+.oa-cards{display:flex;flex-direction:column;gap:5px;}
+.oa-card{background:rgba(13,92,138,.08);border:1px solid rgba(13,92,138,.2);border-left:3px solid #0d5c8a;border-radius:5px;padding:5px 9px;position:relative;cursor:pointer;transition:transform .1s;}
+.oa-card:hover{transform:translateX(2px);}
+.oa-label{font-size:9px;font-weight:700;color:#0d5c8a;text-transform:uppercase;letter-spacing:.5px;}
+.oa-film{font-size:11px;font-weight:600;color:var(--txt);margin-top:1px;}
+.oa-location{font-size:10px;color:var(--txt2);}
+.oa-time{font-size:10px;font-family:'DM Mono',monospace;color:var(--txt2);}
+.oa-del{position:absolute;top:3px;right:3px;background:none;border:none;color:var(--txt2);cursor:pointer;font-size:13px;opacity:0;padding:0;}
+.oa-card:hover .oa-del{opacity:1;}.oa-del:hover{color:var(--red);}
+.oa-empty{font-size:11px;color:var(--txt2);padding:4px 0;font-style:italic;}
+.oa-add{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--txt2);padding:4px 0;cursor:pointer;}
+.oa-add:hover{color:var(--acc);}
+.oa-toggle-wrap{display:flex;align-items:center;gap:8px;}
+.oa-count{font-size:10px;background:rgba(240,192,64,.2);color:#f0c040;border:1px solid rgba(240,192,64,.3);border-radius:4px;padding:1px 7px;font-family:'DM Mono',monospace;}
+
+/* ── PRENOTAZIONI ── */
+.book-pill{border-radius:5px;padding:5px 7px;margin-bottom:3px;border-left:3px solid #e84a4a;background:rgba(232,74,74,.12);position:relative;cursor:pointer;transition:transform .1s;}
+.book-pill:hover{transform:translateX(2px);}
+.book-pill-type{font-size:9px;font-weight:700;color:#e84a4a;text-transform:uppercase;letter-spacing:.5px;}
+.book-pill-name{font-size:11px;font-weight:600;color:var(--txt);line-height:1.3;}
+.book-pill-time{font-size:10px;color:var(--txt2);font-family:'DM Mono',monospace;margin-top:1px;}
+.book-pill-seats{font-size:9px;color:#e84a4a;}
+.bp-del{position:absolute;top:3px;right:3px;background:none;border:none;color:var(--txt2);cursor:pointer;font-size:13px;opacity:0;padding:0;}
+.book-pill:hover .bp-del{opacity:1;}.bp-del:hover{color:var(--red);}
+.date-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;min-height:32px;padding:4px;background:var(--surf2);border:1px solid var(--bdr);border-radius:6px;}
+.date-chip{display:inline-flex;align-items:center;gap:4px;background:rgba(232,74,74,.15);border:1px solid rgba(232,74,74,.3);color:var(--red);border-radius:4px;padding:2px 8px;font-size:11px;font-family:'DM Mono',monospace;}
+.date-chip button{background:none;border:none;color:var(--red);cursor:pointer;font-size:12px;padding:0;line-height:1;}
+.book-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;}
+.book-card{background:var(--surf);border:1px solid var(--bdr);border-top:3px solid #e84a4a;border-radius:8px;padding:12px 14px;}
+.book-card-type{font-size:10px;font-weight:700;color:#e84a4a;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+.book-card-name{font-size:14px;font-weight:700;margin-bottom:4px;}
+.book-card-info{font-size:11px;color:var(--txt2);line-height:1.7;}
 .cart-page{page:cartello;}
 </style>`;
 
 async function pPDF(type){
   const days=wdays();const wd=wdates();
   const CN='Cinema Multisala Teatro Mendrisio';
-  const allShows=S.shows.filter(s=>wd.includes(s.day)).sort((a,b)=>a.day.localeCompare(b.day)||a.start.localeCompare(b.start));
+  // Include OpenAir shows if active
+  const oaFiltered=S.oaActive?(S.oaShows||[]).filter(s=>wd.includes(s.day)).map(function(s){return Object.assign({},s,{_oa:true});}) : [];
+  const allShows=S.shows.filter(s=>wd.includes(s.day)).concat(oaFiltered).sort((a,b)=>a.day.localeCompare(b.day)||a.start.localeCompare(b.start));
   const wl=fd(days[0])+' \u2014 '+fd(days[6]);
   const DAB=['Gio','Ven','Sab','Dom','Lun','Mar','Mer'];
   const now=new Date().toLocaleDateString('it-IT');
@@ -1782,7 +2045,7 @@ async function pPDF(type){
       html+='<div class="D-chapter"><span class="D-day">'+DIT[di]+' '+String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'</span><span class="D-line"></span></div>';
       dS.forEach(function(s){
         const film=S.films.find(f=>f.id===s.filmId);
-        html+='<div class="D-row"><span class="D-t">'+s.start+'</span><span class="D-s">'+sn(s.sala)+'</span><span class="D-f">'+(film?film.title:'?')+'</span><span class="D-d">'+(film&&film.duration?durFmt(film.duration):'')+'</span></div>';
+        html+='<div class="D-row"><span class="D-t">'+s.start+'</span><span class="D-s">'+snPDF(s)+'</span><span class="D-f">'+(film?film.title:'?')+'</span><span class="D-d">'+(film&&film.duration?durFmt(film.duration):'')+'</span></div>';
       });
     });
     html+='</div>';
@@ -2146,6 +2409,335 @@ async function sendMediaMails(){
 }
 window.addMedia=addMedia;window.remMedia=remMedia;window.genCSVLink=genCSVLink;window.sendMediaMails=sendMediaMails;
 
+
+
+// ── OPEN AIR ─────────────────────────────────────────────
+function toggleLocation(){
+  const sala=document.getElementById('mSala').value;
+  const isOA=sala==='OA1'||sala==='OA2';
+  document.getElementById('locationRow').style.display=isOA?'block':'none';
+  if(isOA&&!document.getElementById('mStart').value){
+    document.getElementById('mStart').value='21:30';
+    syncFasce();ce();
+  }
+}
+async function toggleOA(active){
+  S.oaActive=active;
+  await setDoc(doc(db,'settings','oa'),{active});
+  renderOAToggle();renderOA();
+}
+function renderOAToggle(){
+  const sec=document.getElementById('oa-section');
+  if(sec)sec.style.display='block';
+  const tog=document.getElementById('oaToggle');
+  if(tog)tog.checked=S.oaActive;
+}
+function renderOA(){
+  const body=document.getElementById('oa-body');
+  if(!body)return;
+  if(!S.oaActive){
+    body.innerHTML='<div style="padding:12px 16px;font-size:12px;color:var(--txt2)">Attiva il toggle per gestire le proiezioni Open Air</div>';
+    return;
+  }
+  const days=wdays();const wd=wdates();
+  const oaCount=S.oaShows.filter(function(s){return wd.includes(s.day);}).length;
+  const cnt=document.getElementById('oa-count');
+  if(cnt){cnt.style.display=oaCount?'inline':'none';cnt.textContent=oaCount+' proiezioni';}
+  const canEdit=!!currentUser;
+  body.innerHTML='';
+  ['OA1','OA2'].forEach(function(oaId){
+    const oaInfo=OA_SALES[oaId];
+    const wrap=document.createElement('div');
+    wrap.style.cssText='padding:10px 16px;border-bottom:1px solid var(--bdr)';
+    const head=document.createElement('div');
+    head.style.cssText='font-size:12px;font-weight:700;color:var(--txt);margin-bottom:8px;display:flex;align-items:center;gap:6px';
+    head.innerHTML='<span style="width:10px;height:10px;border-radius:50%;background:'+oaInfo.col+';display:inline-block"></span>'+oaInfo.n;
+    wrap.appendChild(head);
+    const grid=document.createElement('div');
+    grid.style.cssText='display:grid;grid-template-columns:repeat(7,1fr);gap:6px';
+    days.forEach(function(d,di){
+      const ds=d.toISOString().slice(0,10);
+      const dayShow=S.oaShows.find(function(s){return s.sala===oaId&&s.day===ds;});
+      const cell=document.createElement('div');
+      cell.style.cssText='background:var(--surf2);border:1px solid var(--bdr);border-radius:6px;padding:6px;min-height:70px';
+      const dayLabel=DIT[di].slice(0,3)+' '+String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0');
+      const dlEl=document.createElement('div');
+      dlEl.style.cssText='font-size:9px;font-weight:700;color:var(--txt2);text-transform:uppercase;margin-bottom:4px';
+      dlEl.textContent=dayLabel;
+      cell.appendChild(dlEl);
+      if(dayShow){
+        const film=S.films.find(function(f){return f.id===dayShow.filmId;});
+        const card=document.createElement('div');
+        card.className='oa-card';
+        card.onclick=function(){editShow(dayShow.id);};
+        if(canEdit){
+          const del=document.createElement('button');
+          del.className='oa-del';del.textContent='×';
+          del.onclick=function(e){e.stopPropagation();delShow(dayShow.id);};
+          card.appendChild(del);
+        }
+        card.innerHTML+='<div class="oa-film">'+(film?film.title:'?')+'</div>'
+          +'<div class="oa-location">📍 '+(dayShow.location||'')+'</div>'
+          +'<div class="oa-time">'+dayShow.start+'</div>';
+        cell.appendChild(card);
+      } else if(canEdit){
+        const add=document.createElement('div');
+        add.className='oa-add';add.textContent='＋ Aggiungi';
+        add.onclick=function(){openShowSlot(ds,'21:30',oaId);};
+        cell.appendChild(add);
+      }
+      grid.appendChild(cell);
+    });
+    wrap.appendChild(grid);
+    body.appendChild(wrap);
+  });
+}
+window.toggleOA=toggleOA;window.toggleLocation=toggleLocation;
+
+// ── PRENOTAZIONI ─────────────────────────────────────────
+const BOOK_TYPES={privato:'Evento Privato',compleanno:'Compleanno',scolastica:'Scolastica',ricorrente:'Ricorrente'};
+let _bDates=[]; // [{date,start,end}]
+
+function setBMode(mode){
+  document.getElementById('bMode').value=mode;
+  document.getElementById('bExistPanel').style.display=mode==='exist'?'block':'none';
+  document.getElementById('bManualPanel').style.display=mode==='manual'?'block':'none';
+  document.getElementById('bModeExist').style.borderColor=mode==='exist'?'var(--acc)':'var(--bdr)';
+  document.getElementById('bModeExist').style.color=mode==='exist'?'var(--acc)':'var(--txt2)';
+  document.getElementById('bModeManual').style.borderColor=mode==='manual'?'var(--acc)':'var(--bdr)';
+  document.getElementById('bModeManual').style.color=mode==='manual'?'var(--acc)':'var(--txt2)';
+  if(mode==='exist')fillBShows();
+  if(mode==='manual'){fillBManualFilms();}
+}
+function fillBShows(){
+  const sel=document.getElementById('bWeekSel').value;
+  const days=sel==='next'?wdays().map(function(d){const nd=new Date(d);nd.setDate(nd.getDate()+7);return nd;}):wdays();
+  const wd=days.map(function(d){return d.toISOString().slice(0,10);});
+  const shows=S.shows.filter(function(s){return wd.includes(s.day);});
+  const films=[...new Set(shows.map(function(s){return s.filmId;}))];
+  const fsel=document.getElementById('bFilmSel');
+  fsel.innerHTML='<option value="">— Seleziona film —</option>';
+  films.forEach(function(fid){
+    const film=S.films.find(function(f){return f.id===fid;});
+    if(!film)return;
+    const o=document.createElement('option');o.value=fid;o.textContent=film.title;fsel.appendChild(o);
+  });
+  document.getElementById('bShowSel').innerHTML='<option value="">— Prima seleziona film —</option>';
+  document.getElementById('bShowInfo').style.display='none';
+}
+function fillBShowTimes(){
+  const fid=document.getElementById('bFilmSel').value;
+  const sel=document.getElementById('bWeekSel').value;
+  const days=sel==='next'?wdays().map(function(d){const nd=new Date(d);nd.setDate(nd.getDate()+7);return nd;}):wdays();
+  const wd=days.map(function(d){return d.toISOString().slice(0,10);});
+  const shows=S.shows.filter(function(s){return wd.includes(s.day)&&s.filmId===fid;}).sort(function(a,b){return a.day.localeCompare(b.day)||a.start.localeCompare(b.start);});
+  const ssel=document.getElementById('bShowSel');
+  ssel.innerHTML='<option value="">— Seleziona spettacolo —</option>';
+  shows.forEach(function(s){
+    const di=wd.indexOf(s.day);
+    const dayLabel=di>=0?DIT[di]+' '+fs(days[di]):'';
+    const o=document.createElement('option');o.value=s.id;o.textContent=dayLabel+' '+s.start+' — '+sn(s.sala);ssel.appendChild(o);
+  });
+  document.getElementById('bShowInfo').style.display='none';
+}
+function onBShowSelect(){
+  const sid=document.getElementById('bShowSel').value;
+  if(!sid){document.getElementById('bShowInfo').style.display='none';return;}
+  const show=S.shows.find(function(s){return s.id===sid;});
+  if(!show)return;
+  document.getElementById('bLinkedShowId').value=sid;
+  const film=S.films.find(function(f){return f.id===show.filmId;});
+  const info=document.getElementById('bShowInfo');
+  info.style.display='block';
+  info.textContent=(film?film.title:'?')+' · '+sn(show.sala)+' · '+show.start+' → '+show.end;
+}
+function fillBManualFilms(){
+  const sel=document.getElementById('bFilmManual');
+  if(!sel)return;
+  sel.innerHTML='<option value="">— Nessun film specifico —</option>';
+  S.films.forEach(function(f){
+    const o=document.createElement('option');o.value=f.id;o.textContent=f.title;sel.appendChild(o);
+  });
+}
+function openBook(){
+  document.getElementById('ovBookT').textContent='Nuova Prenotazione';
+  ['bId','bLinkedShowId'].forEach(function(id){document.getElementById(id).value='';});
+  ['bName','bContact','bNote'].forEach(function(id){document.getElementById(id).value='';});
+  document.getElementById('bSeats').value='';
+  document.getElementById('bType').value='compleanno';
+  document.getElementById('bSala').value='1';
+  _bDates=[];
+  renderBDates();
+  setBMode('exist');
+  fillBShows();
+  document.getElementById('ovBook').classList.add('on');
+}
+function editBook(id){
+  const b=S.bookings.find(function(x){return x.id===id;});if(!b)return;
+  document.getElementById('ovBookT').textContent='Modifica Prenotazione';
+  document.getElementById('bId').value=id;
+  document.getElementById('bName').value=b.name||'';
+  document.getElementById('bContact').value=b.contact||'';
+  document.getElementById('bSeats').value=b.seats||'';
+  document.getElementById('bNote').value=b.note||'';
+  document.getElementById('bType').value=b.type||'compleanno';
+  document.getElementById('bLinkedShowId').value=b.linkedShowId||'';
+  _bDates=(b.dates||[]).slice();
+  renderBDates();
+  if(b.linkedShowId){
+    setBMode('exist');
+    // Pre-select the linked show info
+    const show=S.shows.find(function(s){return s.id===b.linkedShowId;});
+    if(show){
+      const film=S.films.find(function(f){return f.id===show.filmId;});
+      const info=document.getElementById('bShowInfo');
+      info.style.display='block';
+      info.textContent=(film?film.title:'?')+' · '+sn(show.sala)+' · '+show.start+' → '+show.end;
+    }
+  } else {
+    setBMode('manual');
+    if(b.sala)document.getElementById('bSala').value=b.sala;
+    fillBManualFilms();
+    if(b.filmId)document.getElementById('bFilmManual').value=b.filmId;
+  }
+  document.getElementById('ovBook').classList.add('on');
+}
+function addBookDate(){
+  const d=document.getElementById('bDateInput').value;
+  const s=document.getElementById('bStart').value;
+  const e=document.getElementById('bEnd').value;
+  if(!d){toast('Seleziona una data','err');return;}
+  if(_bDates.find(x=>x.date===d)){toast('Data già aggiunta','err');return;}
+  _bDates.push({date:d,start:s,end:e});
+  _bDates.sort((a,b)=>a.date.localeCompare(b.date));
+  renderBDates();
+}
+function removeBookDate(date){
+  _bDates=_bDates.filter(x=>x.date!==date);
+  renderBDates();
+}
+function renderBDates(){
+  const w=document.getElementById('bDates');
+  if(!_bDates.length){w.innerHTML='<span style="font-size:11px;color:var(--txt2);padding:4px">Nessuna data aggiunta</span>';return;}
+  w.innerHTML='';
+  _bDates.forEach(function(x){
+    const di=x.date.split('-');
+    const label=di[2]+'/'+di[1]+' '+x.start+'-'+x.end;
+    const chip=document.createElement('span');
+    chip.className='date-chip';
+    chip.dataset.date=x.date;
+    chip.textContent=label+' ';
+    const btn=document.createElement('button');
+    btn.textContent='×';
+    btn.onclick=function(){removeBookDate(x.date);};
+    chip.appendChild(btn);
+    w.appendChild(chip);
+  });
+}
+function removeBD(el){removeBookDate(el.dataset.date);}
+window.removeBD=removeBD;
+async function svBook(){
+  const name=document.getElementById('bName').value.trim();
+  if(!name){toast('Inserisci il nome evento','err');return;}
+  const mode=document.getElementById('bMode').value;
+  const linkedShowId=document.getElementById('bLinkedShowId').value;
+  if(mode==='exist'&&!linkedShowId){toast('Seleziona uno spettacolo','err');return;}
+  if(mode==='manual'&&!_bDates.length){toast('Aggiungi almeno una data','err');return;}
+  const eid=document.getElementById('bId').value;
+  // If linked to existing show, derive sala/date/time from it
+  let dates=_bDates;
+  let sala=document.getElementById('bSala').value;
+  let filmId='';
+  if(mode==='exist'&&linkedShowId){
+    const show=S.shows.find(function(s){return s.id===linkedShowId;});
+    if(show){
+      sala=show.sala;
+      filmId=show.filmId;
+      dates=[{date:show.day,start:show.start,end:show.end}];
+    }
+  } else {
+    filmId=document.getElementById('bFilmManual').value||'';
+  }
+  const book={
+    id:eid||uid(),
+    name,
+    type:document.getElementById('bType').value,
+    sala,
+    filmId,
+    linkedShowId:linkedShowId||'',
+    contact:document.getElementById('bContact').value,
+    seats:parseInt(document.getElementById('bSeats').value)||0,
+    note:document.getElementById('bNote').value,
+    dates,
+    createdBy:currentUser?currentUser.email:'',
+    createdAt:new Date().toISOString()
+  };
+  await setDoc(doc(db,'bookings',book.id),book);
+  co('ovBook');
+  toast(eid?'Prenotazione aggiornata':'Prenotazione salvata','ok');
+}
+async function delBook(id){
+  if(!confirm('Eliminare questa prenotazione?'))return;
+  await deleteDoc(doc(db,'bookings',id));
+  toast('Eliminata','ok');
+}
+function renderBookings(){
+  const w=document.getElementById('book-list');
+  if(!w)return;
+  const filter=document.getElementById('book-filter')?document.getElementById('book-filter').value:'upcoming';
+  const today=new Date().toISOString().slice(0,10);
+  let books=S.bookings||[];
+  if(filter==='upcoming') books=books.filter(function(b){return(b.dates||[]).some(function(d){return d.date>=today;});});
+  else if(filter!=='all') books=books.filter(function(b){return b.type===filter;});
+  books.sort(function(a,b){
+    const aMin=(a.dates||[{date:'9999'}]).map(function(d){return d.date;}).sort()[0];
+    const bMin=(b.dates||[{date:'9999'}]).map(function(d){return d.date;}).sort()[0];
+    return aMin>bMin?1:-1;
+  });
+  if(!books.length){
+    w.innerHTML='<div class="empty"><div class="ei2">📋</div><div class="et">Nessuna prenotazione</div></div>';
+    return;
+  }
+  const canEdit=currentUser&&(currentUser.role==='admin'||currentUser.role==='segretaria'||currentUser.role==='operator');
+  w.innerHTML='';
+  books.forEach(function(b){
+    const upcomingDates=(b.dates||[]).filter(function(d){return d.date>=today;}).slice(0,3);
+    const allDates=b.dates||[];
+    const linkedFilm=b.filmId?S.films.find(function(f){return f.id===b.filmId;}):null;
+    const linkedShow=b.linkedShowId?S.shows.find(function(s){return s.id===b.linkedShowId;}):null;
+    const card=document.createElement('div');
+    card.className='book-card';
+    const upcomingStr=upcomingDates.length
+      ?'<br><span style="color:var(--acc)">Prossime: '+upcomingDates.map(function(d){const p=d.date.split('-');return p[2]+'/'+p[1]+' '+d.start;}).join(' · ')+'</span>':'';
+    const filmInfo=linkedFilm?'<br>🎬 <strong>'+linkedFilm.title+'</strong>'+(linkedShow?' · '+linkedShow.start:''):''
+    card.innerHTML='<div class="book-card-type">'+(BOOK_TYPES[b.type]||b.type)+'</div>'
+      +'<div class="book-card-name">'+b.name+'</div>'
+      +'<div class="book-card-info">'
+      +'🎭 '+sn(b.sala)+filmInfo+'<br>'
+      +(b.seats?'💺 '+b.seats+' posti riservati<br>':'')
+      +(b.contact?'📞 '+b.contact+'<br>':'')
+      +'📅 '+allDates.length+' data'+(allDates.length===1?'':'e')+' totali'
+      +upcomingStr
+      +(b.note?'<br>📝 '+b.note:'')
+      +'</div>';
+    if(canEdit){
+      const acts=document.createElement('div');
+      acts.className='fac';acts.style.marginTop='8px';
+      const btnE=document.createElement('button');btnE.className='btn bg bs';btnE.textContent='✏ Modifica';
+      btnE.onclick=function(){editBook(b.id);};
+      const btnD=document.createElement('button');btnD.className='btn bd bs';btnD.textContent='✕ Elimina';
+      btnD.onclick=function(){delBook(b.id);};
+      acts.appendChild(btnE);acts.appendChild(btnD);
+      card.appendChild(acts);
+    }
+    w.appendChild(card);
+  });
+}
+window.openBook=openBook;window.editBook=editBook;window.svBook=svBook;
+window.setBMode=setBMode;window.fillBShows=fillBShows;window.fillBShowTimes=fillBShowTimes;window.onBShowSelect=onBShowSelect;
+window.delBook=delBook;window.addBookDate=addBookDate;window.removeBookDate=removeBookDate;
+window.renderBookings=renderBookings;
+
 // ── OTTIMIZZA ORARI ──────────────────────────────────────
 // State for optimize modal
 let _opt={day:'',sala:'',plan:[]};
@@ -2335,8 +2927,23 @@ function showApp(user,role){
   ui.style.display='flex';
   document.getElementById('userAvatar').src=user.photoURL||'';
   document.getElementById('userName').textContent=user.displayName||user.email;
-  // Show users tab only for admin
+  // Tab visibility by role
   document.getElementById('tab-users').style.display=role==='admin'?'block':'none';
+  // Segretaria: show prog (read-only) + prenotazioni only
+  const isSecy=role==='segretaria';
+  const tabOrder=['prog','lista','arch','prnt','mail','book','users'];
+  // Segretaria: hide lista, arch, mail — keep prog(read), prnt, book
+  ['lista','arch','mail'].forEach(function(t){
+    const idx=tabOrder.indexOf(t);
+    const tabs=document.querySelectorAll('.tab');
+    if(tabs[idx])tabs[idx].style.display=isSecy?'none':'';
+  });
+  // Hide prog edit buttons for segretaria
+  document.getElementById('btnAddShow').style.display=isSecy?'none':'';
+  document.getElementById('btnGlobalOpt').style.display=isSecy?'none':'';
+  // Operatore cannot manage users (already hidden), but can do bookings
+  // canManageBook = admin OR operatore OR segretaria
+  window._userRole=role;
   // Current user info in users page
   const cui=document.getElementById('current-user-info');
   if(cui)cui.innerHTML='<strong>'+(user.displayName||'')+'</strong><br><span style="color:var(--txt2);font-size:12px">'+user.email+'</span><br><span style="font-size:11px;color:var(--acc)">Ruolo: '+role+'</span>';
