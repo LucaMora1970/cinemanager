@@ -3458,11 +3458,9 @@ function renderStaffGrid(){
   var days=wdays();var wd=wdates();
   var d=days[_staffDayIdx];var ds=wd[_staffDayIdx];
 
-  // Update day label
+  // Update day label and selector
   var lbl=document.getElementById('staff-day-label');
   if(lbl)lbl.textContent=DIT[_staffDayIdx]+' '+fs(d);
-
-  // Update day selector
   var sel=document.getElementById('staff-day-sel');
   if(sel){
     sel.innerHTML='';
@@ -3479,27 +3477,67 @@ function renderStaffGrid(){
     renderStaffTotals(ds);return;
   }
 
-  // Collect shows for this day (for Prog column)
   var dayShows=S.shows.filter(function(sh){return sh.day===ds;}).sort(function(a,b){return a.start.localeCompare(b.start);});
   var dayShifts=S.shifts.filter(function(sh){return sh.day===ds;});
 
-  var CELL_H=22;
-  var TIME_COL=72;
-  var PROG_COL=90;
-  var STAFF_COL=Math.max(75,Math.floor(680/S.staff.length));
+  // Layout constants
+  var NAME_COL=130;  // fixed left column with staff name
+  var CELL_W=28;     // width per 15min slot
+  var ROW_H=52;      // height per staff row
+  var PROG_ROW=36;   // height of prog reference row
+  var HEADER_H=32;   // time header row height
 
-  var html='<div style="position:relative;user-select:none">';
+  var totalW=NAME_COL+SLOT_COUNT*CELL_W;
 
-  // ── HEADER ROW ──
-  html+='<div style="display:flex;position:sticky;top:0;z-index:10;background:var(--surf)">';
-  // Time col header
-  html+='<div style="width:'+TIME_COL+'px;flex-shrink:0;background:var(--surf2);border:1px solid var(--bdr);border-right:none;border-bottom:2px solid var(--bdr);padding:5px 3px;font-size:9px;text-align:center;color:var(--txt2)">ORA</div>';
-  // Prog col header
-  html+='<div style="width:'+PROG_COL+'px;flex-shrink:0;background:#0d3a1a;border:1px solid var(--bdr);border-right:none;border-bottom:2px solid #2a8a4a;padding:5px 6px;text-align:center">'
-    +'<div style="font-size:10px;font-weight:700;color:#4ae87a">PROG</div>'
-    +'<div style="font-size:8px;color:rgba(74,232,122,.6)">'+dayShows.length+' spett.</div>'
+  // ── Build HTML ──
+  var html='<div style="display:flex;flex-direction:column;min-width:'+totalW+'px">';
+
+  // ── TIME HEADER ROW ──
+  html+='<div style="display:flex;position:sticky;top:0;z-index:20;background:var(--surf)">';
+  // Corner cell
+  html+='<div style="width:'+NAME_COL+'px;flex-shrink:0;min-width:'+NAME_COL+'px;height:'+HEADER_H+'px;background:var(--surf2);border:1px solid var(--bdr);border-right:2px solid var(--bdr);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--txt2)">TURNI</div>';
+  // Time slots header
+  for(var si=0;si<SLOT_COUNT;si++){
+    var slotMin=SLOT_START+si*SLOT_STEP;
+    var isHour=slotMin%60===0;
+    var isHalf=slotMin%60===30;
+    var label=isHour?String(Math.floor(slotMin/60)).padStart(2,'0')+':00':(isHalf?':30':'');
+    html+='<div style="width:'+CELL_W+'px;flex-shrink:0;height:'+HEADER_H+'px;border-bottom:2px solid '+(isHour?'var(--bdr)':'rgba(255,255,255,.08)')+';border-right:1px solid '+(isHour?'var(--bdr)':'rgba(255,255,255,.03)')+';display:flex;align-items:flex-end;justify-content:flex-start;padding-bottom:3px;overflow:visible">'
+      +(label?'<span style="font-size:'+(isHour?'11':'9')+'px;font-weight:'+(isHour?'700':'400')+';color:'+(isHour?'var(--txt)':'var(--txt2)')+';white-space:nowrap;position:relative;left:-1px">'+label+'</span>':'')
+      +'</div>';
+  }
+  html+='</div>';
+
+  // ── PROG REFERENCE ROW ──
+  html+='<div style="display:flex">';
+  html+='<div style="width:'+NAME_COL+'px;flex-shrink:0;min-width:'+NAME_COL+'px;height:'+PROG_ROW+'px;background:#0a2a0a;border-right:2px solid rgba(74,232,122,.3);display:flex;align-items:center;padding:0 8px;gap:6px">'
+    +'<span style="font-size:11px;font-weight:700;color:#4ae87a">PROG</span>'
+    +'<span style="font-size:9px;color:rgba(74,232,122,.5)">'+dayShows.length+' spett.</span>'
     +'</div>';
-  // Staff col headers
+  // Prog slots
+  for(var si2=0;si2<SLOT_COUNT;si2++){
+    var slotMin2=SLOT_START+si2*SLOT_STEP;
+    var isHour2=slotMin2%60===0;
+    var covered=dayShows.some(function(sh){
+      var sm=parseInt(sh.start.split(':')[0])*60+parseInt(sh.start.split(':')[1]);
+      var em=parseInt(sh.end.split(':')[0])*60+parseInt(sh.end.split(':')[1]);
+      return slotMin2>=sm&&slotMin2<em;
+    });
+    var showStart=dayShows.find(function(sh){
+      var sm=parseInt(sh.start.split(':')[0])*60+parseInt(sh.start.split(':')[1]);
+      return slotMin2===sm;
+    });
+    html+='<div style="width:'+CELL_W+'px;flex-shrink:0;height:'+PROG_ROW+'px;background:'+(covered?'rgba(74,232,122,.15)':'transparent')+';border-right:1px solid '+(isHour2?'rgba(74,232,122,.2)':'rgba(74,232,122,.05)')+';border-left:'+(showStart?'2px solid rgba(74,232,122,.7)':'none')+';position:relative">';
+    if(showStart){
+      var film2=S.films.find(function(f){return f.id===showStart.filmId;});
+      html+='<div style="position:absolute;top:2px;left:3px;font-size:8px;font-weight:700;color:#4ae87a;white-space:nowrap;overflow:hidden;max-width:80px">'+sn(showStart.sala)+'</div>';
+      if(film2)html+='<div style="position:absolute;top:12px;left:3px;font-size:7px;color:rgba(74,232,122,.7);white-space:nowrap;overflow:hidden;max-width:80px">'+film2.title+'</div>';
+    }
+    html+='</div>';
+  }
+  html+='</div>';
+
+  // ── STAFF ROWS ──
   S.staff.forEach(function(s){
     var sShifts=dayShifts.filter(function(sh){return sh.staffId===s.id;});
     var totalMins=sShifts.reduce(function(acc,sh){
@@ -3508,108 +3546,126 @@ function renderStaffGrid(){
       return acc+(em>sm?em-sm:0);
     },0);
     var hh=Math.floor(totalMins/60);var mm=totalMins%60;
-    html+='<div style="width:'+STAFF_COL+'px;flex-shrink:0;background:var(--surf2);border:1px solid var(--bdr);border-right:none;border-bottom:2px solid var(--bdr);padding:4px 5px;text-align:center">'
-      +'<div style="font-size:12px;font-weight:700;color:'+s.color+'">'+s.name+'</div>'
+
+    html+='<div style="display:flex;border-bottom:1px solid var(--bdr)">';
+    // Name cell — fixed left
+    html+='<div style="width:'+NAME_COL+'px;flex-shrink:0;min-width:'+NAME_COL+'px;height:'+ROW_H+'px;background:var(--surf2);border-right:2px solid '+s.color+';padding:6px 10px;display:flex;flex-direction:column;justify-content:center;position:sticky;left:0;z-index:10">'
+      +'<div style="font-size:13px;font-weight:700;color:'+s.color+'">'+s.name+'</div>'
       +'<div style="font-size:10px;color:var(--txt2)">'+(STAFF_ROLES[s.role]||s.role)+'</div>'
-      +(totalMins?'<div style="font-size:8px;background:'+s.color+'22;color:'+s.color+';border-radius:3px;padding:0 3px;margin-top:1px">'+hh+'h'+String(mm).padStart(2,'0')+'</div>':'')
-      +'</div>';
-  });
-  html+='</div>';
-
-  // ── SLOT ROWS ──
-  for(var si=0;si<SLOT_COUNT;si++){
-    var slotMin=SLOT_START+si*SLOT_STEP;
-    var isHour=slotMin%60===0;
-    var isHalfHour=slotMin%60===30;
-    var timeLabel=isHour?String(Math.floor(slotMin/60)).padStart(2,'0')+':00':(isHalfHour?':30':'');
-    var borderB=isHour?'2px solid var(--bdr)':isHalfHour?'1px solid rgba(255,255,255,.08)':'1px solid rgba(255,255,255,.03)';
-    var rowBg=isHour?'rgba(255,255,255,.015)':'transparent';
-
-    html+='<div style="display:flex;background:'+rowBg+'">';
-
-    // Time label
-    html+='<div style="width:'+TIME_COL+'px;flex-shrink:0;height:'+CELL_H+'px;border-right:2px solid var(--bdr);border-bottom:'+borderB+';display:flex;align-items:center;justify-content:flex-end;padding-right:4px">'
-      +(isHour?'<span style="font-size:14px;font-weight:800;color:var(--txt)">'+timeLabel+'</span>':(isHalfHour?'<span style="font-size:11px;font-weight:500;color:var(--txt2)">'+timeLabel+'</span>':''))
+      +(totalMins?'<div style="font-size:10px;color:var(--acc);font-weight:600">'+hh+'h'+String(mm).padStart(2,'0')+'</div>':'')
       +'</div>';
 
-    // Prog column — color cells covered by any show, darker at start/end
-    var slotMinute=SLOT_START+si*SLOT_STEP;
-    var isProgCovered=dayShows.some(function(sh){
-      var sm=parseInt(sh.start.split(':')[0])*60+parseInt(sh.start.split(':')[1]);
-      var em=parseInt(sh.end.split(':')[0])*60+parseInt(sh.end.split(':')[1]);
-      return slotMinute>=sm&&slotMinute<em;
-    });
-    var isShowStart=dayShows.some(function(sh){
-      var sm=parseInt(sh.start.split(':')[0])*60+parseInt(sh.start.split(':')[1]);
-      return slotMinute===sm;
-    });
-    var isShowEnd=dayShows.some(function(sh){
-      var em=parseInt(sh.end.split(':')[0])*60+parseInt(sh.end.split(':')[1]);
-      return slotMinute===em;
-    });
-    var progBg=isProgCovered?'rgba(74,232,122,.18)':'transparent';
-    var progBorder=isShowStart?'2px solid rgba(74,232,122,.8)':(isShowEnd?'2px solid rgba(232,74,74,.5)':borderB);
-    html+='<div style="width:'+PROG_COL+'px;flex-shrink:0;height:'+CELL_H+'px;border-right:1px solid rgba(74,232,122,.15);border-bottom:'+borderB+';background:'+progBg+';border-top:'+progBorder+'"></div>';
-
-    // Staff cells
-    S.staff.forEach(function(s){
-      var cellShift=dayShifts.find(function(sh){
-        return sh.staffId===s.id&&timeToSlot(sh.start)<=si&&timeToSlot(sh.end)>si;
+    // Time slots for this staff member
+    for(var si3=0;si3<SLOT_COUNT;si3++){
+      var slotMin3=SLOT_START+si3*SLOT_STEP;
+      var isHour3=slotMin3%60===0;
+      var cellShift=sShifts.find(function(sh){
+        return timeToSlot(sh.start)<=si3&&timeToSlot(sh.end)>si3;
       });
-      var isSelStart=_shiftStart&&_shiftStart.staffId===s.id&&_shiftStart.slotIdx===si;
-      var isSelRange=_shiftStart&&_shiftStart.staffId===s.id&&_hoverSlot!==null&&si>=_shiftStart.slotIdx&&si<=_hoverSlot;
-      var cellBg='transparent';
-      if(cellShift) cellBg=s.color+'30';
-      else if(isSelRange) cellBg='rgba(232,200,74,.2)';
-      var cellContent='';
-      if(cellShift&&timeToSlot(cellShift.start)===si){
-        cellContent='<div style="position:absolute;left:2px;right:2px;top:1px;font-size:8px;font-weight:700;color:'+s.color+';white-space:nowrap;overflow:hidden">\u25a0 '+(STAFF_ROLES[cellShift.role]||cellShift.role)+'</div>';
+      var isSelStart=_shiftStart&&_shiftStart.staffId===s.id&&_shiftStart.slotIdx===si3;
+      var cellBg=cellShift?(s.color+'30'):(isSelStart?'rgba(232,200,74,.4)':'transparent');
+      var borderR=isHour3?'1px solid var(--bdr)':'1px solid rgba(255,255,255,.04)';
+      var borderL=cellShift&&timeToSlot(cellShift.start)===si3?('2px solid '+s.color):'none';
+
+      html+='<div data-si="'+si3+'" data-sid="'+s.id+'" data-shid="'+(cellShift?cellShift.id:'')+'" style="width:'+CELL_W+'px;flex-shrink:0;height:'+ROW_H+'px;background:'+cellBg+';border-right:'+borderR+';border-left:'+borderL+';position:relative;cursor:pointer;box-sizing:border-box">';
+      // Show role label at shift start
+      if(cellShift&&timeToSlot(cellShift.start)===si3){
+        var shDurMins=(timeToSlot(cellShift.end)-timeToSlot(cellShift.start))*SLOT_STEP;
+        var shDurSlots=timeToSlot(cellShift.end)-timeToSlot(cellShift.start);
+        html+='<div style="position:absolute;top:4px;left:4px;right:2px;font-size:9px;font-weight:700;color:'+s.color+';overflow:hidden;white-space:nowrap">'
+          +(STAFF_ROLES[cellShift.role]||cellShift.role)+'</div>'
+          +'<div style="position:absolute;bottom:4px;left:4px;font-size:8px;color:'+s.color+';opacity:.8">'+cellShift.start+'-'+cellShift.end+'</div>';
       }
-      var cellEl=document.createElement('div');
-      cellEl.style.cssText='position:relative;width:'+STAFF_COL+'px;flex-shrink:0;height:'+CELL_H+'px;background:'+cellBg+';border-right:1px solid rgba(255,255,255,.03);border-bottom:'+borderB+';cursor:pointer;box-sizing:border-box;overflow:visible';
-      cellEl.dataset.si=si;cellEl.dataset.sid=s.id;cellEl.dataset.shid=(cellShift?cellShift.id:'');
-      cellEl.onclick=function(ev){onStaffCellClick(parseInt(this.dataset.si),this.dataset.sid,this.dataset.shid,ev);};
-      cellEl.onmouseover=function(){onStaffCellHover(parseInt(this.dataset.si),this.dataset.sid);};
-      if(cellContent){var tmp2=document.createElement('div');tmp2.innerHTML=cellContent;while(tmp2.firstChild)cellEl.appendChild(tmp2.firstChild);}
-      html+=cellEl.outerHTML;
-    });
+      html+='</div>';
+    }
     html+='</div>';
-  }
+  });
+
   html+='</div>';
   w.innerHTML=html;
 
-  // ── Attach pointermove listener for Mac trackpad / touch / mouse ──
-  w.addEventListener('pointermove', function(ev){
-    if(!_shiftStart)return;
-    var el=document.elementFromPoint(ev.clientX,ev.clientY);
-    if(!el)return;
-    // Walk up to find data-si / data-sid
-    var cell=el.closest?el.closest('[data-si]'):null;
-    if(!cell&&el.dataset&&el.dataset.si!==undefined)cell=el;
-    if(!cell)return;
-    var si=parseInt(cell.dataset.si);
-    var sid=cell.dataset.sid;
-    if(!sid||sid!==_shiftStart.staffId||isNaN(si)||si<=_shiftStart.slotIdx)return;
-    if(si===_hoverSlot)return; // no change
-    _hoverSlot=si;
-    // Update hint
-    var mins=(si-_shiftStart.slotIdx+1)*SLOT_STEP;
-    var hh=Math.floor(mins/60);var mm=mins%60;
-    var h=document.getElementById('staff-hint');
-    if(h)h.textContent='Inizio: '+slotToTime(_shiftStart.slotIdx)+' → Fine: '+slotToTime(si+1)+' ('+hh+'h'+String(mm).padStart(2,'0')+')';
-    // Highlight selected range
-    w.querySelectorAll('[data-sid="'+_shiftStart.staffId+'"]').forEach(function(c2){
-      var csi=parseInt(c2.dataset.si);
-      if(!c2.dataset.shid&&csi>=_shiftStart.slotIdx&&csi<=si){
-        c2.style.background='rgba(232,200,74,.28)';
-      } else if(!c2.dataset.shid&&csi!==_shiftStart.slotIdx){
-        c2.style.background='transparent';
+  // ── Store layout for coordinate-based hit testing ──
+  var _gridLayout={
+    nameCol:NAME_COL, cellW:CELL_W, rowH:ROW_H,
+    progRow:PROG_ROW, headerH:HEADER_H,
+    staffCount:S.staff.length,
+    staffIds:S.staff.map(function(s){return s.id;})
+  };
+
+  function getSlotFromEvent(ev){
+    var rect=w.getBoundingClientRect();
+    var x=(ev.clientX||ev.touches&&ev.touches[0].clientX||0)-rect.left+w.scrollLeft;
+    var y=(ev.clientY||ev.touches&&ev.touches[0].clientY||0)-rect.top;
+    var contentX=x-_gridLayout.nameCol;
+    var contentY=y-_gridLayout.headerH-_gridLayout.progRow;
+    if(contentX<0||contentY<0)return null;
+    var si=Math.floor(contentX/_gridLayout.cellW);
+    var staffIdx=Math.floor(contentY/_gridLayout.rowH);
+    if(si<0||si>=SLOT_COUNT)return null;
+    if(staffIdx<0||staffIdx>=_gridLayout.staffCount)return null;
+    return{si:si,staffId:_gridLayout.staffIds[staffIdx],staffIdx:staffIdx};
+  }
+
+  function highlightRange(){
+    if(!_shiftStart||_hoverSlot===null)return;
+    w.querySelectorAll('[data-sid="'+_shiftStart.staffId+'"]').forEach(function(el){
+      var csi=parseInt(el.dataset.si);
+      if(!el.dataset.shid){
+        if(csi>=_shiftStart.slotIdx&&csi<=_hoverSlot) el.style.background='rgba(232,200,74,.28)';
+        else if(csi===_shiftStart.slotIdx) el.style.background='rgba(232,200,74,.4)';
+        else el.style.background='transparent';
       }
     });
+  }
+
+  w.addEventListener('pointerdown',function(ev){
+    var hit=getSlotFromEvent(ev);
+    if(!hit)return;
+    var existingShift=dayShifts.find(function(sh){
+      return sh.staffId===hit.staffId&&timeToSlot(sh.start)<=hit.si&&timeToSlot(sh.end)>hit.si;
+    });
+    if(existingShift){editShiftById(existingShift.id);return;}
+    onStaffCellClick(hit.si,hit.staffId,'',ev);
+    ev.preventDefault();
+  },{passive:false});
+
+  w.addEventListener('pointermove',function(ev){
+    if(!_shiftStart)return;
+    var hit=getSlotFromEvent(ev);
+    if(!hit||hit.staffId!==_shiftStart.staffId||hit.si<=_shiftStart.slotIdx)return;
+    if(hit.si===_hoverSlot)return;
+    _hoverSlot=hit.si;
+    var mins=(hit.si-_shiftStart.slotIdx+1)*SLOT_STEP;
+    var hh=Math.floor(mins/60);var mm=mins%60;
+    var h=document.getElementById('staff-hint');
+    if(h)h.textContent='Inizio: '+slotToTime(_shiftStart.slotIdx)+' \u2192 Fine: '+slotToTime(hit.si+1)+' ('+hh+'h'+String(mm).padStart(2,'0')+')';
+    highlightRange();
+    ev.preventDefault();
+  },{passive:false});
+
+  w.addEventListener('pointerup',function(ev){
+    if(!_shiftStart||_hoverSlot===null)return;
+    var hit=getSlotFromEvent(ev);
+    if(!hit||hit.staffId!==_shiftStart.staffId||hit.si<=_shiftStart.slotIdx){
+      // Single tap — just mark start, wait for second tap
+      return;
+    }
+    var startT=slotToTime(_shiftStart.slotIdx);
+    var endT=slotToTime(hit.si+1);
+    _pendingShift={staffId:hit.staffId,day:wdates()[_staffDayIdx],start:startT,end:endT};
+    openShiftConfirm(hit.staffId,startT,endT);
+    _shiftStart=null;_hoverSlot=null;
+    var h=document.getElementById('staff-hint');
+    if(h)h.textContent='';
+    renderStaffGrid();
   });
+
+  w.style.touchAction='pan-y';
+  w.style.overflowX='auto';
 
   renderStaffTotals(ds);
 }
+
 
 
 function onStaffCellClick(si,staffId,shiftId,ev){
