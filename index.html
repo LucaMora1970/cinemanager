@@ -1891,14 +1891,14 @@ async function addDistContact(){
   await fbSetDoc(db,'settings','distributors',{list:S.distributors});
   renderDist();toast('Contatto aggiunto','ok');
 }
-async function remDistContact(distName,email){
+async async function remDistContact(distName,email){
   const dist=S.distributors.find(d=>d.name===distName);
   if(!dist)return;
   dist.contacts=dist.contacts.filter(c=>c.email!==email);
   await fbSetDoc(db,'settings','distributors',{list:S.distributors});
   renderDist();
 }
-async function remDistributor(name){
+async async function remDistributor(name){
   if(!confirm('Eliminare '+name+' e tutti i suoi contatti?'))return;
   S.distributors=S.distributors.filter(d=>d.name!==name);
   await fbSetDoc(db,'settings','distributors',{list:S.distributors});
@@ -1910,21 +1910,18 @@ function renderDist(){
   if(!S.distributors||!S.distributors.length){
     w.innerHTML='<div style="color:var(--txt2);text-align:center;padding:10px;font-size:12px">Nessun distributore</div>';return;
   }
-  w.innerHTML=S.distributors.map(d=>{
+  w.innerHTML=S.distributors.map(function(d){
     const contacts=d.contacts||[];
     const hasFilms=S.films.some(f=>(f.distributor||'').toLowerCase()===d.name.toLowerCase());
-    return`<div style="margin-bottom:8px;background:var(--surf2);border:1px solid var(--bdr);border-radius:7px;overflow:hidden">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 12px;border-bottom:1px solid var(--bdr)">
-        <span style="font-weight:600">🏢 ${d.name}${hasFilms?' <span style=\'color:var(--acc);font-size:10px\'>(film abbinati)</span>':''}</span>
-        <button class="btn bd bs" onclick="remDistributor('${d.name}')">✕</button>
-      </div>
-      ${contacts.length?contacts.map(ct=>`
-        <div class="ei" style="padding:5px 12px">
-          <span style="font-size:12px">📧 ${ct.email}</span>
-          <button class="btn bd bs" onclick="remDistContact('${d.name}','${ct.email}')">✕</button>
-        </div>`).join('')
-      :'<div style="padding:6px 12px;font-size:11px;color:var(--txt2)">Nessun contatto — aggiungine uno sopra</div>'}
-    </div>`;
+    const filmBadge=hasFilms?' <span style="color:var(--acc);font-size:10px">(film abbinati)</span>':'';
+    const contactRows=contacts.length
+      ? contacts.map(function(ct){return '<div class="ei" style="padding:5px 12px"><span style="font-size:12px">📧 '+ct.email+'</span><button class="btn bd bs" onclick="remDistContact(\''+d.name+'\',\''+ct.email+'\')">✕</button></div>';}).join('')
+      : '<div style="padding:6px 12px;font-size:11px;color:var(--txt2)">Nessun contatto — aggiungine uno sopra</div>';
+    return '<div style="margin-bottom:8px;background:var(--surf2);border:1px solid var(--bdr);border-radius:7px;overflow:hidden">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 12px;border-bottom:1px solid var(--bdr)">'
+      +'<span style="font-weight:600">🏢 '+d.name+filmBadge+'</span>'
+      +'<button class="btn bd bs" onclick="remDistributor(\''+d.name+'\')">✕</button>'
+      +'</div>'+contactRows+'</div>';
   }).join('');
   // update dist-sel dropdown
   fillDistDropdown();
@@ -2029,7 +2026,7 @@ async function addMedia(){
   await fbSetDoc(db,'settings','media',{list:S.media});
   renderMedia();toast('Media aggiunto','ok');
 }
-async function remMedia(email){
+async async function remMedia(email){
   S.media=S.media.filter(m=>m.email!==email);
   await fbSetDoc(db,'settings','media',{list:S.media});
   renderMedia();
