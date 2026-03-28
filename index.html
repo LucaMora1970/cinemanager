@@ -1263,7 +1263,8 @@ function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2
 function wdays(){return Array.from({length:7},(_,i)=>{const d=new Date(S.ws);d.setDate(d.getDate()+i);return d;});}
 function wdates(){return wdays().map(d=>d.toISOString().slice(0,10));}
 function uwl(){const ds=wdays();document.getElementById('wlbl').textContent=`${fd(ds[0])} — ${fd(ds[6])}`;}
-function cw(n){S.ws=new Date(S.ws);S.ws.setDate(S.ws.getDate()+n*7);uwl();rs();}
+function cw(n){S.ws=new Date(S.ws);S.ws.setDate(S.ws.getDate()+n*7);uwl();rs();
+  if(document.getElementById('page-staff')&&document.getElementById('page-staff').classList.contains('on')){_shiftStart=null;_hoverSlot=null;_staffDayIdx=0;renderStaffGrid();}}
 window.cw=cw;
 
 // ── SYNC ──────────────────────────────────────────────────
@@ -1279,6 +1280,8 @@ function startListeners(){
   onSnapshot(collection(db,'shows'),snap=>{
     S.shows=snap.docs.map(d=>({id:d.id,...d.data()}));
     rs();rl();syncSet('ok','Sincronizzato');
+    var sp=document.getElementById('page-staff');
+    if(sp&&sp.classList.contains('on'))renderStaffGrid();
   },()=>syncSet('err','Errore sync'));
   onSnapshot(doc(db,'settings','emails'),snap=>{S.emails=snap.exists()?snap.data().list||[]:[];rem();});
   onSnapshot(collection(db,'bookings'),snap=>{S.bookings=snap.docs.map(d=>({id:d.id,...d.data()}));rs();renderBookings();});
@@ -3480,8 +3483,8 @@ function renderStaffGrid(){
   var dayShows=S.shows.filter(function(sh){return sh.day===ds;}).sort(function(a,b){return a.start.localeCompare(b.start);});
   var dayShifts=S.shifts.filter(function(sh){return sh.day===ds;});
 
-  var CELL_H=20;
-  var TIME_COL=56;
+  var CELL_H=22;
+  var TIME_COL=72;
   var PROG_COL=90;
   var STAFF_COL=Math.max(75,Math.floor(680/S.staff.length));
 
@@ -3518,15 +3521,15 @@ function renderStaffGrid(){
     var slotMin=SLOT_START+si*SLOT_STEP;
     var isHour=slotMin%60===0;
     var isHalfHour=slotMin%60===30;
-    var timeLabel=isHour?String(Math.floor(slotMin/60)).padStart(2,'0')+':00':(isHalfHour?String(Math.floor(slotMin/60)).padStart(2,'0')+':30':'');
-    var borderB=isHour?'1px solid var(--bdr)':isHalfHour?'1px solid rgba(255,255,255,.06)':'1px solid rgba(255,255,255,.02)';
+    var timeLabel=isHour?String(Math.floor(slotMin/60)).padStart(2,'0')+':00':(isHalfHour?':30':'');
+    var borderB=isHour?'2px solid var(--bdr)':isHalfHour?'1px solid rgba(255,255,255,.08)':'1px solid rgba(255,255,255,.03)';
     var rowBg=isHour?'rgba(255,255,255,.015)':'transparent';
 
     html+='<div style="display:flex;background:'+rowBg+'">';
 
     // Time label
     html+='<div style="width:'+TIME_COL+'px;flex-shrink:0;height:'+CELL_H+'px;border-right:2px solid var(--bdr);border-bottom:'+borderB+';display:flex;align-items:center;justify-content:flex-end;padding-right:4px">'
-      +(timeLabel?'<span style="font-size:8px;color:var(--txt2);font-family:monospace">'+timeLabel+'</span>':'')
+      +(isHour?'<span style="font-size:14px;font-weight:800;color:var(--txt)">'+timeLabel+'</span>':(isHalfHour?'<span style="font-size:11px;font-weight:500;color:var(--txt2)">'+timeLabel+'</span>':''))
       +'</div>';
 
     // Prog column — color cells covered by any show, darker at start/end
@@ -3574,6 +3577,37 @@ function renderStaffGrid(){
   }
   html+='</div>';
   w.innerHTML=html;
+
+  // ── Attach pointermove listener for Mac trackpad / touch / mouse ──
+  w.addEventListener('pointermove', function(ev){
+    if(!_shiftStart)return;
+    var el=document.elementFromPoint(ev.clientX,ev.clientY);
+    if(!el)return;
+    // Walk up to find data-si / data-sid
+    var cell=el.closest?el.closest('[data-si]'):null;
+    if(!cell&&el.dataset&&el.dataset.si!==undefined)cell=el;
+    if(!cell)return;
+    var si=parseInt(cell.dataset.si);
+    var sid=cell.dataset.sid;
+    if(!sid||sid!==_shiftStart.staffId||isNaN(si)||si<=_shiftStart.slotIdx)return;
+    if(si===_hoverSlot)return; // no change
+    _hoverSlot=si;
+    // Update hint
+    var mins=(si-_shiftStart.slotIdx+1)*SLOT_STEP;
+    var hh=Math.floor(mins/60);var mm=mins%60;
+    var h=document.getElementById('staff-hint');
+    if(h)h.textContent='Inizio: '+slotToTime(_shiftStart.slotIdx)+' → Fine: '+slotToTime(si+1)+' ('+hh+'h'+String(mm).padStart(2,'0')+')';
+    // Highlight selected range
+    w.querySelectorAll('[data-sid="'+_shiftStart.staffId+'"]').forEach(function(c2){
+      var csi=parseInt(c2.dataset.si);
+      if(!c2.dataset.shid&&csi>=_shiftStart.slotIdx&&csi<=si){
+        c2.style.background='rgba(232,200,74,.28)';
+      } else if(!c2.dataset.shid&&csi!==_shiftStart.slotIdx){
+        c2.style.background='transparent';
+      }
+    });
+  });
+
   renderStaffTotals(ds);
 }
 
@@ -3585,7 +3619,7 @@ function onStaffCellClick(si,staffId,shiftId,ev){
     _shiftStart={slotIdx:si,staffId:staffId};
     _hoverSlot=null;
     var h=document.getElementById('staff-hint');
-    if(h)h.textContent='Inizio: '+slotToTime(si)+' — ora passa il mouse verso il basso per selezionare la fine turno';
+    if(h)h.textContent='Inizio: '+slotToTime(si)+' — clicca su un\'altra cella più in basso per impostare la fine turno';
     // Highlight just the start cell
     var startEl=document.querySelector('[data-si="'+si+'"][data-sid="'+staffId+'"]');
     if(startEl)startEl.style.background='rgba(232,200,74,.4)';
@@ -3605,7 +3639,6 @@ function onStaffCellClick(si,staffId,shiftId,ev){
     var h3=document.getElementById('staff-hint');
     if(h3)h3.textContent='';
     renderStaffGrid();
-    renderStaffGrid();
   }
 }
 window.onStaffCellClick=onStaffCellClick;
@@ -3615,22 +3648,8 @@ var _hoverSlot=null;
 function onStaffCellHover(si,staffId){
   if(!_shiftStart||_shiftStart.staffId!==staffId)return;
   if(si<=_shiftStart.slotIdx)return;
+  // Now handled by pointermove listener on container
   _hoverSlot=si;
-  // Update hint with duration
-  var mins=(si-_shiftStart.slotIdx+1)*SLOT_STEP;
-  var hh=Math.floor(mins/60);var mm=mins%60;
-  var h=document.getElementById('staff-hint');
-  if(h)h.textContent='Inizio: '+slotToTime(_shiftStart.slotIdx)+' → Fine: '+slotToTime(si+1)+' ('+hh+'h'+String(mm).padStart(2,'0')+')';
-  // Highlight cells without full re-render
-  var grid=document.getElementById('staff-grid');
-  if(!grid)return;
-  grid.querySelectorAll('[data-sid]').forEach(function(el){
-    var elSi=parseInt(el.dataset.si);
-    var elSid=el.dataset.sid;
-    if(elSid===staffId&&elSi>=_shiftStart.slotIdx&&elSi<=si&&!el.dataset.shid){
-      el.style.background='rgba(232,200,74,.22)';
-    }
-  });
 }
 window.onStaffCellHover=onStaffCellHover;
 function openShiftConfirm(staffId,startT,endT){
