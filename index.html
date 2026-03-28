@@ -1,0 +1,1887 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CineManager — Cinema Multisala</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0a0f;--surf:#13131a;--surf2:#1c1c28;--bdr:#2a2a3a;
+  --acc:#e8c84a;--txt:#e8e8f0;--txt2:#7777aa;
+  --c1:#4a9ee8;--c2:#e89a3a;--c3:#3ae8aa;--c4:#c84ae8;
+  --red:#e84a4a;--grn:#4ae87a;--shd:0 4px 28px rgba(0,0,0,.55);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;font-size:14px;}
+
+header{background:var(--surf);border-bottom:1px solid var(--bdr);padding:0 20px;
+  display:flex;align-items:center;justify-content:space-between;height:58px;position:sticky;top:0;z-index:100;}
+.logo{font-family:'Playfair Display',serif;font-size:22px;font-weight:900;}
+.logo span{color:var(--acc);}
+.wnav{display:flex;align-items:center;gap:10px;}
+.wnav button{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
+  width:30px;height:30px;border-radius:6px;cursor:pointer;font-size:16px;transition:all .15s;}
+.wnav button:hover{border-color:var(--acc);color:var(--acc);}
+.wlbl{font-family:'DM Mono',monospace;font-size:12px;color:var(--txt2);min-width:210px;text-align:center;}
+.hact{display:flex;gap:7px;align-items:center;}
+
+.sync{display:flex;align-items:center;gap:5px;font-size:11px;font-family:'DM Mono',monospace;
+  padding:4px 10px;border-radius:5px;border:1px solid var(--bdr);background:var(--surf2);}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--txt2);}
+.sync.ok .sync-dot{background:var(--grn);}.sync.ok{color:var(--grn);border-color:rgba(74,232,122,.3);}
+.sync.err .sync-dot{background:var(--red);}.sync.err{color:var(--red);border-color:rgba(232,74,74,.3);}
+.sync.busy .sync-dot{background:var(--acc);animation:pulse .8s infinite;}
+.sync.busy{color:var(--acc);border-color:rgba(232,200,74,.3);}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+.btn{padding:6px 13px;border-radius:6px;border:1px solid var(--bdr);cursor:pointer;
+  font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;transition:all .15s;
+  display:inline-flex;align-items:center;gap:5px;}
+.bg{background:transparent;color:var(--txt2);}.bg:hover{border-color:var(--txt2);color:var(--txt);}
+.ba{background:var(--acc);color:#000;border-color:var(--acc);}.ba:hover{background:#f5d85a;}
+.bd{background:transparent;color:var(--red);border-color:var(--red);}.bd:hover{background:var(--red);color:#fff;}
+.bs{padding:3px 9px;font-size:11px;}
+
+.tabs{display:flex;background:var(--surf);border-bottom:1px solid var(--bdr);padding:0 20px;gap:2px;overflow-x:auto;}
+.tab{padding:11px 16px;cursor:pointer;font-size:13px;font-weight:500;color:var(--txt2);
+  border-bottom:2px solid transparent;transition:all .15s;user-select:none;white-space:nowrap;}
+.tab:hover{color:var(--txt);}.tab.on{color:var(--acc);border-bottom-color:var(--acc);}
+
+main{padding:20px;max-width:1500px;margin:0 auto;}
+.page{display:none;}.page.on{display:block;}
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+.st{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;}
+
+.ctl{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center;}
+.fg{display:flex;align-items:center;gap:6px;}
+.fl{font-size:11px;color:var(--txt2);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;}
+select,input[type=text],input[type=time],input[type=number],input[type=email],input[type=date],input[type=url]{
+  background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
+  padding:6px 10px;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:12px;outline:none;transition:border-color .15s;}
+select:focus,input:focus{border-color:var(--acc);}
+select option{background:var(--surf2);}
+
+#loading{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;z-index:999;gap:16px;}
+.spin{width:40px;height:40px;border:3px solid var(--bdr);border-top-color:var(--acc);
+  border-radius:50%;animation:spin .8s linear infinite;}
+.load-txt{font-family:'DM Mono',monospace;font-size:13px;color:var(--txt2);}
+
+/* ═══ VISTA A — SLOT CARD ═══════════════════════════════ */
+.day-block{margin-bottom:20px;border:1px solid var(--bdr);border-radius:10px;overflow:hidden;}
+
+.day-head{
+  background:var(--surf2);padding:10px 16px;
+  display:flex;align-items:center;gap:12px;
+  border-bottom:1px solid var(--bdr);
+}
+.day-name{font-family:'Playfair Display',serif;font-size:16px;font-weight:700;}
+.day-date{font-family:'DM Mono',monospace;font-size:11px;color:var(--txt2);}
+.day-count{font-family:'DM Mono',monospace;font-size:10px;background:rgba(232,200,74,.12);
+  color:var(--acc);border:1px solid rgba(232,200,74,.3);border-radius:4px;padding:1px 7px;}
+.day-copy{margin-left:auto;}
+
+/* slot grid */
+.slot-grid{display:grid;grid-template-columns:32px repeat(4,1fr);}
+.sg-corner{background:var(--surf2);border-right:1px solid var(--bdr);border-bottom:1px solid var(--bdr);}
+.sg-sala-head{
+  padding:8px 6px;text-align:center;font-size:12px;font-weight:600;
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  border-right:1px solid var(--bdr);border-bottom:1px solid var(--bdr);
+}
+.sg-sala-head:last-child{border-right:none;}
+.sgh1{background:rgba(74,158,232,.1);color:var(--c1);border-top:2px solid var(--c1);}
+.sgh2{background:rgba(232,154,58,.1);color:var(--c2);border-top:2px solid var(--c2);}
+.sgh3{background:rgba(58,232,170,.1);color:var(--c3);border-top:2px solid var(--c3);}
+.sgh4{background:rgba(200,74,232,.1);color:var(--c4);border-top:2px solid var(--c4);}
+.sdot{width:7px;height:7px;border-radius:50%;display:inline-block;}
+
+.sg-row-lbl{
+  background:var(--surf2);border-right:1px solid var(--bdr);border-bottom:1px solid var(--bdr);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'DM Mono',monospace;font-size:9px;color:var(--txt2);
+  writing-mode:vertical-rl;padding:4px 0;
+}
+.sg-row-lbl.main-slot{background:rgba(232,200,74,.08);color:#b8940a;font-weight:600;}
+.sg-row-lbl:last-of-type{border-bottom:none;}
+
+.sg-cell{
+  background:var(--surf);padding:5px 7px;
+  border-right:1px solid var(--bdr);border-bottom:1px solid var(--bdr);
+  min-height:52px;cursor:pointer;transition:background .1s;
+  position:relative;
+}
+.sg-cell:last-child{border-right:none;}
+.sg-cell:hover{background:var(--surf2);}
+.sg-cell.main-slot-row{background:rgba(232,200,74,.04);}
+.sg-cell.main-slot-row:hover{background:rgba(232,200,74,.09);}
+
+/* show pill inside cell */
+.show-pill{
+  border-radius:5px;padding:5px 7px;margin-bottom:3px;
+  border-left:3px solid;position:relative;
+  transition:transform .1s;cursor:pointer;
+}
+.show-pill:hover{transform:translateX(2px);}
+.sp1{border-color:var(--c1);background:rgba(74,158,232,.08);}
+.sp2{border-color:var(--c2);background:rgba(232,154,58,.08);}
+.sp3{border-color:var(--c3);background:rgba(58,232,170,.08);}
+.sp4{border-color:var(--c4);background:rgba(200,74,232,.08);}
+.sp-title{font-size:11px;font-weight:600;line-height:1.3;color:var(--txt);}
+.sp-time{font-size:10px;color:var(--txt2);font-family:'DM Mono',monospace;margin-top:1px;}
+.sp-del{position:absolute;top:3px;right:3px;background:none;border:none;
+  color:var(--txt2);cursor:pointer;font-size:13px;opacity:0;transition:opacity .15s;padding:0;}
+.show-pill:hover .sp-del{opacity:1;}.sp-del:hover{color:var(--red);}
+
+/* empty cell add button */
+.add-slot{
+  display:flex;align-items:center;justify-content:center;height:100%;min-height:44px;
+  font-size:11px;color:var(--txt2);gap:4px;
+}
+.add-slot:hover{color:var(--acc);}
+
+/* add button shown above existing show pills */
+.add-above{
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;color:var(--txt2);font-family:'DM Mono',monospace;
+  padding:3px 6px;margin-bottom:4px;
+  border:1px dashed var(--bdr);border-radius:4px;
+  cursor:pointer;transition:all .15s;
+  opacity:0;
+}
+.sg-cell:hover .add-above{opacity:1;}
+.add-above:hover{border-color:var(--acc);color:var(--acc);background:rgba(232,200,74,.06);}
+
+/* on touch devices always show add-above */
+@media(hover:none){
+  .add-above{opacity:.5;}
+}
+
+/* FAB mobile button */
+.fab{
+  display:none;
+  position:fixed;bottom:24px;right:20px;z-index:150;
+  width:52px;height:52px;border-radius:50%;
+  background:var(--acc);color:#000;border:none;
+  font-size:26px;cursor:pointer;
+  box-shadow:0 4px 16px rgba(0,0,0,.4);
+  align-items:center;justify-content:center;
+  transition:transform .15s;
+}
+.fab:hover{transform:scale(1.08);}
+@media(max-width:768px){.fab{display:flex;}}
+
+/* gap indicator */
+.gap-pill{
+  font-size:10px;font-family:'DM Mono',monospace;
+  padding:2px 6px;border-radius:3px;margin-bottom:3px;
+  display:inline-flex;align-items:center;gap:4px;
+  border:1px dashed rgba(232,200,74,.3);color:rgba(232,200,74,.55);
+  background:rgba(232,200,74,.04);
+}
+.gap-pill.big{border-color:rgba(232,74,74,.35);color:rgba(232,74,74,.65);background:rgba(232,74,74,.04);}
+
+/* week fallback grid */
+.wg{display:grid;grid-template-columns:60px repeat(7,1fr);gap:1px;background:var(--bdr);border-radius:8px;overflow:hidden;border:1px solid var(--bdr);}
+.wgh{background:var(--surf2);padding:8px 5px;font-size:11px;font-weight:500;color:var(--txt2);text-align:center;font-family:'DM Mono',monospace;}
+.wgd{display:flex;flex-direction:column;align-items:center;gap:2px;}
+.wgd .dn{font-size:10px;text-transform:uppercase;letter-spacing:.7px;}
+.wgd .dd{font-size:13px;font-weight:700;color:var(--txt);}
+.wgc{background:var(--surf);padding:4px;min-height:36px;cursor:pointer;}
+.wgc:hover{background:var(--surf2);}
+.wgt{font-family:'DM Mono',monospace;font-size:10px;color:var(--txt2);display:flex;align-items:center;justify-content:center;background:var(--surf2);}
+.wsp{border-radius:4px;padding:4px 6px;margin-bottom:2px;border-left:2px solid;cursor:pointer;}
+.wsp:hover{opacity:.85;}
+
+/* list */
+.lv{display:flex;flex-direction:column;gap:3px;}
+.li{display:grid;grid-template-columns:110px 1fr 90px 115px 105px 85px;gap:10px;
+  align-items:center;background:var(--surf);border:1px solid var(--bdr);border-radius:6px;padding:8px 14px;}
+.lih{background:var(--surf2);font-size:10px;font-weight:500;color:var(--txt2);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;}
+.lac{display:flex;gap:5px;justify-content:flex-end;}
+/* mobile list card */
+@media(max-width:768px){
+  .li{grid-template-columns:1fr auto;grid-template-rows:auto auto;gap:4px 8px;}
+  .li>span:nth-child(1){font-size:11px;color:var(--txt2);font-family:'DM Mono',monospace;grid-column:1;}
+  .li>span:nth-child(2){font-size:13px;font-weight:600;grid-column:1;}
+  .li>span:nth-child(3){grid-column:1;grid-row:1;justify-self:end;}
+  .li>span:nth-child(4){font-size:11px;font-family:'DM Mono',monospace;color:var(--txt2);grid-column:1;}
+  .li>span:nth-child(5){display:none;}
+  .lac{grid-column:2;grid-row:1/3;align-items:center;}
+  .lih{display:none;}
+}
+
+/* badge */
+.sb{display:inline-block;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:600;}
+.sb1{background:rgba(74,158,232,.18);color:var(--c1);}
+.sb2{background:rgba(232,154,58,.18);color:var(--c2);}
+.sb3{background:rgba(58,232,170,.18);color:var(--c3);}
+.sb4{background:rgba(200,74,232,.18);color:var(--c4);}
+
+/* films */
+.fg2{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;}
+.fc{background:var(--surf);border:1px solid var(--bdr);border-radius:10px;padding:0;
+  transition:border-color .15s,transform .15s;position:relative;overflow:hidden;display:flex;flex-direction:column;}
+.fc:hover{border-color:var(--acc);transform:translateY(-2px);}
+.fc-poster{width:100%;height:130px;object-fit:cover;background:var(--surf2);}
+.fc-poster-ph{width:100%;height:130px;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:40px;opacity:.3;}
+.fc-body{padding:12px 14px;display:flex;flex-direction:column;gap:6px;flex:1;}
+.fn{font-family:'Playfair Display',serif;font-size:14px;font-weight:700;line-height:1.3;}
+.fi{font-size:11px;color:var(--txt2);font-family:'DM Mono',monospace;line-height:1.7;}
+.fg3{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600;background:rgba(232,200,74,.15);color:var(--acc);}
+.fdur{position:absolute;top:8px;right:8px;background:rgba(10,10,15,.75);border:1px solid var(--bdr);
+  border-radius:4px;padding:1px 7px;font-family:'DM Mono',monospace;font-size:10px;color:var(--acc);}
+.fac{display:flex;gap:5px;margin-top:auto;padding-top:4px;}
+.fstatus{display:inline-block;padding:1px 7px;border-radius:4px;font-size:10px;font-weight:600;}
+.fstatus.ok{background:rgba(74,232,122,.15);color:var(--grn);border:1px solid rgba(74,232,122,.3);}
+.fstatus.exp{background:rgba(232,74,74,.15);color:var(--red);border:1px solid rgba(232,74,74,.3);}
+.fstatus.nd{background:rgba(119,119,170,.15);color:var(--txt2);border:1px solid rgba(119,119,170,.3);}
+
+/* print panel */
+.ps{background:var(--surf);border:1px solid var(--bdr);border-radius:10px;padding:18px;margin-bottom:14px;}
+.ps h3{font-family:'Playfair Display',serif;font-size:15px;margin-bottom:10px;color:var(--acc);}
+.po{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+.popt{display:flex;align-items:center;gap:7px;padding:8px 12px;background:var(--surf2);
+  border:1px solid var(--bdr);border-radius:6px;cursor:pointer;font-size:12px;transition:border-color .15s;}
+.popt:hover{border-color:var(--acc);}.popt input{accent-color:var(--acc);}
+
+/* email */
+.el{background:var(--surf2);border:1px solid var(--bdr);border-radius:6px;padding:10px;max-height:190px;overflow-y:auto;}
+.ei{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--bdr);font-size:12px;}
+.ei:last-child{border-bottom:none;}
+
+/* modal */
+.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:200;
+  align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.ov.on{display:flex;}
+.modal{background:var(--surf);border:1px solid var(--bdr);border-radius:12px;padding:26px;
+  width:520px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:var(--shd);}
+.modal-wide{width:680px;}
+.mtitle{font-family:'Playfair Display',serif;font-size:19px;font-weight:700;margin-bottom:18px;}
+.fr{margin-bottom:13px;}
+.flb{display:block;font-size:11px;color:var(--txt2);margin-bottom:5px;font-family:'DM Mono',monospace;text-transform:uppercase;}
+.fr input,.fr select,.fr textarea{width:100%;}
+textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
+  padding:7px 10px;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:12px;outline:none;resize:vertical;min-height:70px;}
+.fgr{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.fgr3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+.mft{display:flex;gap:7px;justify-content:flex-end;margin-top:18px;}
+
+/* fascia buttons */
+.fasce{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
+.fascia-btn{padding:5px 11px;border-radius:5px;border:1px solid var(--bdr);
+  background:var(--surf2);color:var(--txt2);cursor:pointer;font-family:'DM Mono',monospace;font-size:11px;transition:all .15s;}
+.fascia-btn:hover{border-color:var(--acc);color:var(--acc);}
+.fascia-btn.active{background:var(--acc);color:#000;border-color:var(--acc);}
+
+/* calc / conflict / suggestion */
+.cbox{background:var(--surf2);border:1px solid var(--bdr);border-radius:6px;
+  padding:9px 12px;font-family:'DM Mono',monospace;font-size:11px;color:var(--acc);margin-top:6px;}
+.cfbox{margin-top:6px;}
+.cbadge{background:rgba(232,74,74,.18);border:1px solid var(--red);color:var(--red);
+  border-radius:4px;padding:2px 8px;font-size:10px;font-family:'DM Mono',monospace;}
+.sugg-box{background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;padding:12px 14px;margin-top:8px;}
+.sugg-title{font-size:11px;color:var(--txt2);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
+.sugg-opt{display:flex;align-items:center;justify-content:space-between;
+  background:var(--surf);border:1px solid var(--bdr);border-radius:6px;padding:8px 12px;
+  cursor:pointer;transition:all .15s;margin-bottom:6px;}
+.sugg-opt:last-child{margin-bottom:0;}
+.sugg-opt:hover{border-color:var(--acc);}
+.sugg-opt.rec{border-color:rgba(74,232,122,.4);background:rgba(74,232,122,.05);}
+.so-time{font-family:'DM Mono',monospace;font-size:14px;font-weight:700;color:var(--txt);}
+.so-label{font-size:11px;color:var(--txt2);}
+.so-gap{font-size:10px;font-family:'DM Mono',monospace;padding:1px 6px;border-radius:3px;background:rgba(232,74,74,.15);color:var(--red);}
+.so-gap.ok{background:rgba(74,232,122,.15);color:var(--grn);}
+.so-use{font-size:11px;color:var(--acc);font-weight:600;}
+
+/* toggle */
+.toggle-wrap{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--txt2);}
+.toggle{position:relative;width:36px;height:20px;cursor:pointer;}
+.toggle input{opacity:0;width:0;height:0;}
+.toggle-slider{position:absolute;inset:0;background:var(--surf2);border:1px solid var(--bdr);border-radius:20px;transition:.2s;}
+.toggle-slider:before{content:'';position:absolute;width:14px;height:14px;left:2px;top:2px;background:var(--txt2);border-radius:50%;transition:.2s;}
+.toggle input:checked+.toggle-slider{background:rgba(232,200,74,.2);border-color:var(--acc);}
+.toggle input:checked+.toggle-slider:before{transform:translateX(16px);background:var(--acc);}
+
+/* copy modal */
+.copy-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:12px 0;}
+.copy-day-btn{background:var(--surf2);border:1px solid var(--bdr);border-radius:6px;
+  padding:10px 14px;cursor:pointer;font-size:13px;transition:all .15s;text-align:left;}
+.copy-day-btn:hover{border-color:var(--acc);color:var(--acc);}
+
+/* global optimize modal */
+.gopt-item{
+  background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;
+  padding:12px 14px;margin-bottom:10px;
+}
+.gopt-item:last-child{margin-bottom:0;}
+.gopt-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.gopt-label{font-size:13px;font-weight:600;}
+.gopt-sublabel{font-size:11px;color:var(--txt2);font-family:'DM Mono',monospace;margin-top:2px;}
+.gopt-changes{display:flex;flex-direction:column;gap:4px;}
+.gopt-change{
+  display:flex;align-items:center;gap:8px;
+  background:var(--surf);border-radius:5px;padding:6px 10px;font-size:12px;
+}
+.gopt-change .film-name{flex:1;font-weight:500;}
+.gopt-arrow{color:var(--txt2);font-size:11px;}
+.gopt-from{font-family:'DM Mono',monospace;font-size:11px;color:var(--txt2);text-decoration:line-through;}
+.gopt-to{font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:var(--grn);}
+.gopt-same{font-family:'DM Mono',monospace;font-size:11px;color:var(--txt2);}
+.gopt-anchor-lbl{font-size:10px;color:var(--acc);font-family:'DM Mono',monospace;background:rgba(232,200,74,.1);padding:1px 6px;border-radius:3px;}
+.gopt-skip{font-size:11px;color:var(--txt2);font-style:italic;padding:4px 10px;}
+.gopt-count{font-size:11px;background:rgba(232,200,74,.12);color:var(--acc);border:1px solid rgba(232,200,74,.3);border-radius:4px;padding:1px 8px;font-family:'DM Mono',monospace;}
+.gopt-ok{font-size:11px;background:rgba(74,232,122,.1);color:var(--grn);border:1px solid rgba(74,232,122,.3);border-radius:4px;padding:1px 8px;font-family:'DM Mono',monospace;}
+.gopt-scroll{max-height:55vh;overflow-y:auto;padding-right:4px;}
+.opt-preview{background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;overflow:hidden;margin:14px 0;}
+.opt-row{display:grid;grid-template-columns:1fr 90px 90px;border-bottom:1px solid var(--bdr);}
+.opt-row:last-child{border-bottom:none;}
+.opt-row.hdr{background:rgba(232,200,74,.08);}
+.opt-cell{padding:8px 12px;font-size:12px;}
+.opt-cell.lbl{font-size:11px;color:var(--txt2);font-family:'DM Mono',monospace;font-weight:600;}
+.t-old{color:var(--txt2);text-decoration:line-through;font-family:'DM Mono',monospace;font-size:11px;}
+.t-new{color:var(--grn);font-family:'DM Mono',monospace;font-size:12px;font-weight:700;}
+.t-anchor{color:var(--acc);font-family:'DM Mono',monospace;font-size:12px;font-weight:700;}
+.t-same{color:var(--txt2);font-family:'DM Mono',monospace;font-size:11px;}
+.opt-anchor-row{background:rgba(232,200,74,.06);border-left:3px solid var(--acc);}
+
+/* toast */
+.toast{position:fixed;bottom:22px;right:22px;background:var(--surf2);border:1px solid var(--bdr);
+  border-radius:8px;padding:10px 16px;font-size:12px;box-shadow:var(--shd);z-index:300;
+  transform:translateY(80px);opacity:0;transition:all .28s;}
+.toast.on{transform:translateY(0);opacity:1;}
+.tok{border-color:var(--grn);color:var(--grn);}.terr{border-color:var(--red);color:var(--red);}
+
+.empty{text-align:center;padding:48px 20px;color:var(--txt2);}
+.ei2{font-size:42px;margin-bottom:10px;opacity:.35;}
+.et{font-family:'Playfair Display',serif;font-size:17px;color:var(--txt);margin-bottom:5px;}
+
+/* PRINT */
+@media print{
+  *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;}
+  body{background:#fff !important;color:#000 !important;}
+  header,.tabs,.ctl,.sh .btn,.sp-del,.fac,.ov,.hact,.toast,#loading{display:none !important;}
+  main{padding:5px;max-width:100%;}
+  .page{display:none !important;}
+  #pout{display:block !important;}
+}
+
+/* ═══ MOBILE ═══════════════════════════════════════════════ */
+@media(max-width:768px){
+
+  /* Header: hide sync label text, compact week nav */
+  header{padding:0 12px;height:52px;gap:8px;}
+  .logo{font-size:18px;}
+  .wlbl{min-width:0;font-size:11px;}
+  #syncTxt{display:none;}
+  .sync{padding:4px 7px;}
+  .hact{gap:5px;}
+  .hact .btn{padding:5px 10px;font-size:11px;}
+  /* On mobile: hide "Ottimizza Tutto" label, show only ⚡ icon */
+  #btnGlobalOpt .btn-label{display:none;}
+  /* Hide the + button in header on mobile (FAB handles it) */
+  #btnAddShow{display:none;}
+
+  /* Tabs: smaller, scrollable */
+  .tabs{padding:0 8px;gap:0;}
+  .tab{padding:9px 11px;font-size:12px;}
+
+  /* Main padding */
+  main{padding:12px 10px;}
+
+  /* Controls: wrap compactly */
+  .ctl{gap:7px;}
+  .ctl select{font-size:11px;padding:5px 7px;}
+  .fl{font-size:10px;}
+
+  /* Day block header: stack on mobile */
+  .day-head{padding:8px 10px;flex-wrap:wrap;gap:6px;}
+  .day-name{font-size:14px;}
+  .day-copy{margin-left:0;width:100%;justify-content:flex-start;flex-wrap:wrap;gap:4px;}
+  .day-copy .btn{padding:3px 8px;font-size:10px;}
+
+  /* Slot grid: on mobile with all 4 sale, make columns scrollable */
+  .day-block{overflow-x:auto;}
+  .slot-grid{min-width:420px;}
+
+  /* Show pills: slightly smaller */
+  .sp-title{font-size:10px;}
+  .sp-time{font-size:9px;}
+
+  /* Sections: single column where needed */
+  .sh{flex-direction:column;align-items:flex-start;gap:8px;}
+  .sh .st{font-size:18px;}
+
+  /* List: simplify columns on mobile */
+  .li{grid-template-columns:1fr 1fr;gap:6px;padding:8px 10px;}
+  .li .lih{display:none;}
+  .li>span:nth-child(3){display:none;} /* hide sala badge (shown in film name context) */
+  .li>span:nth-child(5){display:none;} /* hide durata+int */
+  .lih{display:none;}
+
+  /* Films grid: single column */
+  .fg2{grid-template-columns:1fr 1fr;}
+
+  /* Print panel: single column */
+  #page-prnt .sh~div{grid-template-columns:1fr !important;}
+
+  /* Email: single column */
+  #page-mail .sh~div{grid-template-columns:1fr !important;}
+
+  /* Modals: full width */
+  .modal{width:100%;max-width:100%;border-radius:12px 12px 0 0;
+    position:fixed;bottom:0;left:0;right:0;max-height:92vh;
+    padding:20px 16px;}
+  .modal-wide{width:100%;}
+  .ov{align-items:flex-end;}
+
+  /* Modal grids: single column */
+  .fgr{grid-template-columns:1fr;}
+  .fgr3{grid-template-columns:1fr 1fr;}
+
+  /* Fasce: wrap */
+  .fasce{gap:4px;}
+  .fascia-btn{padding:4px 9px;font-size:10px;}
+
+  /* Sugg opts */
+  .sugg-opt{flex-direction:column;align-items:flex-start;gap:6px;}
+
+  /* Copy grid */
+  .copy-grid{grid-template-columns:1fr;}
+
+  /* Toast: full width bottom */
+  .toast{right:10px;left:10px;bottom:16px;text-align:center;}
+
+  /* Opt preview: smaller text */
+  .opt-cell{padding:6px 8px;font-size:11px;}
+
+  /* Toggle wrap */
+  .toggle-wrap{font-size:11px;}
+
+  /* Films: single col on very small */
+  @media(max-width:420px){
+    .fg2{grid-template-columns:1fr;}
+  }
+}
+
+/* Very small phones */
+@media(max-width:400px){
+  .tab{padding:8px 8px;font-size:11px;}
+  .day-copy .btn{display:none;} /* hide copy/optimize on tiny screens, use list view instead */
+  .fg2{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<div id="loading"><div class="spin"></div><div class="load-txt">Connessione a Firebase…</div></div>
+
+<header>
+  <div class="logo">Cine<span>Manager</span></div>
+  <div class="wnav">
+    <button onclick="cw(-1)">‹</button>
+    <div class="wlbl" id="wlbl">—</div>
+    <button onclick="cw(1)">›</button>
+  </div>
+  <div class="hact">
+    <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
+    <button id="btnGlobalOpt" class="btn bg" onclick="openGlobalOpt()" style="color:var(--acc);border-color:rgba(232,200,74,.4)">⚡ <span class="btn-label">Ottimizza Tutto</span></button>
+    <button id="btnAddShow" class="btn ba" onclick="openShow()">＋ Aggiungi Spettacolo</button>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tab on"  onclick="gt('prog')">📅 Programmazione</div>
+  <div class="tab"     onclick="gt('lista')">📋 Lista</div>
+  <div class="tab"     onclick="gt('arch')">🎬 Archivio Film</div>
+  <div class="tab"     onclick="gt('prnt')">🖨 Stampa & PDF</div>
+  <div class="tab"     onclick="gt('mail')">📧 Email</div>
+</div>
+
+<main>
+
+<!-- PROGRAMMAZIONE -->
+<div id="page-prog" class="page on">
+  <div class="ctl">
+    <div class="fg"><span class="fl">Sala:</span>
+      <select id="fS" onchange="rs()">
+        <option value="all">Tutte le Sale</option>
+        <option value="1">Teatro</option><option value="2">Ciak</option>
+        <option value="3">1908</option><option value="4">Mignon</option>
+      </select>
+    </div>
+    <div class="fg"><span class="fl">Giorno:</span>
+      <select id="fD" onchange="rs()"><option value="all">Tutti</option></select>
+    </div>
+    <div class="fg"><span class="fl">Film:</span>
+      <select id="fF" onchange="rs()"><option value="all">Tutti</option></select>
+    </div>
+  </div>
+  <div id="sw"></div>
+</div>
+
+<!-- LISTA -->
+<div id="page-lista" class="page">
+  <div class="sh">
+    <div class="st">Lista Spettacoli</div>
+    <select id="ls" onchange="rl()">
+      <option value="dt">Per Data/Ora</option><option value="sala">Per Sala</option>
+      <option value="film">Per Film</option><option value="day">Per Giorno</option>
+    </select>
+  </div>
+  <div id="lw"></div>
+</div>
+
+<!-- ARCHIVIO -->
+<div id="page-arch" class="page">
+  <div class="sh">
+    <div class="st">Archivio Film</div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <div class="toggle-wrap">
+        <span>Mostra scaduti</span>
+        <label class="toggle"><input type="checkbox" id="showExp" onchange="rf()"><span class="toggle-slider"></span></label>
+      </div>
+      <button class="btn ba" onclick="openFilm()">＋ Nuovo Film</button>
+    </div>
+  </div>
+  <div id="fw" class="fg2"></div>
+</div>
+
+<!-- STAMPA -->
+<div id="page-prnt" class="page">
+  <div class="sh"><div class="st">Stampa & PDF</div></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+    <div class="ps">
+      <h3>📋 Per Titolo</h3>
+      <p style="font-size:12px;color:var(--txt2);margin-bottom:10px">Film in ordine alfabetico con tutti gli orari, distributore e durata.</p>
+      <button class="btn ba" onclick="pPDF('titolo')">⬇ Scarica PDF</button>
+    </div>
+    <div class="ps">
+      <h3>🏛 Per Sala</h3>
+      <p style="font-size:12px;color:var(--txt2);margin-bottom:10px">Una sezione per sala con playlist, durata, versione e orari.</p>
+      <button class="btn ba" onclick="pPDF('sala')">⬇ Scarica PDF</button>
+    </div>
+    <div class="ps">
+      <h3>📅 Giornaliero per Giorno</h3>
+      <p style="font-size:12px;color:var(--txt2);margin-bottom:10px">Ogni giorno in una sezione, tutte le sale ordinate per orario.</p>
+      <button class="btn ba" onclick="pPDF('giorno')">⬇ Scarica PDF</button>
+    </div>
+    <div class="ps">
+      <h3>🪧 Cartelli Film (A4 orizzontale)</h3>
+      <p style="font-size:12px;color:var(--txt2);margin-bottom:10px">Una pagina per film: tabella verde con orari + locandina. Da vetrina.</p>
+      <button class="btn ba" onclick="pPDF('cartelli')">⬇ Scarica PDF</button>
+    </div>
+    <div class="ps" style="grid-column:1/-1">
+      <h3>📰 Programma Settimanale Compatto</h3>
+      <p style="font-size:12px;color:var(--txt2);margin-bottom:10px">Due colonne, giorno come capitolo, film + sala + orario rientrati. Formato professionale da distribuire o affiggere.</p>
+      <button class="btn ba" onclick="pPDF('compatto')">⬇ Scarica PDF</button>
+    </div>
+    <div class="ps" style="grid-column:1/-1">
+      <h3>🎬 Schede Film Settimanali</h3>
+      <p style="font-size:12px;color:var(--txt2);margin-bottom:10px">Una card per ogni film con titolo, metadati e orari raggruppati per giorno. Layout griglia su A4.</p>
+      <button class="btn ba" onclick="pPDF('cards')">⬇ Scarica PDF</button>
+    </div>
+    <div class="ps" style="grid-column:1/-1">
+      <h3>🏛 Programma Giornaliero per Sala (card)</h3>
+      <p style="font-size:12px;color:var(--txt2);margin-bottom:10px">Una pagina per sala, 7 card giornaliere con orari e film. Stesso stile delle Schede Film.</p>
+      <button class="btn ba" onclick="pPDF('saladay')">⬇ Scarica PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- EMAIL -->
+<div id="page-mail" class="page">
+  <div class="sh"><div class="st">Invio Email Programmazione</div></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+    <div class="ps">
+      <h3>📧 Destinatari</h3>
+      <div style="display:flex;gap:7px;margin-bottom:10px">
+        <input type="email" id="ne" placeholder="email@esempio.com" style="flex:1">
+        <button class="btn ba" onclick="addMail()">Aggiungi</button>
+      </div>
+      <div class="el" id="el"></div>
+    </div>
+    <div class="ps">
+      <h3>✉️ Invio</h3>
+      <div class="fr"><label class="flb">Oggetto</label><input type="text" id="ms" value="Programmazione Settimanale Cinema"></div>
+      <div class="fr"><label class="flb">Note</label><textarea id="mn" placeholder="Testo aggiuntivo..."></textarea></div>
+      <div style="background:var(--surf2);border:1px solid var(--bdr);border-radius:5px;padding:9px 12px;font-size:11px;color:var(--txt2);margin-bottom:10px">
+        ℹ️ Apre il client di posta con il programma nel corpo.
+      </div>
+      <button class="btn ba" style="width:100%" onclick="sendMail()">📧 Prepara Email</button>
+    </div>
+  </div>
+</div>
+
+</main>
+<div id="pout" style="display:none"></div>
+
+<!-- FAB mobile -->
+<button class="fab" onclick="openShow()" title="Aggiungi spettacolo">＋</button>
+
+<!-- MODAL SPETTACOLO -->
+<div class="ov" id="ovS">
+  <div class="modal">
+    <div class="mtitle" id="ovST">Aggiungi Spettacolo</div>
+    <div class="fr"><label class="flb">Film *</label>
+      <select id="mFilm" onchange="ce()"><option value="">— Seleziona —</option></select>
+    </div>
+    <div class="fgr">
+      <div class="fr"><label class="flb">Sala *</label>
+        <select id="mSala" onchange="ce()">
+          <option value="1">Teatro</option><option value="2">Ciak</option>
+          <option value="3">1908</option><option value="4">Mignon</option>
+        </select>
+      </div>
+      <div class="fr"><label class="flb">Giorno *</label><select id="mDay"></select></div>
+    </div>
+    <div class="fr">
+      <label class="flb">Fascia oraria</label>
+      <div class="fasce">
+        <button type="button" class="fascia-btn" onclick="setFascia('14:00')">14:00</button>
+        <button type="button" class="fascia-btn" onclick="setFascia('16:00')">16:00</button>
+        <button type="button" class="fascia-btn" onclick="setFascia('18:00')">18:00</button>
+        <button type="button" class="fascia-btn" onclick="setFascia('20:30')">20:30</button>
+        <button type="button" class="fascia-btn" onclick="setFascia('22:00')">22:00</button>
+      </div>
+    </div>
+    <div class="fgr">
+      <div class="fr"><label class="flb">Ora inizio *</label><input type="time" id="mStart" onchange="ce();syncFasce()"></div>
+      <div class="fr"><label class="flb">Intervallo</label>
+        <select id="mInt" onchange="ce()">
+          <option value="15">15 min</option><option value="20" selected>20 min</option>
+          <option value="25">25 min</option><option value="30">30 min</option>
+        </select>
+      </div>
+    </div>
+    <div id="cb" class="cbox" style="display:none"></div>
+    <div id="cfb" class="cfbox" style="display:none"><span class="cbadge">⚠ Conflitto orario nella sala selezionata</span></div>
+    <div id="suggBox" style="display:none"></div>
+    <div class="fr" style="margin-top:10px"><label class="flb">Note</label><textarea id="mNote"></textarea></div>
+    <input type="hidden" id="mId">
+    <div class="mft">
+      <button class="btn bg" onclick="co('ovS')">Annulla</button>
+      <button class="btn ba" onclick="svShow()">Salva Spettacolo</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL FILM -->
+<div class="ov" id="ovF">
+  <div class="modal modal-wide">
+    <div class="mtitle" id="ovFT">Nuovo Film</div>
+    <div class="fgr">
+      <div class="fr"><label class="flb">Titolo *</label><input type="text" id="fTit"></div>
+      <div class="fr"><label class="flb">Durata (min) *</label><input type="number" id="fDur" min="30" max="300" value="100"></div>
+    </div>
+    <div class="fgr3">
+      <div class="fr"><label class="flb">Genere</label>
+        <select id="fGen">
+          <option>Azione</option><option>Avventura</option><option>Animazione</option>
+          <option>Commedia</option><option>Documentario</option><option>Drammatico</option>
+          <option>Fantasy</option><option>Horror</option><option>Musical</option>
+          <option>Romantico</option><option>Sci-Fi</option><option>Thriller</option>
+          <option>Western</option><option>Altro</option>
+        </select>
+      </div>
+      <div class="fr"><label class="flb">Rating</label>
+        <select id="fRat"><option>Per tutti</option><option>6+</option><option>12+</option>
+          <option>14+</option><option>16+</option><option>18+</option></select>
+      </div>
+      <div class="fr"><label class="flb">Regia</label><input type="text" id="fDir"></div>
+    </div>
+    <div class="fgr">
+      <div class="fr"><label class="flb">Distributore</label><input type="text" id="fDist"></div>
+      <div class="fr"><label class="flb">Data di uscita</label><input type="date" id="fRelease"></div>
+    </div>
+    <div class="fgr">
+      <div class="fr"><label class="flb">Fine programmazione</label><input type="date" id="fEndDate"></div>
+      <div class="fr"><label class="flb">URL Locandina</label><input type="url" id="fPoster" placeholder="https://…"></div>
+    </div>
+    <div class="fr"><label class="flb">Descrizione</label><textarea id="fDes"></textarea></div>
+    <input type="hidden" id="fId">
+    <div class="mft">
+      <button class="btn bg" onclick="co('ovF')">Annulla</button>
+      <button class="btn ba" onclick="svFilm()">Salva Film</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL COPIA GIORNO (per sala singola) -->
+<div class="ov" id="ovCopy">
+  <div class="modal">
+    <div class="mtitle">📋 Copia Sala</div>
+    <p style="font-size:13px;color:var(--txt2);margin-bottom:4px">Sala: <strong id="copyFromSalaName"></strong></p>
+    <p style="font-size:13px;color:var(--txt2);margin-bottom:16px">Da: <strong id="copyFromDayName"></strong></p>
+    <p style="font-size:12px;color:var(--txt2);margin-bottom:8px">Copia in quale giorno?</p>
+    <div class="copy-grid" id="copyDayGrid"></div>
+    <div class="mft"><button class="btn bg" onclick="co('ovCopy')">Annulla</button></div>
+  </div>
+</div>
+
+<!-- MODAL DUPLICA GIORNATA INTERA -->
+<div class="ov" id="ovDupDay">
+  <div class="modal">
+    <div class="mtitle">📅 Duplica Giornata</div>
+    <p style="font-size:13px;color:var(--txt2);margin-bottom:16px">Da: <strong id="dupFromDayName"></strong></p>
+    <p style="font-size:12px;color:var(--txt2);margin-bottom:8px">Seleziona le sale da copiare:</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px" id="dupSaleChecks"></div>
+    <p style="font-size:12px;color:var(--txt2);margin-bottom:8px">Copia in quale giorno?</p>
+    <div class="copy-grid" id="dupDayGrid"></div>
+    <div class="mft"><button class="btn bg" onclick="co('ovDupDay')">Annulla</button></div>
+  </div>
+</div>
+
+<!-- MODAL OTTIMIZZA TUTTO -->
+<div class="ov" id="ovGlobalOpt">
+  <div class="modal modal-wide">
+    <div class="mtitle">⚡ Ottimizza Programmazione Settimanale</div>
+    <div style="font-size:12px;color:var(--txt2);margin-bottom:14px">
+      Analisi di tutte le sale per tutti i giorni. Solo le combinazioni con buchi o orari non arrotondati vengono mostrate.
+      Le modifiche sono <strong style="color:var(--txt)">selezionabili singolarmente</strong> — scegli cosa applicare.
+    </div>
+    <div id="goptContent" class="gopt-scroll"></div>
+    <div id="goptEmpty" style="display:none;text-align:center;padding:30px;color:var(--txt2)">
+      <div style="font-size:32px;margin-bottom:8px;opacity:.4">✓</div>
+      <div style="font-family:'Playfair Display',serif;font-size:16px;color:var(--txt)">Tutto in ordine!</div>
+      <div style="font-size:12px;margin-top:4px">Nessuna incongruenza trovata nella programmazione.</div>
+    </div>
+    <div class="mft" style="border-top:1px solid var(--bdr);padding-top:14px;margin-top:14px">
+      <button class="btn bg" onclick="co('ovGlobalOpt')">Chiudi</button>
+      <button class="btn bg" id="goptSelAll" onclick="goptToggleAll(true)">Seleziona tutto</button>
+      <button class="btn ba" id="goptApplyBtn" onclick="execGlobalOpt()">✓ Applica selezionati</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="tst"></div>
+
+<!-- MODAL OTTIMIZZA ORARI -->
+<div class="ov" id="ovOpt">
+  <div class="modal">
+    <div class="mtitle">⚡ Ottimizza Orari</div>
+    <div style="font-size:13px;color:var(--txt2);margin-bottom:4px">Sala: <strong id="optSalaName" style="color:var(--txt)"></strong></div>
+    <div style="font-size:13px;color:var(--txt2);margin-bottom:4px">Giorno: <strong id="optDayName" style="color:var(--txt)"></strong></div>
+    <div style="font-size:13px;color:var(--txt2);margin-bottom:14px">Film ancora fermo: <strong id="optAnchorName" style="color:var(--acc)"></strong> → <strong id="optAnchorTime" style="color:var(--acc)"></strong></div>
+    <div style="font-size:12px;color:var(--txt2);margin-bottom:4px">Partendo dall'orario del film principale, i film precedenti vengono ricalcolati <strong style="color:var(--txt)">a ritroso senza buchi</strong>:</div>
+    <div class="opt-preview" id="optPreview"></div>
+    <div id="optWarn" style="display:none;background:rgba(232,74,74,.1);border:1px solid var(--red);border-radius:6px;padding:10px 14px;font-size:12px;color:var(--red);margin-bottom:10px"></div>
+    <div class="mft">
+      <button class="btn bg" onclick="co('ovOpt')">Annulla</button>
+      <button class="btn ba" id="optConfirmBtn" onclick="execOptimize()">✓ Applica modifiche</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import{getFirestore,doc,collection,setDoc,deleteDoc,onSnapshot}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+const FB={apiKey:"AIzaSyCYM1tZsUI-pz3D0J6EWEMqyDxrk9hep1o",authDomain:"cinemanager-4c67c.firebaseapp.com",
+  projectId:"cinemanager-4c67c",storageBucket:"cinemanager-4c67c.firebasestorage.app",
+  messagingSenderId:"730874662111",appId:"1:730874662111:web:8a4a501dd81644bc96ed6a"};
+const app=initializeApp(FB);
+const db=getFirestore(app);
+
+// ── CONSTANTS ─────────────────────────────────────────────
+const DIT=['Giovedì','Venerdì','Sabato','Domenica','Lunedì','Martedì','Mercoledì'];
+const DSH=['Gio','Ven','Sab','Dom','Lun','Mar','Mer'];
+const FASCE=['14:00','16:00','18:00','20:30','22:00'];
+const MAIN_SLOT='20:30';
+const SALE={
+  '1':{n:'Teatro',hc:'sgh1',sc:'sp1',bc:'sb1',col:'#4a9ee8'},
+  '2':{n:'Ciak',  hc:'sgh2',sc:'sp2',bc:'sb2',col:'#e89a3a'},
+  '3':{n:'1908',  hc:'sgh3',sc:'sp3',bc:'sb3',col:'#3ae8aa'},
+  '4':{n:'Mignon',hc:'sgh4',sc:'sp4',bc:'sb4',col:'#c84ae8'},
+};
+const sn=id=>SALE[id]?.n||'Sala '+id;
+
+// ── STATE ─────────────────────────────────────────────────
+let S={films:[],shows:[],emails:[],ws:thurDay(new Date())};
+
+// ── DATE ──────────────────────────────────────────────────
+function thurDay(d){const dt=new Date(d),dy=dt.getDay(),diff=dy>=4?dy-4:dy+3;dt.setDate(dt.getDate()-diff);dt.setHours(0,0,0,0);return dt;}
+function fd(d){return d.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'});}
+function fs(d){return d.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit'});}
+function am(t,m){const[h,mm]=t.split(':').map(Number),tot=h*60+mm+m;return`${String(Math.floor(tot/60)%24).padStart(2,'0')}:${String(tot%60).padStart(2,'0')}`;}
+function t2m(t){const[h,m]=t.split(':').map(Number);return h*60+m;}
+// Round down to nearest 5 minutes
+function r5(t){const[h,m]=t.split(':').map(Number),rm=Math.floor(m/5)*5;return`${String(h).padStart(2,'0')}:${String(rm).padStart(2,'0')}`;}
+function r5m(mins){const rm=Math.floor(mins/5)*5;return`${String(Math.floor(rm/60)%24).padStart(2,'0')}:${String(rm%60).padStart(2,'0')}`;}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
+function wdays(){return Array.from({length:7},(_,i)=>{const d=new Date(S.ws);d.setDate(d.getDate()+i);return d;});}
+function wdates(){return wdays().map(d=>d.toISOString().slice(0,10));}
+function uwl(){const ds=wdays();document.getElementById('wlbl').textContent=`${fd(ds[0])} — ${fd(ds[6])}`;}
+function cw(n){S.ws=new Date(S.ws);S.ws.setDate(S.ws.getDate()+n*7);uwl();rs();}
+window.cw=cw;
+
+// ── SYNC ──────────────────────────────────────────────────
+function syncSet(s,t){const el=document.getElementById('syncInd');el.className='sync '+s;document.getElementById('syncTxt').textContent=t;}
+
+// ── FIREBASE ──────────────────────────────────────────────
+function startListeners(){
+  onSnapshot(collection(db,'films'),snap=>{
+    S.films=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.title.localeCompare(b.title,'it'));
+    rf();rs();rl();syncSet('ok','Sincronizzato');
+  },()=>syncSet('err','Errore sync'));
+  onSnapshot(collection(db,'shows'),snap=>{
+    S.shows=snap.docs.map(d=>({id:d.id,...d.data()}));
+    rs();rl();syncSet('ok','Sincronizzato');
+  },()=>syncSet('err','Errore sync'));
+  onSnapshot(doc(db,'settings','emails'),snap=>{S.emails=snap.exists()?snap.data().list||[]:[];rem();});
+}
+async function fbSF(film){syncSet('busy','Salvataggio…');await setDoc(doc(db,'films',film.id),film);}
+async function fbDF(id){syncSet('busy','Salvataggio…');await deleteDoc(doc(db,'films',id));}
+async function fbSS(show){syncSet('busy','Salvataggio…');await setDoc(doc(db,'shows',show.id),show);}
+async function fbDS(id){syncSet('busy','Salvataggio…');await deleteDoc(doc(db,'shows',id));}
+async function fbSE(list){await setDoc(doc(db,'settings','emails'),{list});}
+
+// ── TABS ──────────────────────────────────────────────────
+const TABS=['prog','lista','arch','prnt','mail'];
+function gt(id){
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('on',TABS[i]===id));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.getElementById('page-'+id).classList.add('on');
+  if(id==='lista')rl();if(id==='arch')rf();if(id==='mail')rem();
+}
+window.gt=gt;
+
+// ── FILM STATUS ───────────────────────────────────────────
+function filmStatus(f){
+  const t=new Date().toISOString().slice(0,10);
+  if(f.endDate&&f.endDate<t)return'exp';
+  if(f.release&&f.release>t)return'nd';
+  return'ok';
+}
+
+// ── RENDER SCHEDULE (Vista A) ─────────────────────────────
+function rs(){
+  const fSala=document.getElementById('fS').value;
+  const wrap=document.getElementById('sw');
+  const days=wdays();
+
+  const fd2=document.getElementById('fD'),cv=fd2.value;
+  fd2.innerHTML='<option value="all">Tutti</option>';
+  days.forEach((d,i)=>{const o=document.createElement('option');o.value=d.toISOString().slice(0,10);o.textContent=`${DSH[i]} ${fs(d)}`;fd2.appendChild(o);});
+  fd2.value=cv;const fDay=fd2.value;
+
+  const ff=document.getElementById('fF'),cf=ff.value;
+  ff.innerHTML='<option value="all">Tutti</option>';
+  S.films.forEach(f=>{const o=document.createElement('option');o.value=f.id;o.textContent=f.title;ff.appendChild(o);});
+  ff.value=cf;const fFilm=ff.value;
+
+  const wd=wdates();
+  let shows=S.shows.filter(s=>{
+    if(!wd.includes(s.day))return false;
+    if(fSala!=='all'&&s.sala!=fSala)return false;
+    if(fDay!=='all'&&s.day!==fDay)return false;
+    if(fFilm!=='all'&&s.filmId!==fFilm)return false;
+    return true;
+  });
+
+  let dArr=days.map((d,i)=>({d,i}));
+  if(fDay!=='all')dArr=dArr.filter(x=>x.d.toISOString().slice(0,10)===fDay);
+
+  const sale=fSala==='all'?['1','2','3','4']:[String(fSala)];
+  const html=[];
+
+  dArr.forEach(({d,i})=>{
+    const ds=d.toISOString().slice(0,10);
+    const dayShows=shows.filter(s=>s.day===ds);
+    const count=dayShows.length;
+
+    html.push(`<div class="day-block">`);
+    html.push(`<div class="day-head">
+      <span class="day-name">${DIT[i]}</span>
+      <span class="day-date">${fd(d)}</span>
+      ${count?`<span class="day-count">${count} spettacol${count===1?'o':'i'}</span>`:''}
+      <div class="day-copy" style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn bg bs" onclick="openDupDayModal('${ds}')" title="Duplica intera giornata" style="color:var(--c3);border-color:rgba(58,232,170,.35)">📅 Duplica</button>
+        ${sale.map(sid=>`
+          <button class="btn bg bs" onclick="openOptModal('${ds}','${sid}')" title="Ottimizza orari ${SALE[sid].n}" style="color:var(--acc);border-color:rgba(232,200,74,.4)">⚡ ${SALE[sid].n}</button>
+          <button class="btn bg bs" onclick="openCopyModal('${ds}','${sid}')" title="Copia ${SALE[sid].n}">📋 ${SALE[sid].n}</button>
+        `).join('')}
+      </div>
+    </div>`);
+
+    // ── GRIGLIA A FASCE FISSE ──────────────────────────────
+    // Le righe sono sempre le 5 fasce standard + eventuali extra.
+    // Ogni spettacolo viene assegnato alla fascia più vicina (entro 90 min).
+    // Questo allinea visivamente le sale anche con orari leggermente diversi.
+
+    // Collect all unique slots across all sale
+    const allStartTimes=new Set();
+    sale.forEach(sid=>dayShows.filter(s=>s.sala==sid).forEach(s=>allStartTimes.add(s.start)));
+
+    // Map each real start time → nearest fascia (within 90 min window)
+    // If no fascia within 90 min, use the real time as its own row
+    function nearestFascia(t){
+      const tm=t2m(t);
+      let best=null,bestDiff=Infinity;
+      FASCE.forEach(f=>{const diff=Math.abs(t2m(f)-tm);if(diff<bestDiff&&diff<=90){bestDiff=diff;best=f;}});
+      return best||t; // fallback: use real time as row
+    }
+
+    // Build set of row keys (fascia labels) in order
+    const rowSet=new Set(FASCE); // always show all 5 standard fasce
+    allStartTimes.forEach(t=>rowSet.add(nearestFascia(t)));
+    const rows=[...rowSet].sort();
+
+    // Grid: 32px label + N sale columns
+    const cols=`32px repeat(${sale.length},1fr)`;
+    html.push(`<div class="slot-grid" style="grid-template-columns:${cols}">`);
+
+    // Header row
+    html.push(`<div class="sg-corner" style="min-height:40px"></div>`);
+    sale.forEach(sid=>{
+      const sl=SALE[sid];
+      html.push(`<div class="sg-sala-head ${sl.hc}">
+        <span class="sdot" style="background:${sl.col}"></span>
+        <span>${sl.n}</span>
+      </div>`);
+    });
+
+    // Slot rows — one per fascia
+    rows.forEach(rowKey=>{
+      const isMain=rowKey===MAIN_SLOT;
+      const isFascia=FASCE.includes(rowKey);
+      html.push(`<div class="sg-row-lbl${isMain?' main-slot':''}">${rowKey}</div>`);
+
+      sale.forEach(sid=>{
+        const salaShows=dayShows.filter(s=>s.sala==sid).sort((a,b)=>t2m(a.start)-t2m(b.start));
+        // Shows whose nearest fascia is this rowKey
+        const rowShows=salaShows.filter(s=>nearestFascia(s.start)===rowKey);
+
+        html.push(`<div class="sg-cell${isMain?' main-slot-row':''}" onclick="openShowSlot('${ds}','${rowKey}','${sid}')">`);
+
+        if(rowShows.length){
+          html.push(`<div class="add-above" onclick="event.stopPropagation();openShowSlot('${ds}','${rowKey}','${sid}')" title="Aggiungi spettacolo in questa fascia">＋ aggiungi</div>`);
+          rowShows.forEach(s=>{
+            const film=S.films.find(f=>f.id===s.filmId);
+            html.push(`<div class="show-pill ${SALE[s.sala].sc}" onclick="event.stopPropagation();editShow('${s.id}')">
+              <button class="sp-del" onclick="event.stopPropagation();delShow('${s.id}')">×</button>
+              <div class="sp-title">${film?film.title:'?'}</div>
+              <div class="sp-time">${s.start} → ${s.end}</div>
+            </div>`);
+          });
+        } else if(isFascia){
+          // Empty standard fascia — show + button
+          html.push(`<div class="add-slot">＋</div>`);
+        }
+        // Non-standard row with no shows: leave blank (shouldn't happen)
+
+        html.push(`</div>`);
+      });
+    });
+
+    html.push(`</div></div>`); // close slot-grid + day-block
+  });
+
+  wrap.innerHTML=html.length?html.join(''):`<div class="empty"><div class="ei2">📅</div><div class="et">Nessun dato da visualizzare</div></div>`;
+}
+window.rs=rs;
+
+// ── LIST ──────────────────────────────────────────────────
+function rl(){
+  const sort=document.getElementById('ls').value;
+  const wd=wdates();const days=wdays();
+  let shows=S.shows.filter(s=>wd.includes(s.day));
+  if(sort==='dt')  shows.sort((a,b)=>a.day.localeCompare(b.day)||a.start.localeCompare(b.start));
+  if(sort==='sala')shows.sort((a,b)=>a.sala-b.sala||a.day.localeCompare(b.day)||a.start.localeCompare(b.start));
+  if(sort==='film')shows.sort((a,b)=>(S.films.find(f=>f.id===a.filmId)?.title||'').localeCompare(S.films.find(f=>f.id===b.filmId)?.title||'','it'));
+  if(sort==='day') shows.sort((a,b)=>a.day.localeCompare(b.day)||a.sala-b.sala||a.start.localeCompare(b.start));
+  const w=document.getElementById('lw');
+  if(!shows.length){w.innerHTML=`<div class="empty"><div class="ei2">🎬</div><div class="et">Nessuno spettacolo questa settimana</div></div>`;return;}
+  let h=`<div class="lv"><div class="li lih"><span>GIORNO</span><span>FILM</span><span>SALA</span><span>INIZIO→FINE</span><span>DURATA+INT.</span><span>AZIONI</span></div>`;
+  shows.forEach(s=>{
+    const film=S.films.find(f=>f.id===s.filmId),di=wd.indexOf(s.day);
+    h+=`<div class="li">
+      <span>${di>=0?DIT[di]+' '+fs(days[di]):s.day}</span>
+      <span style="font-weight:600">${film?.title||'—'}</span>
+      <span><span class="sb ${SALE[s.sala]?.bc||''}">${sn(s.sala)}</span></span>
+      <span style="font-family:'DM Mono',monospace;font-size:12px">${s.start} → ${s.end}</span>
+      <span style="font-size:11px;color:var(--txt2)">${film?.duration||0}' + ${s.interval}'</span>
+      <div class="lac">
+        <button class="btn bg bs" onclick="editShow('${s.id}')">✏</button>
+        <button class="btn bd bs" onclick="delShow('${s.id}')">✕</button>
+      </div>
+    </div>`;
+  });
+  h+='</div>';w.innerHTML=h;
+}
+window.rl=rl;
+
+// ── FILMS ─────────────────────────────────────────────────
+function rf(){
+  const w=document.getElementById('fw');
+  const showExp=document.getElementById('showExp')?.checked||false;
+  let films=showExp?S.films:S.films.filter(f=>filmStatus(f)!=='exp');
+  if(!films.length){
+    w.innerHTML=`<div class="empty"><div class="ei2">🎭</div><div class="et">${S.films.length?'Nessun film attivo':'Archivio vuoto'}</div></div>`;return;
+  }
+  const fmtD=d=>d?d.split('-').reverse().join('/'):'—';
+  w.innerHTML=films.map(f=>{
+    const st=filmStatus(f);
+    const stBadge=st==='exp'?`<span class="fstatus exp">Scaduto</span>`:st==='nd'?`<span class="fstatus nd">Non uscito</span>`:f.release?`<span class="fstatus ok">In programmazione</span>`:'';
+    return`<div class="fc${st==='exp'?' film-expired':''}">
+      ${f.poster?`<img class="fc-poster" src="${f.poster}" onerror="this.style.display='none'" alt="">`:`<div class="fc-poster-ph">🎬</div>`}
+      <div class="fdur">${f.duration} min</div>
+      <div class="fc-body">
+        <div class="fn">${f.title} ${stBadge}</div>
+        <div class="fi">
+          ${f.director?`🎬 ${f.director}<br>`:''}
+          ${f.distributor?`🏢 ${f.distributor}<br>`:''}
+          ⭐ ${f.rating||'N/D'}
+          ${f.release?`<br>📅 Uscita: ${fmtD(f.release)}`:''}
+          ${f.endDate?`<br>🔚 Fine: ${fmtD(f.endDate)}`:''}
+        </div>
+        <div><span class="fg3">${f.genre}</span></div>
+        <div class="fac">
+          <button class="btn bg bs" onclick="editFilm('${f.id}')">✏ Modifica</button>
+          <button class="btn bd bs" onclick="delFilm('${f.id}')">✕</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+window.rf=rf;
+
+// ── FASCIA ────────────────────────────────────────────────
+function setFascia(t){document.getElementById('mStart').value=t;syncFasce();ce();}
+function syncFasce(){const v=document.getElementById('mStart').value;document.querySelectorAll('.fascia-btn').forEach(b=>b.classList.toggle('active',b.textContent===v));}
+window.setFascia=setFascia;window.syncFasce=syncFasce;
+
+// ── SMART SUGGESTION ─────────────────────────────────────
+function showSugg(sala,day,intv){
+  const box=document.getElementById('suggBox');
+  const salaShows=S.shows.filter(s=>s.sala==sala&&s.day===day).sort((a,b)=>t2m(b.end)-t2m(a.end));
+  if(!salaShows.length){box.style.display='none';return;}
+  const last=salaShows[0];
+  const suggested=am(last.end,intv);
+  const film=S.films.find(f=>f.id===last.filmId);
+  const suggM=t2m(suggested);
+  const nextFascia=FASCE.find(f=>t2m(f)>suggM);
+  let h=`<div class="sugg-box"><div class="sugg-title">💡 Dopo ${film?film.title:'film precedente'} (fine ${last.end})</div>`;
+  h+=`<div class="sugg-opt rec" onclick="applySugg('${suggested}')">
+    <div><div class="so-time">${suggested}</div><div class="so-label">Senza buco — subito dopo l'intervallo</div></div>
+    <div style="display:flex;align-items:center;gap:8px"><span class="so-gap ok">0 min buco</span><span class="so-use">Usa →</span></div>
+  </div>`;
+  if(nextFascia){
+    const gap=t2m(nextFascia)-suggM;
+    h+=`<div class="sugg-opt" onclick="applySugg('${nextFascia}')">
+      <div><div class="so-time">${nextFascia}</div><div class="so-label">Fascia standard successiva</div></div>
+      <div style="display:flex;align-items:center;gap:8px"><span class="so-gap">${gap} min buco</span><span class="so-use">Usa →</span></div>
+    </div>`;
+  }
+  h+='</div>';
+  box.innerHTML=h;box.style.display='block';
+  // Pre-fill with no-gap option
+  document.getElementById('mStart').value=suggested;
+  syncFasce();
+}
+function applySugg(t){document.getElementById('mStart').value=t;syncFasce();ce();}
+window.applySugg=applySugg;
+
+// ── MODAL SHOW ────────────────────────────────────────────
+function openShow(){
+  document.getElementById('ovST').textContent='Aggiungi Spettacolo';
+  document.getElementById('mId').value='';
+  document.getElementById('mNote').value='';
+  document.getElementById('mStart').value='';
+  document.getElementById('cb').style.display='none';
+  document.getElementById('cfb').style.display='none';
+  document.getElementById('suggBox').style.display='none';
+  document.getElementById('suggBox').innerHTML='';
+  document.querySelectorAll('.fascia-btn').forEach(b=>b.classList.remove('active'));
+  fillF();fillD();
+  document.getElementById('ovS').classList.add('on');
+}
+function openShowSlot(day,time,sala){
+  openShow();
+  if(day) document.getElementById('mDay').value=day;
+  if(sala)document.getElementById('mSala').value=sala;
+  const intv=parseInt(document.getElementById('mInt').value)||20;
+  if(sala&&day) showSugg(sala,day,intv);
+  else if(time){document.getElementById('mStart').value=time;syncFasce();}
+  ce();
+}
+function editShow(id){
+  const s=S.shows.find(x=>x.id===id);if(!s)return;
+  document.getElementById('ovST').textContent='Modifica Spettacolo';
+  fillF(s.filmId);fillD(s.day);
+  document.getElementById('mSala').value=s.sala;
+  document.getElementById('mStart').value=s.start;
+  document.getElementById('mInt').value=s.interval;
+  document.getElementById('mNote').value=s.note||'';
+  document.getElementById('mId').value=id;
+  document.getElementById('suggBox').style.display='none';
+  syncFasce();ce();
+  document.getElementById('ovS').classList.add('on');
+}
+function fillF(sel){
+  const el=document.getElementById('mFilm');
+  el.innerHTML='<option value="">— Seleziona —</option>';
+  S.films.filter(f=>f.id===sel||filmStatus(f)!=='exp')
+    .forEach(f=>{const o=document.createElement('option');o.value=f.id;o.textContent=`${f.title} (${f.duration} min)`;if(f.id===sel)o.selected=true;el.appendChild(o);});
+}
+function fillD(sel){
+  const el=document.getElementById('mDay');el.innerHTML='';
+  wdays().forEach((d,i)=>{const o=document.createElement('option');o.value=d.toISOString().slice(0,10);o.textContent=`${DIT[i]} ${fs(d)}`;if(o.value===sel)o.selected=true;el.appendChild(o);});
+}
+function ce(){
+  const fid=document.getElementById('mFilm').value,st=document.getElementById('mStart').value;
+  const intv=parseInt(document.getElementById('mInt').value);
+  const film=S.films.find(f=>f.id===fid);
+  const cbEl=document.getElementById('cb'),cfb=document.getElementById('cfb');
+  if(!film||!st){cbEl.style.display='none';return;}
+  const stR=r5(st); // rounded start
+  const end=am(stR,film.duration),nxt=am(end,intv);
+  cbEl.style.display='block';
+  const roundedNote=stR!==st?` <span style="font-size:10px;color:var(--txt2)">(arrotondato da ${st})</span>`:'';
+  cbEl.innerHTML=`🎬 Inizio: <strong>${stR}</strong>${roundedNote} · Fine: <strong>${end}</strong> · Prossimo slot: <strong>${nxt}</strong> (${film.duration}' + ${intv}')`;
+  const sala=document.getElementById('mSala').value,day=document.getElementById('mDay').value,eid=document.getElementById('mId').value;
+  const sm=t2m(stR),em=t2m(end);
+  const clash=S.shows.some(s=>{if(s.id===eid||s.sala!=sala||s.day!==day)return false;return!(em<=t2m(s.start)||sm>=t2m(s.end));});
+  cfb.style.display=clash?'block':'none';
+}
+async function svShow(){
+  const fid=document.getElementById('mFilm').value,sala=document.getElementById('mSala').value;
+  const day=document.getElementById('mDay').value,stRaw=document.getElementById('mStart').value;
+  const intv=parseInt(document.getElementById('mInt').value),note=document.getElementById('mNote').value;
+  const eid=document.getElementById('mId').value;
+  if(!fid||!stRaw){toast('Seleziona film e ora inizio','err');return;}
+  const st=r5(stRaw); // always round down to nearest 5 min
+  const film=S.films.find(f=>f.id===fid),end=am(st,film.duration);
+  const show={id:eid||uid(),filmId:fid,sala,day,start:st,end,interval:intv,note};
+  await fbSS(show);co('ovS');toast(eid?'Aggiornato':'Aggiunto','ok');
+}
+async function delShow(id){if(!confirm('Eliminare?'))return;await fbDS(id);toast('Eliminato','ok');}
+window.openShow=openShow;window.openShowSlot=openShowSlot;window.editShow=editShow;
+window.ce=ce;window.svShow=svShow;window.delShow=delShow;
+
+// ── COPY DAY ──────────────────────────────────────────────
+let _copyFrom={day:'',sala:''};
+function openCopyModal(day,sala){
+  _copyFrom={day,sala};
+  const dayIdx=wdates().indexOf(day);
+  document.getElementById('copyFromSalaName').textContent=sn(sala);
+  document.getElementById('copyFromDayName').textContent=dayIdx>=0?`${DIT[dayIdx]} ${fd(wdays()[dayIdx])}`:day;
+  const grid=document.getElementById('copyDayGrid');
+  grid.innerHTML=wdays().map((d,i)=>{
+    const ds=d.toISOString().slice(0,10);
+    if(ds===day)return'';
+    return`<button class="copy-day-btn" onclick="execCopy('${ds}')">${DIT[i]}<br><span style="font-size:11px;color:var(--txt2)">${fs(d)}</span></button>`;
+  }).join('');
+  document.getElementById('ovCopy').classList.add('on');
+}
+async function execCopy(toDay){
+  const{day:fromDay,sala}=_copyFrom;
+  const toCopy=S.shows.filter(s=>s.day===fromDay&&s.sala===sala);
+  if(!toCopy.length){toast('Nessuno spettacolo da copiare','err');return;}
+  for(const s of toCopy){
+    await fbSS({...s,id:uid(),day:toDay});
+  }
+  co('ovCopy');toast(`${toCopy.length} spettacol${toCopy.length===1?'o':'i'} copiati`,'ok');
+}
+window.openCopyModal=openCopyModal;window.execCopy=execCopy;
+
+// ── DUPLICA GIORNATA INTERA ──────────────────────────────
+let _dupDay='';
+function openDupDayModal(day){
+  _dupDay=day;
+  const dayIdx=wdates().indexOf(day);
+  const dayLabel=dayIdx>=0?`${DIT[dayIdx]} ${fd(wdays()[dayIdx])}`:day;
+  document.getElementById('dupFromDayName').textContent=dayLabel;
+
+  // Sale checkboxes — pre-check only those that have shows
+  const saleWithShows=new Set(S.shows.filter(s=>s.day===day).map(s=>s.sala));
+  document.getElementById('dupSaleChecks').innerHTML=
+    ['1','2','3','4'].map(sid=>{
+      const sl=SALE[sid];
+      const hasSh=saleWithShows.has(sid);
+      return`<label style="display:flex;align-items:center;gap:7px;padding:8px 12px;
+        background:var(--surf2);border:1px solid ${hasSh?sl.col:'var(--bdr)'};
+        border-radius:6px;cursor:pointer;font-size:13px;transition:all .15s;">
+        <input type="checkbox" class="dupSalaCk" value="${sid}" ${hasSh?'checked':''} style="accent-color:${sl.col}">
+        <span style="color:${hasSh?sl.col:'var(--txt2)'}">
+          ${sl.n}${hasSh?` <span style="font-size:10px">(${S.shows.filter(s=>s.day===day&&s.sala==sid).length} sp.)</span>`:''}
+        </span>
+      </label>`;
+    }).join('');
+
+  // Day buttons
+  document.getElementById('dupDayGrid').innerHTML=
+    wdays().map((d,i)=>{
+      const ds=d.toISOString().slice(0,10);
+      if(ds===day)return'';
+      return`<button class="copy-day-btn" onclick="execDupDay('${ds}')">${DIT[i]}<br><span style="font-size:11px;color:var(--txt2)">${fs(d)}</span></button>`;
+    }).join('');
+
+  document.getElementById('ovDupDay').classList.add('on');
+}
+
+async function execDupDay(toDay){
+  const selectedSale=[...document.querySelectorAll('.dupSalaCk:checked')].map(c=>c.value);
+  if(!selectedSale.length){toast('Seleziona almeno una sala','err');return;}
+  const toCopy=S.shows.filter(s=>s.day===_dupDay&&selectedSale.includes(s.sala));
+  if(!toCopy.length){toast('Nessuno spettacolo nelle sale selezionate','err');return;}
+  for(const s of toCopy){
+    await fbSS({...s,id:uid(),day:toDay});
+  }
+  co('ovDupDay');
+  toast(`${toCopy.length} spettacol${toCopy.length===1?'o':'i'} duplicati in ${DIT[wdates().indexOf(toDay)]||toDay}`,'ok');
+}
+window.openDupDayModal=openDupDayModal;window.execDupDay=execDupDay;
+
+// ── OTTIMIZZA TUTTO (globale) ─────────────────────────────
+// Shared pure function: compute optimized plan for one sala/day
+// Returns array of {show, newStart, newEnd, changed, isAnchor, error}
+function computeOptPlan(salaShows){
+  if(salaShows.length<2) return salaShows.map(s=>({show:s,newStart:s.start,newEnd:s.end,changed:false,isAnchor:false,error:false}));
+  const sorted=salaShows.slice().sort((a,b)=>t2m(a.start)-t2m(b.start));
+  // Find anchor = closest to 20:30
+  const ANCH=t2m('20:30');
+  const anchor=sorted.reduce((b,s)=>Math.abs(t2m(s.start)-ANCH)<Math.abs(t2m(b.start)-ANCH)?s:b);
+  const before=sorted.filter(s=>t2m(s.start)<t2m(anchor.start));
+  const after=sorted.filter(s=>t2m(s.start)>t2m(anchor.start));
+  const plan=[];
+  plan.push({show:anchor,newStart:anchor.start,newEnd:anchor.end,changed:false,isAnchor:true,error:false});
+  let cursor=t2m(anchor.start);
+  [...before].reverse().forEach(s=>{
+    const film=S.films.find(f=>f.id===s.filmId);
+    const dur=film?.duration||90,intv=s.interval||20;
+    const newEndM=cursor-intv,newStartM=Math.floor((newEndM-dur)/5)*5;
+    if(newStartM<0){plan.push({show:s,newStart:s.start,newEnd:s.end,changed:false,isAnchor:false,error:true});return;}
+    const newStart=r5m(newStartM),newEnd=am(newStart,dur);
+    plan.push({show:s,newStart,newEnd,changed:newStart!==s.start,isAnchor:false,error:false});
+    cursor=newStartM;
+  });
+  after.forEach(s=>plan.push({show:s,newStart:s.start,newEnd:s.end,changed:false,isAnchor:false,error:false}));
+  return plan.sort((a,b)=>t2m(a.newStart)-t2m(b.newStart));
+}
+
+// Check if a sala/day has any incongruence (buco or unrounded time)
+function hasIncongruence(salaShows){
+  if(!salaShows.length) return false;
+  const sorted=salaShows.slice().sort((a,b)=>t2m(a.start)-t2m(b.start));
+  // Check unrounded times
+  if(sorted.some(s=>r5(s.start)!==s.start)) return true;
+  // Check gaps between consecutive shows
+  for(let i=1;i<sorted.length;i++){
+    const gap=t2m(sorted[i].start)-t2m(sorted[i-1].end);
+    if(gap>sorted[i-1].interval+2) return true; // more than interval+2min = buco
+  }
+  return false;
+}
+
+let _goptPlan=[]; // [{salaDay, checked, plan:[]}]
+
+function openGlobalOpt(){
+  const wd=wdates();const days=wdays();
+  _goptPlan=[];
+  let html='';
+  let totalIssues=0;
+
+  wd.forEach((ds,di)=>{
+    ['1','2','3','4'].forEach(sid=>{
+      const salaShows=S.shows.filter(s=>s.day===ds&&s.sala===sid);
+      if(!salaShows.length) return; // skip empty
+      if(!hasIncongruence(salaShows)) return; // skip clean
+
+      const plan=computeOptPlan(salaShows);
+      const changes=plan.filter(p=>p.changed&&!p.error);
+      if(!changes.length) return; // no actual changes needed
+
+      const key=`${ds}_${sid}`;
+      _goptPlan.push({key,day:ds,sala:sid,plan,checked:true});
+      totalIssues++;
+
+      const sl=SALE[sid];
+      const dayLabel=`${DIT[di]} ${fs(days[di])}`;
+      html+=`<div class="gopt-item">
+        <div class="gopt-header">
+          <div>
+            <div class="gopt-label">
+              <span style="color:${sl.col}">■</span> ${sl.n} — ${dayLabel}
+            </div>
+            <div class="gopt-sublabel">${changes.length} orari da correggere</div>
+          </div>
+          <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px">
+            <input type="checkbox" class="gopt-ck" data-key="${key}" checked style="accent-color:var(--acc);width:16px;height:16px">
+            Applica
+          </label>
+        </div>
+        <div class="gopt-changes">`;
+
+      plan.forEach(p=>{
+        const film=S.films.find(f=>f.id===p.show.filmId);
+        html+=`<div class="gopt-change">
+          <span class="film-name">${film?.title||'?'}${p.isAnchor?` <span class="gopt-anchor-lbl">⭐ fisso</span>`:''}</span>
+          ${p.error
+            ?`<span style="color:var(--red);font-size:11px">⚠ errore</span>`
+            :p.changed
+              ?`<span class="gopt-from">${p.show.start}</span><span class="gopt-arrow">→</span><span class="gopt-to">${p.newStart}</span>`
+              :`<span class="gopt-same">${p.newStart} (invariato)</span>`
+          }
+        </div>`;
+      });
+
+      html+=`</div></div>`;
+    });
+  });
+
+  const content=document.getElementById('goptContent');
+  const empty=document.getElementById('goptEmpty');
+  const applyBtn=document.getElementById('goptApplyBtn');
+  const selAll=document.getElementById('goptSelAll');
+
+  if(totalIssues===0){
+    content.style.display='none';
+    empty.style.display='block';
+    applyBtn.style.display='none';
+    selAll.style.display='none';
+  } else {
+    content.innerHTML=html;
+    content.style.display='block';
+    empty.style.display='none';
+    applyBtn.style.display='';
+    selAll.style.display='';
+  }
+
+  document.getElementById('ovGlobalOpt').classList.add('on');
+}
+
+function goptToggleAll(val){
+  document.querySelectorAll('.gopt-ck').forEach(ck=>ck.checked=val);
+  document.getElementById('goptSelAll').textContent=val?'Deseleziona tutto':'Seleziona tutto';
+  document.getElementById('goptSelAll').onclick=()=>goptToggleAll(!val);
+}
+
+async function execGlobalOpt(){
+  const checked=[...document.querySelectorAll('.gopt-ck:checked')].map(ck=>ck.dataset.key);
+  if(!checked.length){toast('Nessuna voce selezionata','err');return;}
+
+  let totalUpdated=0;
+  for(const key of checked){
+    const item=_goptPlan.find(x=>x.key===key);
+    if(!item) continue;
+    for(const p of item.plan.filter(p=>p.changed&&!p.error)){
+      await fbSS({...p.show,start:p.newStart,end:p.newEnd});
+      totalUpdated++;
+    }
+  }
+  co('ovGlobalOpt');
+  toast(`${totalUpdated} orari ottimizzati su ${checked.length} sala/giorno`,'ok');
+}
+window.openGlobalOpt=openGlobalOpt;window.goptToggleAll=goptToggleAll;window.execGlobalOpt=execGlobalOpt;
+function openFilm(){
+  ['fTit','fDir','fDist','fDes','fRelease','fEndDate','fPoster'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('fDur').value=100;
+  document.getElementById('fGen').value='Drammatico';
+  document.getElementById('fRat').value='Per tutti';
+  document.getElementById('fId').value='';
+  document.getElementById('ovFT').textContent='Nuovo Film';
+  document.getElementById('ovF').classList.add('on');
+}
+function editFilm(id){
+  const f=S.films.find(x=>x.id===id);if(!f)return;
+  document.getElementById('ovFT').textContent='Modifica Film';
+  document.getElementById('fTit').value=f.title;
+  document.getElementById('fDur').value=f.duration;
+  document.getElementById('fGen').value=f.genre;
+  document.getElementById('fDir').value=f.director||'';
+  document.getElementById('fDist').value=f.distributor||'';
+  document.getElementById('fRat').value=f.rating||'Per tutti';
+  document.getElementById('fDes').value=f.desc||'';
+  document.getElementById('fRelease').value=f.release||'';
+  document.getElementById('fEndDate').value=f.endDate||'';
+  document.getElementById('fPoster').value=f.poster||'';
+  document.getElementById('fId').value=id;
+  document.getElementById('ovF').classList.add('on');
+}
+async function svFilm(){
+  const title=document.getElementById('fTit').value.trim(),dur=parseInt(document.getElementById('fDur').value);
+  if(!title||!dur){toast('Titolo e durata obbligatori','err');return;}
+  const eid=document.getElementById('fId').value;
+  const film={id:eid||uid(),title,duration:dur,
+    genre:document.getElementById('fGen').value,
+    director:document.getElementById('fDir').value,
+    distributor:document.getElementById('fDist').value,
+    rating:document.getElementById('fRat').value,
+    desc:document.getElementById('fDes').value,
+    release:document.getElementById('fRelease').value||'',
+    endDate:document.getElementById('fEndDate').value||'',
+    poster:document.getElementById('fPoster').value||''};
+  await fbSF(film);co('ovF');toast(eid?'Film aggiornato':'Film aggiunto','ok');
+}
+async function delFilm(id){
+  if(S.shows.some(s=>s.filmId===id)&&!confirm('Film in uso. Eliminare?'))return;
+  await fbDF(id);toast('Film eliminato','ok');
+}
+window.openFilm=openFilm;window.editFilm=editFilm;window.svFilm=svFilm;window.delFilm=delFilm;
+
+// ── PDF ───────────────────────────────────────────────────
+function durFmt(min){if(!min)return'';const h=Math.floor(min/60),m=min%60;return h+'h'+String(m).padStart(2,'0');}
+function dayShort(ds,days,wd){const di=wd.indexOf(ds);if(di<0)return ds;const d=days[di];const ab=['Gio','Ven','Sab','Dom','Lun','Mar','Mer'];return ab[di]+' '+String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0');}
+
+// Dense, professional PDF CSS — 8-9px type, 15-16px rows, no decorative waste
+const PDF_STYLE=`<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:Arial,Helvetica,sans-serif;font-size:8.5px;color:#111;background:#fff;line-height:1.3;}
+/* ── HEADER ── */
+.H{padding:0 0 6px;border-bottom:1.5px solid #111;margin-bottom:8px;}
+.H-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px;}
+.H-logo{height:22px;width:auto;display:block;}
+.H-stamp{font-size:7px;color:#aaa;text-align:right;padding-top:2px;}
+.H-bot{display:flex;align-items:baseline;gap:8px;}
+.H-bot .rt{font-size:13px;font-weight:700;color:#f0801a;line-height:1;}
+.H-bot .wl{font-size:8px;color:#888;}
+/* ── PER TITOLO ── */
+.T-film{margin-bottom:6px;}
+.T-film-head{display:flex;align-items:baseline;gap:6px;border-bottom:1.5px solid #f0801a;padding-bottom:2px;margin-bottom:1px;}
+.T-ftit{font-size:9.5px;font-weight:700;color:#f0801a;}
+.T-fmeta{font-size:7px;color:#888;}
+.T-row{display:grid;grid-template-columns:110px 55px 32px 55px;padding:1px 0 1px 8px;border-bottom:.3px solid #eee;}
+.T-row:last-child{border-bottom:none;}
+.T-d{color:#444;}.T-s{color:#222;font-weight:600;}.T-t{font-weight:700;}.T-e{color:#888;}
+/* ── PER SALA ── */
+.S-head{background:#f0801a;color:#fff;padding:3px 6px;font-size:8px;font-weight:700;letter-spacing:.3px;margin-bottom:0;}
+.S-subh{display:grid;grid-template-columns:80px 1fr 30px 28px 50px;background:#eee;padding:2px 6px;font-size:7px;font-weight:700;text-transform:uppercase;color:#555;letter-spacing:.3px;}
+.S-row{display:grid;grid-template-columns:80px 1fr 30px 28px 50px;padding:1.5px 6px;border-bottom:.3px solid #eee;}
+.S-row:nth-child(even){background:#f8f8f8;}
+.S-t{font-weight:700;}.S-e{color:#888;}
+.S-block{margin-bottom:7px;}
+/* ── PER GIORNO ── */
+.G-head{background:#f0801a;color:#fff;padding:3px 6px;font-size:8px;font-weight:700;margin-bottom:0;}
+.G-subh{display:grid;grid-template-columns:27px 55px 1fr 28px 45px;background:#eee;padding:2px 6px;font-size:7px;font-weight:700;text-transform:uppercase;color:#555;letter-spacing:.3px;}
+.G-row{display:grid;grid-template-columns:27px 55px 1fr 28px 45px;padding:1.5px 6px;border-bottom:.3px solid #eee;}
+.G-row:nth-child(even){background:#f8f8f8;}
+.G-t{font-weight:700;}.G-e{color:#888;}.G-s{color:#444;}
+.G-block{margin-bottom:7px;}
+/* ── COMPATTO 2 COLONNE ── */
+.cols{column-count:2;column-gap:12px;column-rule:.5px solid #ccc;}
+.D-chapter{break-inside:avoid;page-break-inside:avoid;margin-top:7px;margin-bottom:2px;display:flex;align-items:center;gap:5px;}
+.D-day{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#f0801a;}
+.D-line{flex:1;height:.5px;background:#999;}
+.D-row{display:grid;grid-template-columns:27px 42px 1fr 22px;padding:1px 0 1px 6px;border-bottom:.3px solid #eee;break-inside:avoid;page-break-inside:avoid;}
+.D-row:last-child{border-bottom:none;}
+.D-t{font-weight:700;}.D-s{color:#555;font-size:7.5px;}.D-f{}.D-d{color:#aaa;font-size:7px;}
+/* ── CARTELLO ── */
+.cart-page{
+  page-break-after:always;
+  display:grid;
+  grid-template-columns:155mm 1fr;
+  grid-template-rows:auto 1fr;
+  gap:0;
+  height:190mm;
+  overflow:hidden;
+}
+.cart-page:last-child{page-break-after:auto;}
+.cart-header{
+  grid-column:1/-1;
+  border-bottom:1.5px solid #111;
+  padding-bottom:5px;
+  margin-bottom:8px;
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:12px;
+}
+.cart-title{font-size:22px;font-weight:700;color:#f0801a;line-height:1.1;}
+.cart-meta{font-size:9px;color:#888;}
+.cart-left-col{display:flex;flex-direction:column;overflow:hidden;padding-right:14px;border-right:1px solid #e8e8e8;}
+.cart-poster-img{width:100%;height:100%;max-height:160mm;object-fit:cover;border-radius:3px;}
+.cart-poster-ph{width:100%;flex:1;background:#f5f5f5;border:1px solid #e0e0e0;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:52px;}
+.cart-right-col{padding-left:14px;display:flex;flex-direction:column;gap:6px;}
+.cart-days-grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(4,1fr);gap:5px;flex:1;}
+.cart-day-card{border:1px solid #e0e0e0;border-top:2.5px solid #f0801a;border-radius:3px;display:flex;flex-direction:column;}
+.cart-day-head{padding:3px 8px 2px;border-bottom:1px solid #eee;}
+.cart-day-name{font-size:9px;font-weight:700;color:#f0801a;text-transform:uppercase;letter-spacing:.4px;}
+.cart-day-body{padding:3px 8px 5px;flex:1;}
+.cart-show-row{display:flex;align-items:baseline;gap:5px;padding:2px 0;border-bottom:.5px solid #f5f5f5;}
+.cart-show-row:last-child{border-bottom:none;}
+.cart-show-time{font-size:11px;font-weight:700;color:#111;min-width:32px;}
+.cart-show-sala{font-size:8.5px;color:#777;}
+.cart-no-show{font-size:8px;color:#ccc;font-style:italic;padding:3px 0;}
+
+/* ── SCHEDE FILM (CARDS) ── */
+.cards-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+.film-card{border:1px solid #e0e0e0;border-top:2.5px solid #f0801a;border-radius:3px;overflow:hidden;break-inside:avoid;page-break-inside:avoid;}
+.fc-header{background:#fff;padding:5px 8px 3px;border-bottom:1px solid #eee;}
+.fc-title{font-size:10px;font-weight:700;line-height:1.2;color:#f0801a;}
+.fc-meta{font-size:7px;color:#aaa;margin-top:2px;line-height:1.4;}
+.fc-body{padding:4px 8px;}
+.fc-day{display:flex;align-items:baseline;gap:4px;margin-bottom:3px;}
+.fc-day-name{font-size:7.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#555;min-width:52px;flex-shrink:0;}
+.fc-slots{display:flex;flex-wrap:wrap;gap:3px;}
+.fc-slot{background:#fff5ee;border:1px solid #f0801a;border-radius:2px;padding:1px 5px;font-size:8px;font-weight:700;color:#f0801a;white-space:nowrap;}
+.fc-slot-sala{font-size:7px;font-weight:400;color:#888;margin-left:2px;}
+@page{size:A4 portrait;margin:15mm;}
+@page landscape{size:A4 landscape;margin:12mm;}
+.land{page:landscape;}
+</style>`;
+
+async function pPDF(type){
+  const days=wdays();const wd=wdates();
+  const CN='Cinema Multisala Teatro Mendrisio';
+  const allShows=S.shows.filter(s=>wd.includes(s.day)).sort((a,b)=>a.day.localeCompare(b.day)||a.start.localeCompare(b.start));
+  const wl=fd(days[0])+' \u2014 '+fd(days[6]);
+  const DAB=['Gio','Ven','Sab','Dom','Lun','Mar','Mer'];
+  const now=new Date().toLocaleDateString('it-IT');
+  let html='';
+  const LOGO='data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyBpZD0iQ2FscXVlXzEiIGRhdGEtbmFtZT0iQ2FscXVlIDEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgdmlld0JveD0iMCAwIDE3MjYuMyAxMTE2Ljg1Ij4KICA8ZGVmcz4KICAgIDxzdHlsZT4KICAgICAgLmNscy0xIHsKICAgICAgICBmaWxsOiAjZWY3ODE1OwogICAgICB9CiAgICA8L3N0eWxlPgogIDwvZGVmcz4KICA8Zz4KICAgIDxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTUxMy40OSw3NTEuMTZjLTEwNi4yMiwxMS44LTIwMS45LTY0Ljc1LTIxMy42OS0xNzAuOTgtMTEuOC0xMDYuMjIsNjQuNzUtMjAxLjksMTcwLjk4LTIxMy42OWw0Mi43MiwzODQuNjdaIi8+CiAgICA8Y2lyY2xlIGNsYXNzPSJjbHMtMSIgY3g9IjU4NC4yNSIgY3k9IjQ1OC4zOSIgcj0iNzEuNTYiLz4KICAgIDxwb2x5Z29uIGNsYXNzPSJjbHMtMSIgcG9pbnRzPSI1NTYuNzIgNTg5LjExIDU3Ny40OCA2ODYuNzkgOTIyLjYzIDc0NC41MyA5MDUuODggNDA2LjI1IDU1Ni43MiA1ODkuMTEiLz4KICA8L2c+CiAgPGc+CiAgICA8Zz4KICAgICAgPHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMTA1Ni42NCw0MzYuNTZjLTYuODYsMi40OC0xMC42MywzLjI4LTE0LjkxLDMuMjgtMTEuNTMsMC0yMC4xNy00LjU3LTI1LjY0LTkuOTQtNi40Ni02LjQ2LTEwLjA0LTE1LjUtMTAuMDQtMjQuMTUsMC05LjQ0LDQuMDctMTguMzksMTAuMDQtMjQuNDUsNS44Ni01Ljk2LDE0LjcxLTEwLjM0LDI1LjA0LTEwLjM0LDMuMTgsMCw4LjM1LjUsMTUuNSwzLjM4djIwLjU3Yy01LjU3LTYuODYtMTIuMTItNy4yNi0xNS4wMS03LjI2LTQuOTcsMC04Ljc1LDEuNDktMTEuOTMsNC4zNy00LjA4LDMuNzgtNS43Niw4Ljk0LTUuNzYsMTMuNjFzMS44OSw5LjY0LDUuMzcsMTIuOTJjMi44OCwyLjY4LDcuNDUsNC41NywxMi4zMiw0LjU3LDIuNTgsMCw4Ljk0LS4zLDE1LjAxLTYuOTZ2MjAuMzdaIi8+CiAgICAgIDxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTEwNzQuMDMsMzY2LjQ5YzQuOTcsMCw4Ljk0LDMuOTgsOC45NCw4Ljk0cy0zLjk4LDguOTUtOC45NCw4Ljk1LTguOTQtMy45OC04Ljk0LTguOTUsMy45OC04Ljk0LDguOTQtOC45NFpNMTA4MS45OCwzOTMuOTJ2NDQuNDJoLTE1Ljl2LTQ0LjQyaDE1LjlaIi8+CiAgICAgIDxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTEwOTIuODEsMzkzLjkyaDE1Ljl2NS41N2M0LjM3LTUuNzcsMTAuMjQtNi41NiwxNC4xMS02LjU2LDQuNTcsMCw5LjQ0LDEuMDksMTMuMTIsNC43NywzLjc4LDMuNzgsNC4xNyw3LjU1LDQuMTcsMTIuNDJ2MjguMjJoLTE1Ljl2LTIyLjQ2YzAtMi41OC4xLTYuNDYtMS45OS04LjY1LTEuNDktMS41OS0zLjQ4LTEuODktNS4wNy0xLjg5LTIuNDgsMC00LjU3Ljg5LTUuODYsMi4wOS0xLjU5LDEuNDktMi41OCw0LjM3LTIuNTgsNy4wNnYyMy44NWgtMTUuOXYtNDQuNDJaIi8+CiAgICAgIDxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTExOTguMDUsNDE5LjA2aC0zMy4wOWMwLDIuMzkuODksNS41NywyLjc4LDcuNDUuOTkuOTksMi45OCwyLjE5LDYuNTYsMi4xOS40LDAsMy4xOC0uMSw1LjE3LTEuMTkuOTktLjYsMi4wOS0xLjU5LDIuNzgtMi45OGgxNS4yMWMtLjcsMi40OS0yLjA5LDUuOTYtNS4zNyw5LjE0LTMuMjgsMy4xOC04LjQ1LDYuMTYtMTguMDksNi4xNi01Ljg2LDAtMTIuOTItMS4yOS0xOC4zOS02Ljc2LTIuODgtMi44OC02LjU2LTguMzUtNi41Ni0xNi44LDAtNy40NSwyLjc4LTEzLjQyLDYuNjYtMTcuMTksMy42OC0zLjU4LDkuNDQtNi40NiwxOC4xOS02LjQ2LDUuMTcsMCwxMS44MywxLjA5LDE3LjA5LDYuMDYsNi4yNiw1Ljk2LDcuMDYsMTMuNzEsNy4wNiwxOC42OHYxLjY5Wk0xMTgzLjQ0LDQwOS45MmMtLjQtMS42OS0xLjM5LTMuNTgtMi41OC00Ljc3LTIuMDktMi4wOS00Ljk3LTIuMzktNi41Ni0yLjM5LTIuNjgsMC00Ljc3LjctNi40NiwyLjM5LTEuMDksMS4xOS0yLjA5LDIuNzgtMi4zOSw0Ljc3aDE3Ljk5WiIvPgogICAgICA8cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xMjA3LjE4LDM5My45MmgxNS45djUuMzdjMy43OC00LjU3LDguOTQtNi4xNiwxMy4zMi02LjE2LDMuMTgsMCw2LjE2LjY5LDguNTUsMS45OSwzLjI4LDEuNjksNS4wNyw0LjE3LDYuMTYsNi4zNiwxLjc5LTMuMTgsNC4wOC01LjA3LDYuMDYtNi4xNiwzLjE4LTEuNzksNi4yNi0yLjE5LDkuMjQtMi4xOSwzLjI4LDAsOC42NS41LDEyLjMyLDQuMDcsMy45OCwzLjg4LDQuMTcsOS4xNCw0LjE3LDEyLjIydjI4LjkyaC0xNS45di0yMS45NmMwLTQuNjctLjUtNy44NS0yLjI5LTkuNTQtLjktLjgtMi4wOS0xLjQ5LTQuMTctMS40OS0xLjc5LDAtMy4yOC41LTQuNjcsMS43OS0yLjY4LDIuNTgtMi44OCw2LjI2LTIuODgsOC40NXYyMi43NmgtMTUuOXYtMjEuOTZjMC00LjI3LS4zLTcuNjUtMi4wOS05LjU0LTEuMzktMS40OS0zLjE4LTEuNzktNC43Ny0xLjc5LTEuNjksMC0zLjA4LjMtNC4zNywxLjU5LTIuNzgsMi42OC0yLjc4LDYuOTYtMi43OCw5Ljc0djIxLjk2aC0xNS45di00NC40MloiLz4KICAgICAgPHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMTMyOC4zMiwzOTMuOTJoMTUuOXY0NC40MmgtMTUuOXYtNC44N2MtMy42OCw1LjA3LTkuNDQsNi4zNi0xMy44MSw2LjM2LTQuNzcsMC0xMC42My0xLjM5LTE2LTcuMDYtNC4yNy00LjU3LTYuMzYtOS42NC02LjM2LTE2LjMsMC04LjM1LDMuMjgtMTQuMjEsNi44Ni0xNy43OSwzLjc4LTMuNzgsOS42NC02LjI2LDE2LTYuMjYsNy4xNiwwLDExLjQzLDMuNjgsMTMuMzIsNS43NnYtNC4yN1pNMTMxMS42Myw0MDguODNjLTIuMTksMi4wOS0zLjE4LDQuOTctMy4xOCw3LjI2LDAsMi41OCwxLjA5LDUuMzcsMy4wOCw3LjI2LDEuNjksMS41OSw0LjQ3LDIuOTgsNy4xNiwyLjk4czUuMTctMS4wOSw3LjE2LTMuMDhjMS4zOS0xLjM5LDIuOTgtMy41OCwyLjk4LTcuMTYsMC0yLjA5LS42LTQuODctMy4wOC03LjI2LTEuNDktMS4zOS0zLjc4LTIuODgtNy4xNi0yLjg4LTEuOTksMC00LjY3LjctNi45NiwyLjg4WiIvPgogICAgICA8cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xMDA2LjA1LDU0MC4wOWwxMS4yMy02Ni4yOWgxNi45OWwxMy40MiwzNS4zOCwxNC4yMS0zNS4zOGgxNy4xOWw5Ljk0LDY2LjI5aC0xNy4xOWwtNC44Ny0zOC4xNi0xNiwzOC4xNmgtNi44NmwtMTUuMzEtMzguMTYtNS42NiwzOC4xNmgtMTcuMDlaIi8+CiAgICAgIDxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTExMTQuMzcsNDk1LjY3djI0Ljg1YzAsMS43OS4zLDQuNTcsMi4zOSw2LjQ2LDEuNTksMS4zOSwzLjY4LDEuNjksNS41NywxLjY5LDEuOTksMCwzLjg4LS4yLDUuNjYtMS44OSwxLjk5LTEuOTksMi4yOS00LjI3LDIuMjktNi4yNnYtMjQuODVoMTUuOXYyNy43M2MwLDMuNzgtLjMsNy44NS00LjI3LDExLjkzLTUuNDcsNS42Ny0xMy4xMiw2LjI2LTE5LjE4LDYuMjYtNi42NiwwLTE0LjgxLS42OS0yMC4wOC02LjM2LTMuMzgtMy41OC00LjE3LTcuNTUtNC4xNy0xMS44M3YtMjcuNzNoMTUuOVoiLz4KICAgICAgPHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMTE3Myw0NjcuNjR2NzIuNDVoLTE1Ljl2LTcyLjQ1aDE1LjlaIi8+CiAgICAgIDxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTEyMDEuNDIsNTA4LjY5djMxLjRoLTE1Ljl2LTMxLjRoLTUuMDd2LTEzLjAyaDUuMDd2LTE0LjYxaDE1Ljl2MTQuNjFoOS4wNHYxMy4wMmgtOS4wNFoiLz4KICAgICAgPHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMTIyNC4zOCw0NjguMjRjNC45NywwLDguOTQsMy45OCw4Ljk0LDguOTRzLTMuOTgsOC45NS04Ljk0LDguOTUtOC45NC0zLjk4LTguOTQtOC45NSwzLjk4LTguOTQsOC45NC04Ljk0Wk0xMjMyLjMzLDQ5NS42N3Y0NC40MmgtMTUuOXYtNDQuNDJoMTUuOVoiLz4KICAgICAgPHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMTI0Ni4wNCw1MjUuMzhjMS44OSwxLjM5LDQuMTcsMi41OSw2LjM2LDMuMjgsMS45OS43LDQuNDcsMS4wOSw2LjE2LDEuMDksMS4xOSwwLDMuMDgtLjMsNC4wOC0xLjE5LjY5LS42OS44LTEuMjkuOC0yLjA5LDAtLjY5LS4xLTEuMzktLjgtMS45OS0uOTktLjktMi41OC0xLjE5LTQuMTctMS41OWwtNC4xNy0uOTljLTIuMTktLjUtNS4zNy0xLjI5LTcuNzUtMy44OC0xLjY5LTEuNzktMi44OC00LjI3LTIuODgtNy42NSwwLTQuMjcsMS42OS04LjI1LDQuMTctMTAuODMsMy4zOC0zLjQ4LDkuMzQtNS4zNywxNS45LTUuMzdzMTEuNjMsMS43OSwxNC4yMSwyLjg4bC01LjM3LDEwLjE0Yy0yLjE5LS45OS01LjQ3LTIuMTktOC4zNS0yLjE5LTEuNTksMC0yLjY4LjMtMy42OC45LS45LjUtMS4zOSwxLjE5LTEuMzksMi4xOSwwLDEuMzkuODksMi4wOSwxLjg5LDIuNDgsMS40OS42LDIuNzguNiw1LjI3LDEuMjlsMi44OC43OWMyLjA5LjYsNS4yNywyLjE5LDYuNTYsMy40OCwyLjE5LDIuMDksMy4zOCw1LjU3LDMuMzgsOC44NSwwLDUuMzctMi4yOSw4Ljk0LTQuNDcsMTEuMDMtNS4xNyw1LjE3LTEyLjcyLDUuNTctMTYuNCw1LjU3LTMuOTgsMC0xMC4yNC0uNS0xNy44OS01LjE3bDUuNjYtMTEuMDNaIi8+CiAgICAgIDxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTEzMjEuNjYsNDk1LjY3aDE1Ljl2NDQuNDJoLTE1Ljl2LTQuODdjLTMuNjgsNS4wNy05LjQ0LDYuMzYtMTMuODEsNi4zNi00Ljc3LDAtMTAuNjMtMS4zOS0xNi03LjA2LTQuMjctNC41Ny02LjM2LTkuNjQtNi4zNi0xNi4zLDAtOC4zNSwzLjI4LTE0LjIxLDYuODYtMTcuNzksMy43OC0zLjc4LDkuNjQtNi4yNiwxNi02LjI2LDcuMTYsMCwxMS40MywzLjY4LDEzLjMyLDUuNzZ2LTQuMjdaTTEzMDQuOTcsNTEwLjU4Yy0yLjE5LDIuMDktMy4xOCw0Ljk3LTMuMTgsNy4yNiwwLDIuNTgsMS4wOSw1LjM3LDMuMDgsNy4yNiwxLjY5LDEuNTksNC40NywyLjk4LDcuMTYsMi45OHM1LjE3LTEuMDksNy4xNi0zLjA4YzEuMzktMS4zOSwyLjk4LTMuNTgsMi45OC03LjE2LDAtMi4wOS0uNi00Ljg3LTMuMDgtNy4yNi0xLjQ5LTEuMzktMy43OC0yLjg4LTcuMTYtMi44OC0xLjk5LDAtNC42Ny43LTYuOTYsMi44OFoiLz4KICAgICAgPHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMTM2NC4zOSw0NjcuNjR2NzIuNDVoLTE1Ljl2LTcyLjQ1aDE1LjlaIi8+CiAgICAgIDxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTE0MDkuNjEsNDk1LjY3aDE1Ljl2NDQuNDJoLTE1Ljl2LTQuODdjLTMuNjgsNS4wNy05LjQ0LDYuMzYtMTMuODEsNi4zNi00Ljc3LDAtMTAuNjMtMS4zOS0xNi03LjA2LTQuMjctNC41Ny02LjM2LTkuNjQtNi4zNi0xNi4zLDAtOC4zNSwzLjI4LTE0LjIxLDYuODYtMTcuNzksMy43OC0zLjc4LDkuNjQtNi4yNiwxNi02LjI2LDcuMTYsMCwxMS40MywzLjY4LDEzLjMyLDUuNzZ2LTQuMjdaTTEzOTIuOTEsNTEwLjU4Yy0yLjE5LDIuMDktMy4xOCw0Ljk3LTMuMTgsNy4yNiwwLDIuNTgsMS4wOSw1LjM3LDMuMDgsNy4yNiwxLjY5LDEuNTksNC40NywyLjk4LDcuMTYsMi45OHM1LjE3LTEuMDksNy4xNi0zLjA4YzEuMzktMS4zOSwyLjk4LTMuNTgsMi45OC03LjE2LDAtMi4wOS0uNi00Ljg3LTMuMDgtNy4yNi0xLjQ5LTEuMzktMy43OC0yLjg4LTcuMTYtMi44OC0xLjk5LDAtNC42Ny43LTYuOTYsMi44OFoiLz4KICAgICAgPHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMTAyOC40Miw1ODEuMTh2NTYuNzVoLTEwLjE0di01Ni43NWgtMTUuMjF2LTkuNTRoNDAuNTV2OS41NGgtMTUuMjFaIi8+CiAgICAgIDxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTEwODQuMjcsNjI4LjM5Yy0xLjc5LDMuMTgtNC4zNyw1Ljk2LTcuMDYsNy42NS0zLjM4LDIuMTktNy44NSwzLjE4LTEyLjMyLDMuMTgtNS41NywwLTEwLjE0LTEuMzktMTQuMTEtNS4zNy0zLjk4LTMuOTgtNi4xNi05Ljc0LTYuMTYtMTZzMi4yOS0xMi43Miw2LjY2LTE3LjE5YzMuNDgtMy40OCw4LjA1LTUuNjcsMTQuMDEtNS42Nyw2LjY2LDAsMTAuOTMsMi44OCwxMy40Miw1LjQ3LDUuMzcsNS41Nyw1Ljg2LDEzLjMyLDUuODYsMTcuNjl2MS4xOWgtMzAuMDFjLjIsMi45OCwxLjQ5LDYuMzYsMy41OCw4LjQ1LDIuMjksMi4yOSw1LjA3LDIuNjgsNy40NSwyLjY4LDIuNjgsMCw0LjY3LS42LDYuNjYtMi4wOSwxLjY5LTEuMjksMi45OC0yLjk4LDMuODgtNC41N2w4LjE1LDQuNTdaTTEwNzQuNjIsNjExLjM5Yy0uNC0yLjI5LTEuNDktNC4yNy0yLjk4LTUuNjYtMS4yOS0xLjE5LTMuMzgtMi4zOS02LjU2LTIuMzktMy4zOCwwLTUuNTcsMS4zOS02Ljg2LDIuNjgtMS4zOSwxLjI5LTIuNDgsMy4yOC0yLjk4LDUuMzdoMTkuMzhaIi8+CiAgICAgIDxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTExMjUuMzEsNTk2LjA5aDkuNzR2NDEuODRoLTkuNzR2LTQuMzdjLTQuMjcsNC45Ny05LjU0LDUuNjctMTIuNTIsNS42Ny0xMi45MiwwLTIwLjI3LTEwLjczLTIwLjI3LTIyLjI2LDAtMTMuNjIsOS4zNC0yMS45NiwyMC4zNy0yMS45NiwzLjA4LDAsOC40NS44LDEyLjQyLDUuOTZ2LTQuODdaTTExMDIuNDUsNjE3LjE2YzAsNy4yNiw0LjU3LDEzLjMyLDExLjYzLDEzLjMyLDYuMTYsMCwxMS44My00LjQ3LDExLjgzLTEzLjIycy01LjY2LTEzLjUyLTExLjgzLTEzLjUyYy03LjA2LDAtMTEuNjMsNS45Ni0xMS42MywxMy40MloiLz4KICAgICAgPHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMTE1Ny40LDYwNS4wM3YzMi45aC05Ljc0di0zMi45aC00LjA3di04Ljk0aDQuMDd2LTE1LjNoOS43NHYxNS4zaDcuNDV2OC45NGgtNy40NVoiLz4KICAgICAgPHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMTE3MS40MSw1OTYuMDloOS43NHYzLjc4YzEuMDktMS4yOSwyLjY4LTIuNjgsNC4wNy0zLjQ4LDEuODktMS4wOSwzLjc4LTEuMzksNS45Ni0xLjM5LDIuMzksMCw0Ljk3LjQsNy42NSwxLjk5bC0zLjk4LDguODVjLTIuMTktMS4zOS0zLjk4LTEuNDktNC45Ny0xLjQ5LTIuMDksMC00LjE3LjMtNi4wNiwyLjI5LTIuNjgsMi44OC0yLjY4LDYuODYtMi42OCw5LjY0djIxLjY2aC05Ljc0di00MS44NFoiLz4KICAgICAgPHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMTI0NC45NSw2MTcuMDZjMCwxMi44Mi05Ljc0LDIyLjE2LTIyLjM2LDIyLjE2cy0yMi4zNi05LjM0LTIyLjM2LTIyLjE2LDkuNzQtMjIuMDYsMjIuMzYtMjIuMDYsMjIuMzYsOS4xNCwyMi4zNiwyMi4wNlpNMTIzNS4wMSw2MTcuMTZjMC05LjU0LTYuMjYtMTMuNDItMTIuNDItMTMuNDJzLTEyLjQyLDMuODgtMTIuNDIsMTMuNDJjMCw4LjA1LDQuNzcsMTMuMzIsMTIuNDIsMTMuMzJzMTIuNDItNS4yNywxMi40Mi0xMy4zMloiLz4KICAgIDwvZz4KICAgIDxnPgogICAgICA8cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xMzAxLjUxLDU5Mi43NGMtLjQ5LDEuMjItMi4zNSw1LjEzLTguMDksNS4xMy0yLjY2LDAtNC42Ny0uNzYtNi4zLTIuMzItMS44Mi0xLjcxLTIuNTgtMy44My0yLjU4LTYuNDIsMC0zLjI2LDEuMzMtNS4yOCwyLjUxLTYuNDUsMS45NC0xLjksNC4yMS0yLjMyLDYuMTktMi4zMiwzLjM0LDAsNS4yOCwxLjMzLDYuNDIsMi43LDEuNzUsMi4wOSwxLjk3LDQuNjcsMS45Nyw2LjQ1di4zOGgtMTIuM2MwLC45OS4yNywyLjA1LjgsMi43Ny40OS42OCwxLjUyLDEuNTYsMy4zLDEuNTZzMy4wNy0uODMsMy44My0yLjE2bDQuMjUuNjhaTTEyOTcuMjUsNTg2LjkzYy0uMzgtMi4yNC0yLjItMy4zLTMuOTEtMy4zcy0zLjQ5LDEuMS0zLjg3LDMuM2g3Ljc4WiIvPgogICAgICA8cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xMzE0LjE0LDU4NC44MWMtMS4xLTEuMDItMi4yLTEuMS0yLjctMS4xLTEuMSwwLTEuNzguNTMtMS43OCwxLjMzLDAsLjQyLjE5LDEuMDYsMS40OCwxLjQ4bDEuMS4zNGMxLjI5LjQyLDMuMjMsMS4wNiw0LjE4LDIuMzUuNDkuNjguODMsMS42Ny44MywyLjczLDAsMS40OC0uNDksMi45Ni0xLjgyLDQuMTgtMS4zMywxLjIxLTIuOTIsMS43NS00Ljk0LDEuNzUtMy40MiwwLTUuMzUtMS42My02LjM4LTIuNzNsMi40My0yLjgxYy45MSwxLjA2LDIuMjgsMS45LDMuNjQsMS45LDEuMjksMCwyLjI4LS42NCwyLjI4LTEuNzgsMC0xLjAzLS44My0xLjQ0LTEuNDQtMS42N2wtMS4wNi0uMzhjLTEuMTgtLjQyLTIuNTQtLjk1LTMuNTMtMS45Ny0uNzYtLjgtMS4yNS0xLjgyLTEuMjUtMy4xNSwwLTEuNTkuNzYtMi45MiwxLjcxLTMuNzIsMS4yOS0xLjAzLDIuOTYtMS4xOCw0LjI5LTEuMTgsMS4yMSwwLDMuMTUuMTUsNS4yNCwxLjc1bC0yLjI4LDIuNjlaIi8+CiAgICAgIDxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTEzMjUuMTUsNTg0Ljg0djEyLjQ5aC00LjYzdi0xMi40OWgtMS44MnYtMy45NWgxLjgydi01LjYyaDQuNjN2NS42MmgzLjE5djMuOTVoLTMuMTlaIi8+CiAgICAgIDxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTEzMzMuMzUsNTkxLjkxYzEuNjcsMCwyLjk2LDEuMjksMi45NiwyLjk2cy0xLjI5LDIuOTYtMi45NiwyLjk2LTIuOTYtMS4yOS0yLjk2LTIuOTYsMS4yOS0yLjk2LDIuOTYtMi45NloiLz4KICAgICAgPHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMTM1NS42Myw1NzYuMjZoLTMuNjV2LTQuMjVoOC41OHYyNS4zMmgtNC45NHYtMjEuMDdaIi8+CiAgICAgIDxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTEzNzAuODEsNTk2LjA4bDYuMDQtNy45Yy0uOC4yNy0xLjc4LjQ5LTIuNjkuNDktMS43OCwwLTQuMDYtLjcyLTUuNTQtMi4xNi0xLjMzLTEuMjUtMi4zOS0zLjQyLTIuMzktNi4wOCwwLTIuMTMuNjEtNC4yNSwyLjMxLTYuMTEsMi4xNi0yLjM1LDQuNjMtMi44OCw3LjIxLTIuODhzNS4xMy40OSw3LjIxLDIuNThjMS4zNywxLjM3LDIuNDcsMy4zLDIuNDcsNi4xNSwwLDMuMDctMS40LDUuNTQtMy4xOSw3LjlsLTcuNDQsOS45NS0zLjk5LTEuOTRaTTEzNzIuNTIsNTc2LjY4Yy0uNjEuNjEtMS4zNywxLjY3LTEuMzcsMy4zNCwwLDEuNTIuNTMsMi42NiwxLjQsMy40OS45NS45MSwyLjAxLDEuMjEsMy4yNiwxLjIxLDEuMzcsMCwyLjM5LS40MiwzLjMtMS4zNy45MS0uOTUsMS4zNy0yLjAxLDEuMzctMy4zLDAtMS42LS42NC0yLjctMS40LTMuNDItLjY0LS42MS0xLjc1LTEuMjUtMy4yNy0xLjI1cy0yLjY2LjY0LTMuMywxLjI5WiIvPgogICAgICA8cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xMzg4LjQyLDU4NC42NWMwLTguNjksNC43NS0xMy4yMSw5Ljc5LTEzLjIxczkuNzksNC41Miw5Ljc5LDEzLjI1LTQuNzQsMTMuMjEtOS43OSwxMy4yMS05Ljc5LTQuNTItOS43OS0xMy4yNVpNMTM5My4zNSw1ODQuNjVjMCw2LjYxLDIuNyw5LDQuODYsOXM0Ljg2LTIuMzksNC44Ni05LTIuNzMtOC45Ni00Ljg2LTguOTYtNC44NiwyLjM5LTQuODYsOC45NloiLz4KICAgICAgPHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMTQyNy43LDU5MC40MmMwLDQuMTgtMy4zNCw3LjQ4LTguODEsNy40OHMtOC44MS0zLjMtOC44MS03LjQ4YzAtMi45MiwxLjcxLTUuMzksNC41Mi02LjMtMS45NC0uOTUtMy42NS0yLjgxLTMuNjUtNS42MiwwLTMuNjgsMi42Ni03LjA2LDcuOTQtNy4wNnM3LjkzLDMuMzgsNy45Myw3LjA2YzAsMi44MS0xLjcxLDQuNjctMy42NSw1LjYyLDIuODEuOTEsNC41MiwzLjM4LDQuNTIsNi4zWk0xNDIyLjc3LDU5MC4wOGMwLTIuMzEtMS42Ny0zLjk1LTMuODctMy45NXMtMy44NywxLjYzLTMuODcsMy45NSwxLjY3LDMuOTUsMy44NywzLjk1LDMuODctMS42MywzLjg3LTMuOTVaTTE0MjIuNDMsNTc4LjU0YzAtMi4wOS0xLjQ0LTMuNTMtMy41My0zLjUzcy0zLjUzLDEuNDQtMy41MywzLjUzLDEuNDQsMy41MywzLjUzLDMuNTMsMy41My0xLjQ0LDMuNTMtMy41M1oiLz4KICAgIDwvZz4KICA8L2c+Cjwvc3ZnPg=='
+  const hdr=(title)=>'<div class="H"><div class="H-top"><img class="H-logo" src="'+LOGO+'" alt=""><span class="H-stamp">Stampato il '+now+'</span></div><div class="H-bot"><span class="rt">'+title+'</span><span class="wl">'+wl+'</span></div></div>';
+
+  if(type==='titolo'){
+    html=hdr('Programmazione per Titolo — Cinema Multisala Teatro Mendrisio');
+    [...S.films].sort((a,b)=>a.title.localeCompare(b.title,'it')).forEach(function(f){
+      const fS=allShows.filter(s=>s.filmId===f.id);if(!fS.length)return;
+      const meta=[f.distributor,f.duration?durFmt(f.duration):'',f.rating,f.genre].filter(Boolean).join(' \u00b7 ');
+      html+='<div class="T-film"><div class="T-film-head"><span class="T-ftit">'+f.title+'</span><span class="T-fmeta">'+meta+'</span></div>';
+      fS.forEach(function(s){
+        const di=wd.indexOf(s.day);
+        html+='<div class="T-row"><span class="T-d">'+(di>=0?DAB[di]+' '+fd(days[di]):'')+'</span><span class="T-s">'+sn(s.sala)+'</span><span class="T-t">'+s.start+'</span><span class="T-e">fine '+s.end+'</span></div>';
+      });
+      html+='</div>';
+    });
+  }
+  else if(type==='sala'){
+    html=hdr('Programmazione per Sala — Cinema Multisala Teatro Mendrisio');
+    ['1','2','3','4'].forEach(function(sid){
+      const sS=allShows.filter(s=>s.sala==sid);
+      html+='<div class="S-block"><div class="S-head">'+sid+' \u2014 '+sn(sid).toUpperCase()+'</div>'
+        +'<div class="S-subh"><span>Data</span><span>Film</span><span>Inizio</span><span>Dur.</span><span>Fine</span></div>';
+      sS.forEach(function(s){
+        const film=S.films.find(f=>f.id===s.filmId),di=wd.indexOf(s.day);
+        html+='<div class="S-row"><span>'+(di>=0?DAB[di]+' '+String(days[di].getDate()).padStart(2,'0')+'/'+String(days[di].getMonth()+1).padStart(2,'0'):'')+'</span>'
+          +'<span style="font-weight:600">'+(film?film.title:'?')+'</span>'
+          +'<span class="S-t">'+s.start+'</span>'
+          +'<span style="color:#777">'+(film&&film.duration?durFmt(film.duration):'')+'</span>'
+          +'<span class="S-e">'+s.end+'</span></div>';
+      });
+      html+='</div>';
+    });
+  }
+  else if(type==='giorno'){
+    html=hdr('Programmazione Giornaliera — Cinema Multisala Teatro Mendrisio');
+    days.forEach(function(d,di){
+      const ds=d.toISOString().slice(0,10);
+      const dS=allShows.filter(s=>s.day===ds);if(!dS.length)return;
+      html+='<div class="G-block"><div class="G-head">'+DIT[di].toUpperCase()+' '+fd(d)+'</div>'
+        +'<div class="G-subh"><span>Ora</span><span>Sala</span><span>Film</span><span>Dur.</span><span>Fine</span></div>';
+      dS.forEach(function(s){
+        const film=S.films.find(f=>f.id===s.filmId);
+        html+='<div class="G-row"><span class="G-t">'+s.start+'</span>'
+          +'<span class="G-s">'+sn(s.sala)+'</span>'
+          +'<span style="font-weight:600">'+(film?film.title:'?')+'</span>'
+          +'<span style="color:#777">'+(film&&film.duration?durFmt(film.duration):'')+'</span>'
+          +'<span class="G-e">'+s.end+'</span></div>';
+      });
+      html+='</div>';
+    });
+  }
+  else if(type==='compatto'){
+    html=hdr('Programma Settimanale — Cinema Multisala Teatro Mendrisio');
+    html+='<div class="cols">';
+    days.forEach(function(d,di){
+      const ds=d.toISOString().slice(0,10);
+      const dS=allShows.filter(s=>s.day===ds);if(!dS.length)return;
+      html+='<div class="D-chapter"><span class="D-day">'+DIT[di]+' '+String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'</span><span class="D-line"></span></div>';
+      dS.forEach(function(s){
+        const film=S.films.find(f=>f.id===s.filmId);
+        html+='<div class="D-row"><span class="D-t">'+s.start+'</span><span class="D-s">'+sn(s.sala)+'</span><span class="D-f">'+(film?film.title:'?')+'</span><span class="D-d">'+(film&&film.duration?durFmt(film.duration):'')+'</span></div>';
+      });
+    });
+    html+='</div>';
+  }
+  else if(type==='cartelli'){
+    html=hdr('Cartelli Film — Cinema Multisala Teatro Mendrisio');
+    const filmIds=[...new Set(allShows.map(s=>s.filmId))];
+    filmIds.forEach(function(fid){
+      const film=S.films.find(f=>f.id===fid);
+      const fS=allShows.filter(s=>s.filmId===fid);
+      if(!film||!fS.length)return;
+      const meta=[film.distributor,film.duration?durFmt(film.duration):'',film.rating||'',film.genre].filter(Boolean).join(' · ');
+      const byDay={};
+      fS.forEach(function(s){if(!byDay[s.day])byDay[s.day]=[];byDay[s.day].push(s);});
+      const dayCells=days.map(function(d,di){
+        const ds=d.toISOString().slice(0,10);
+        const dS=byDay[ds]||[];
+        const dn=DAB[di]+' '+String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0');
+        const rows=dS.length
+          ? dS.map(function(s){return '<div class="cart-show-row"><span class="cart-show-time">'+s.start+'</span><span class="cart-show-sala">'+sn(s.sala)+'</span></div>';}).join('')
+          : '<div class="cart-no-show">—</div>';
+        return '<div class="cart-day-card">'
+          +'<div class="cart-day-head"><div class="cart-day-name">'+dn+'</div></div>'
+          +'<div class="cart-day-body">'+rows+'</div>'
+          +'</div>';
+      }).join('');
+      const posterHTML=film.poster
+        ? '<img class="cart-poster-img" src="'+film.poster+'" alt="">'
+        : '<div class="cart-poster-ph">🎬</div>';
+      html+='<div class="cart-page">'
+        +'<div class="cart-header"><span class="cart-title">'+film.title+'</span><span class="cart-meta">'+meta+'</span></div>'
+        +'<div class="cart-left-col">'+posterHTML+'</div>'
+        +'<div class="cart-right-col"><div class="cart-days-grid">'+dayCells+'</div></div>'
+        +'</div>';
+    });
+  }
+
+
+  else if(type==='cards'){
+    html=hdr('Programma Settimanale — Cinema Multisala Teatro Mendrisio');
+    html+='<div class="cards-grid">';
+    [...S.films].sort((a,b)=>a.title.localeCompare(b.title,'it')).forEach(function(f){
+      const fS=allShows.filter(s=>s.filmId===f.id);if(!fS.length)return;
+      const meta=[f.distributor,f.duration?durFmt(f.duration):'',f.rating,f.genre].filter(Boolean).join(' · ');
+      // Group shows by day
+      const byDay={};
+      fS.forEach(function(s){
+        if(!byDay[s.day])byDay[s.day]=[];
+        byDay[s.day].push(s);
+      });
+      html+='<div class="film-card">'
+        +'<div class="fc-header"><div class="fc-title">'+f.title+'</div><div class="fc-meta">'+meta+'</div></div>'
+        +'<div class="fc-body">';
+      Object.keys(byDay).sort().forEach(function(ds){
+        const di=wd.indexOf(ds);
+        const dayLabel=di>=0?DAB[di]+' '+String(days[di].getDate()).padStart(2,'0')+'/'+String(days[di].getMonth()+1).padStart(2,'0'):'?';
+        html+='<div class="fc-day">'
+          +'<span class="fc-day-name">'+dayLabel+'</span>'
+          +'<div class="fc-slots">';
+        byDay[ds].forEach(function(s){
+          html+='<span class="fc-slot">'+s.start+'<span class="fc-slot-sala">'+sn(s.sala)+'</span></span>';
+        });
+        html+='</div></div>';
+      });
+      html+='</div></div>';
+    });
+    html+='</div>';
+  }
+
+  else if(type==='saladay'){
+    html=hdr('Programma Giornaliero per Sala — Cinema Multisala Teatro Mendrisio');
+    // One page per sala, 7 day-cards in a 4+3 grid
+    ['1','2','3','4'].forEach(function(sid,si){
+      const sName2=sn(sid);
+      html+=(si>0?'<div class="sala-cards-page">':'<div>')
+        +'<div class="sala-name-head">'+sid+' — '+sName2+'</div>'
+        +'<div class="sala-day-grid">';
+      days.forEach(function(d,di){
+        const ds=d.toISOString().slice(0,10);
+        const dS=allShows.filter(s=>s.sala==sid&&s.day===ds);
+        const dayLabel=DAB[di]+' '+String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0');
+        const fullDate=DIT[di]+' '+fd(d);
+        html+='<div class="sd-card">'
+          +'<div class="sd-card-head"><div class="sd-day">'+dayLabel+'</div><div class="sd-date">'+fullDate+'</div></div>'
+          +'<div class="sd-body">';
+        if(dS.length){
+          dS.forEach(function(s){
+            const film=S.films.find(f=>f.id===s.filmId);
+            html+='<div class="sd-row">'
+              +'<span class="sd-time">'+s.start+'</span>'
+              +'<span class="sd-film">'+(film?film.title:'?')+'</span>'
+              +'<span class="sd-dur">'+(film&&film.duration?durFmt(film.duration):'')+'</span>'
+              +'</div>';
+          });
+        } else {
+          html+='<div class="sd-empty">Nessuno spettacolo</div>';
+        }
+        html+='</div></div>';
+      });
+      html+='</div></div>';
+    });
+  }
+  // ── Genera il PDF tramite Blob URL (non richiede popup) ──
+  const fullHTML='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+CN+'</title>'+PDF_STYLE+'</head><body>'+html+'<scr'+'ipt>window.onload=function(){setTimeout(function(){window.print();},400);}<\/scr'+'ipt></body></html>';
+  const blob=new Blob([fullHTML],{type:'text/html;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.target='_blank';
+  a.click();
+  setTimeout(function(){URL.revokeObjectURL(url);},10000);
+}
+window.pPDF=pPDF;
+
+
+
+// ── EMAIL ─────────────────────────────────────────────────
+async function addMail(){
+  const v=document.getElementById('ne').value.trim();
+  if(!v||!v.includes('@')){toast('Email non valida','err');return;}
+  if(S.emails.includes(v)){toast('Già presente','err');return;}
+  S.emails.push(v);document.getElementById('ne').value='';
+  await fbSE(S.emails);rem();toast('Aggiunta','ok');
+}
+async function remMail(e){S.emails=S.emails.filter(x=>x!==e);await fbSE(S.emails);rem();}
+function rem(){
+  const w=document.getElementById('el');
+  if(!S.emails.length){w.innerHTML='<div style="color:var(--txt2);text-align:center;padding:10px;font-size:12px">Nessun destinatario</div>';return;}
+  w.innerHTML=S.emails.map(e=>`<div class="ei"><span>📧 ${e}</span><button class="btn bd bs" onclick="remMail('${e}')">✕</button></div>`).join('');
+}
+function sendMail(){
+  if(!S.emails.length){toast('Aggiungi destinatari','err');return;}
+  const subj=encodeURIComponent(document.getElementById('ms').value);
+  const note=document.getElementById('mn').value;
+  const days=wdays();const wd=wdates();
+  let shows=S.shows.filter(s=>wd.includes(s.day)).sort((a,b)=>a.day.localeCompare(b.day)||a.start.localeCompare(b.start));
+  let body=`PROGRAMMAZIONE SETTIMANALE\n${fd(days[0])} - ${fd(days[6])}\n\n`;
+  if(note)body+=note+'\n\n';
+  body+='——————————————————————\n';
+  shows.forEach(s=>{
+    const film=S.films.find(f=>f.id===s.filmId),di=wd.indexOf(s.day);
+    body+=`\n${di>=0?DIT[di]+' '+fs(days[di]):s.day}  |  ${s.start}-${s.end}  |  ${sn(s.sala)}  |  ${film?.title||'?'}`;
+  });
+  body+='\n\n——————————————————————\nInviato da CineManager';
+  window.location.href=`mailto:${S.emails.join(',')}?subject=${subj}&body=${encodeURIComponent(body)}`;
+  toast('Client email aperto','ok');
+}
+window.addMail=addMail;window.remMail=remMail;window.sendMail=sendMail;
+
+// ── OTTIMIZZA ORARI ──────────────────────────────────────
+// State for optimize modal
+let _opt={day:'',sala:'',plan:[]};
+
+function openOptModal(day,sala){
+  _opt={day,sala,plan:[]};
+  const sl=SALE[sala];
+  const dayIdx=wdates().indexOf(day);
+  const dayLabel=dayIdx>=0?`${DIT[dayIdx]} ${fd(wdays()[dayIdx])}`:day;
+
+  document.getElementById('optSalaName').textContent=sl.n;
+  document.getElementById('optDayName').textContent=dayLabel;
+  document.getElementById('optWarn').style.display='none';
+  document.getElementById('optConfirmBtn').disabled=false;
+
+  // Get all shows in this sala/day sorted by start time
+  const salaShows=S.shows
+    .filter(s=>s.sala==sala&&s.day===day)
+    .sort((a,b)=>t2m(a.start)-t2m(b.start));
+
+  if(salaShows.length<2){
+    document.getElementById('optPreview').innerHTML=
+      `<div style="padding:16px;text-align:center;color:var(--txt2);font-size:13px">Servono almeno 2 film in questa sala per ottimizzare.</div>`;
+    document.getElementById('optConfirmBtn').disabled=true;
+    document.getElementById('optAnchorName').textContent='—';
+    document.getElementById('optAnchorTime').textContent='';
+    document.getElementById('ovOpt').classList.add('on');
+    return;
+  }
+
+  // Find the "anchor" film: the one whose start time is closest to 20:30
+  // (between 19:30 and 21:30 range, else just the one nearest to 20:30)
+  const ANCHOR_TARGET=t2m('20:30');
+  const anchor=salaShows.reduce((best,s)=>{
+    const d=Math.abs(t2m(s.start)-ANCHOR_TARGET);
+    const bd=Math.abs(t2m(best.start)-ANCHOR_TARGET);
+    return d<bd?s:best;
+  });
+  const anchorFilm=S.films.find(f=>f.id===anchor.filmId);
+
+  document.getElementById('optAnchorName').textContent=anchorFilm?.title||'?';
+  document.getElementById('optAnchorTime').textContent=`${anchor.start} → ${anchor.end}`;
+
+  // Separate: films BEFORE the anchor (to be rescheduled backwards)
+  // Films AFTER anchor remain untouched
+  const before=salaShows.filter(s=>t2m(s.start)<t2m(anchor.start));
+  const afterAnchor=salaShows.filter(s=>t2m(s.start)>t2m(anchor.start));
+
+  // Compute new start times working backwards from anchor.start
+  // anchor stays fixed. For each film before (in reverse order):
+  // newEnd = prevFilm.newStart
+  // newStart = newEnd - film.duration - interval
+  let plan=[]; // {show, newStart, newEnd, changed}
+
+  // Anchor is fixed
+  plan.push({show:anchor, newStart:anchor.start, newEnd:anchor.end, changed:false, isAnchor:true});
+
+  // Work backwards
+  let cursor=t2m(anchor.start); // next film must end at or before this
+  [...before].reverse().forEach(s=>{
+    const film=S.films.find(f=>f.id===s.filmId);
+    const dur=film?.duration||90;
+    const intv=s.interval||20;
+    const newEndM=cursor-intv;
+    const newStartM=Math.floor((newEndM-dur)/5)*5; // round DOWN to nearest 5
+    if(newStartM<0){
+      plan.push({show:s, newStart:s.start, newEnd:s.end, changed:false, error:true});
+    } else {
+      const newStart=r5m(newStartM);
+      const newEnd=am(newStart,dur);
+      plan.push({show:s, newStart, newEnd, changed:newStart!==s.start, isAnchor:false});
+      cursor=newStartM; // next iteration: must end before this rounded start
+    }
+  });
+
+  // After anchor stays unchanged
+  afterAnchor.forEach(s=>plan.push({show:s, newStart:s.start, newEnd:s.end, changed:false, isAnchor:false}));
+
+  // Sort by new start time for display
+  plan.sort((a,b)=>t2m(a.newStart)-t2m(b.newStart));
+  _opt.plan=plan;
+
+  // Check for errors (would go negative)
+  const hasError=plan.some(p=>p.error);
+  if(hasError){
+    document.getElementById('optWarn').style.display='block';
+    document.getElementById('optWarn').textContent='⚠ Alcuni film andrebbero collocati prima della mezzanotte precedente. Verifica la durata dei film o riduci il numero di slot.';
+  }
+
+  // Build preview table
+  let html=`<div class="opt-row hdr">
+    <div class="opt-cell lbl">Film</div>
+    <div class="opt-cell lbl" style="text-align:center">Ora attuale</div>
+    <div class="opt-cell lbl" style="text-align:center">Nuova ora</div>
+  </div>`;
+  plan.forEach(p=>{
+    const film=S.films.find(f=>f.id===p.show.filmId);
+    const isAnchor=p.isAnchor;
+    html+=`<div class="opt-row${isAnchor?' opt-anchor-row':''}">
+      <div class="opt-cell">${film?.title||'?'}${isAnchor?` <span style="font-size:10px;color:var(--acc);margin-left:4px">⭐ FISSO</span>`:''}</div>
+      <div class="opt-cell" style="text-align:center">
+        ${p.changed?`<span class="t-old">${p.show.start}</span>`:`<span class="t-same">${p.show.start}</span>`}
+      </div>
+      <div class="opt-cell" style="text-align:center">
+        ${isAnchor?`<span class="t-anchor">${p.newStart}</span>`:
+          p.error?`<span style="color:var(--red);font-size:11px">⚠ Errore</span>`:
+          p.changed?`<span class="t-new">${p.newStart}</span>`:`<span class="t-same">${p.newStart}</span>`}
+      </div>
+    </div>`;
+  });
+  document.getElementById('optPreview').innerHTML=html;
+  document.getElementById('ovOpt').classList.add('on');
+}
+
+async function execOptimize(){
+  const toUpdate=_opt.plan.filter(p=>p.changed&&!p.error);
+  if(!toUpdate.length){toast('Nessuna modifica da applicare','ok');co('ovOpt');return;}
+  for(const p of toUpdate){
+    const updated={...p.show, start:p.newStart, end:p.newEnd};
+    await fbSS(updated);
+  }
+  co('ovOpt');
+  toast(`${toUpdate.length} orari aggiornati`,'ok');
+}
+window.openOptModal=openOptModal;window.execOptimize=execOptimize;
+function co(id){document.getElementById(id).classList.remove('on');}
+function toast(msg,t='ok'){
+  const el=document.getElementById('tst');el.textContent=msg;el.className=`toast on ${t==='ok'?'tok':'terr'}`;
+  setTimeout(()=>{el.className='toast';},2800);
+}
+document.querySelectorAll('.ov').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('on');}));
+window.co=co;window.toast=toast;
+
+// ── INIT ──────────────────────────────────────────────────
+uwl();
+syncSet('busy','Connessione…');
+startListeners();
+const hideLoad=()=>document.getElementById('loading').style.display='none';
+setTimeout(hideLoad,4000);
+onSnapshot(collection(db,'films'),()=>hideLoad());
+
+</script>
+</body>
+</html>
