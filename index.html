@@ -3480,8 +3480,8 @@ function renderStaffGrid(){
   var dayShows=S.shows.filter(function(sh){return sh.day===ds;}).sort(function(a,b){return a.start.localeCompare(b.start);});
   var dayShifts=S.shifts.filter(function(sh){return sh.day===ds;});
 
-  var CELL_H=14;
-  var TIME_COL=48;
+  var CELL_H=20;
+  var TIME_COL=56;
   var PROG_COL=90;
   var STAFF_COL=Math.max(75,Math.floor(680/S.staff.length));
 
@@ -3506,8 +3506,8 @@ function renderStaffGrid(){
     },0);
     var hh=Math.floor(totalMins/60);var mm=totalMins%60;
     html+='<div style="width:'+STAFF_COL+'px;flex-shrink:0;background:var(--surf2);border:1px solid var(--bdr);border-right:none;border-bottom:2px solid var(--bdr);padding:4px 5px;text-align:center">'
-      +'<div style="font-size:10px;font-weight:700;color:'+s.color+'">'+s.name+'</div>'
-      +'<div style="font-size:8px;color:var(--txt2)">'+(STAFF_ROLES[s.role]||s.role)+'</div>'
+      +'<div style="font-size:12px;font-weight:700;color:'+s.color+'">'+s.name+'</div>'
+      +'<div style="font-size:10px;color:var(--txt2)">'+(STAFF_ROLES[s.role]||s.role)+'</div>'
       +(totalMins?'<div style="font-size:8px;background:'+s.color+'22;color:'+s.color+';border-radius:3px;padding:0 3px;margin-top:1px">'+hh+'h'+String(mm).padStart(2,'0')+'</div>':'')
       +'</div>';
   });
@@ -3529,29 +3529,24 @@ function renderStaffGrid(){
       +(timeLabel?'<span style="font-size:8px;color:var(--txt2);font-family:monospace">'+timeLabel+'</span>':'')
       +'</div>';
 
-    // Prog column — show spettacoli starting in this slot
-    var slotShows=dayShows.filter(function(sh){
+    // Prog column — color cells covered by any show, darker at start/end
+    var slotMinute=SLOT_START+si*SLOT_STEP;
+    var isProgCovered=dayShows.some(function(sh){
       var sm=parseInt(sh.start.split(':')[0])*60+parseInt(sh.start.split(':')[1]);
-      return Math.floor((sm-SLOT_START)/SLOT_STEP)===si;
-    });
-    var progContent='';
-    if(slotShows.length){
-      slotShows.forEach(function(sh){
-        var film=S.films.find(function(f){return f.id===sh.filmId;});
-        progContent+='<div style="font-size:8px;font-weight:700;color:#4ae87a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2">'+sh.start+' '+sn(sh.sala)+'</div>';
-        if(film)progContent+='<div style="font-size:7px;color:rgba(74,232,122,.7);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+film.title+'</div>';
-      });
-    }
-    // Also mark end of shows
-    var endShows=dayShows.filter(function(sh){
       var em=parseInt(sh.end.split(':')[0])*60+parseInt(sh.end.split(':')[1]);
-      return Math.floor((em-SLOT_START)/SLOT_STEP)===si;
+      return slotMinute>=sm&&slotMinute<em;
     });
-    endShows.forEach(function(sh){
-      progContent+='<div style="font-size:7px;color:rgba(255,100,100,.7)">Fine '+sh.end+'</div>';
+    var isShowStart=dayShows.some(function(sh){
+      var sm=parseInt(sh.start.split(':')[0])*60+parseInt(sh.start.split(':')[1]);
+      return slotMinute===sm;
     });
-    html+='<div style="width:'+PROG_COL+'px;flex-shrink:0;height:'+CELL_H+'px;border-right:1px solid rgba(74,232,122,.15);border-bottom:'+borderB+';background:'+(slotShows.length?'rgba(74,232,122,.08)':'transparent')+';padding:0 3px;overflow:hidden">'
-      +progContent+'</div>';
+    var isShowEnd=dayShows.some(function(sh){
+      var em=parseInt(sh.end.split(':')[0])*60+parseInt(sh.end.split(':')[1]);
+      return slotMinute===em;
+    });
+    var progBg=isProgCovered?'rgba(74,232,122,.18)':'transparent';
+    var progBorder=isShowStart?'2px solid rgba(74,232,122,.8)':(isShowEnd?'2px solid rgba(232,74,74,.5)':borderB);
+    html+='<div style="width:'+PROG_COL+'px;flex-shrink:0;height:'+CELL_H+'px;border-right:1px solid rgba(74,232,122,.15);border-bottom:'+borderB+';background:'+progBg+';border-top:'+progBorder+'"></div>';
 
     // Staff cells
     S.staff.forEach(function(s){
@@ -3588,9 +3583,12 @@ function onStaffCellClick(si,staffId,shiftId,ev){
   if(!_shiftStart){
     // First click — mark start
     _shiftStart={slotIdx:si,staffId:staffId};
+    _hoverSlot=null;
     var h=document.getElementById('staff-hint');
-    if(h)h.textContent='Inizio turno: '+slotToTime(si)+' — clicca sulla cella di fine turno per lo stesso collaboratore';
-    renderStaffGrid();
+    if(h)h.textContent='Inizio: '+slotToTime(si)+' — ora passa il mouse verso il basso per selezionare la fine turno';
+    // Highlight just the start cell
+    var startEl=document.querySelector('[data-si="'+si+'"][data-sid="'+staffId+'"]');
+    if(startEl)startEl.style.background='rgba(232,200,74,.4)';
   } else if(_shiftStart.staffId===staffId&&si>_shiftStart.slotIdx){
     // Second click — open confirm modal
     var startT=slotToTime(_shiftStart.slotIdx);
@@ -3600,11 +3598,13 @@ function onStaffCellClick(si,staffId,shiftId,ev){
     _shiftStart=null;_hoverSlot=null;
     var h2=document.getElementById('staff-hint');
     if(h2)h2.textContent='';
+    renderStaffGrid();
   } else {
     // Reset or different staff
     _shiftStart=null;_hoverSlot=null;
     var h3=document.getElementById('staff-hint');
     if(h3)h3.textContent='';
+    renderStaffGrid();
     renderStaffGrid();
   }
 }
@@ -3614,14 +3614,23 @@ var _pendingShift=null;
 var _hoverSlot=null;
 function onStaffCellHover(si,staffId){
   if(!_shiftStart||_shiftStart.staffId!==staffId)return;
+  if(si<=_shiftStart.slotIdx)return;
   _hoverSlot=si;
   // Update hint with duration
-  var mins=(_hoverSlot-_shiftStart.slotIdx+1)*SLOT_STEP;
+  var mins=(si-_shiftStart.slotIdx+1)*SLOT_STEP;
   var hh=Math.floor(mins/60);var mm=mins%60;
   var h=document.getElementById('staff-hint');
-  if(h)h.textContent='Inizio: '+slotToTime(_shiftStart.slotIdx)+' → Fine: '+slotToTime(_hoverSlot+1)+' ('+hh+'h'+String(mm).padStart(2,'0')+')';
-  // Re-render to show range highlight
-  renderStaffGrid();
+  if(h)h.textContent='Inizio: '+slotToTime(_shiftStart.slotIdx)+' → Fine: '+slotToTime(si+1)+' ('+hh+'h'+String(mm).padStart(2,'0')+')';
+  // Highlight cells without full re-render
+  var grid=document.getElementById('staff-grid');
+  if(!grid)return;
+  grid.querySelectorAll('[data-sid]').forEach(function(el){
+    var elSi=parseInt(el.dataset.si);
+    var elSid=el.dataset.sid;
+    if(elSid===staffId&&elSi>=_shiftStart.slotIdx&&elSi<=si&&!el.dataset.shid){
+      el.style.background='rgba(232,200,74,.22)';
+    }
+  });
 }
 window.onStaffCellHover=onStaffCellHover;
 function openShiftConfirm(staffId,startT,endT){
