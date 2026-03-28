@@ -649,23 +649,33 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
   <div id="mtab-dist-content" style="display:none">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
       <div class="ps">
-        <h3>🏢 Distributori</h3>
-        <p style="font-size:11px;color:var(--txt2);margin-bottom:10px">Associa email al distributore inserito nelle schede film. Verrà inviata solo la programmazione dei loro film.</p>
-        <div style="display:flex;gap:7px;margin-bottom:10px">
-          <input type="text" id="dist-name" placeholder="Nome distributore" style="flex:1">
-          <input type="email" id="dist-email" placeholder="email@dist.com" style="flex:1">
-          <button class="btn ba" onclick="addDist()">＋</button>
+        <h3>🏢 Database Distributori</h3>
+        <p style="font-size:11px;color:var(--txt2);margin-bottom:10px">
+          Ogni distributore può avere più contatti email. Il nome viene usato anche nel dropdown delle schede film.
+        </p>
+        <!-- Add new distributor -->
+        <div style="display:flex;gap:7px;margin-bottom:8px">
+          <input type="text" id="dist-name" placeholder="Nome distributore (es. Sony)" style="flex:1">
+          <button class="btn ba" onclick="addDistributor()">＋ Distributore</button>
         </div>
-        <div class="el" id="dist-list"></div>
+        <!-- Add contact to existing distributor -->
+        <div style="display:flex;gap:7px;margin-bottom:12px">
+          <select id="dist-sel" style="flex:1"><option value="">— Seleziona distributore —</option></select>
+          <input type="email" id="dist-contact-email" placeholder="email@dist.com" style="flex:1">
+          <button class="btn ba" onclick="addDistContact()">＋ Email</button>
+        </div>
+        <div class="el" id="dist-list" style="max-height:280px"></div>
       </div>
       <div class="ps">
-        <h3>✉️ Invia a tutti i Distributori</h3>
-        <div class="fr"><label class="flb">Oggetto</label><input type="text" id="dist-subj" value="Programmazione dei vostri film — Cinema Multisala Teatro Mendrisio"></div>
+        <h3>✉️ Invia ai Distributori</h3>
+        <div class="fr"><label class="flb">Oggetto</label>
+          <input type="text" id="dist-subj" value="Programmazione dei vostri film — Cinema Multisala Teatro Mendrisio">
+        </div>
         <div style="background:var(--surf2);border:1px solid var(--bdr);border-radius:5px;padding:9px 12px;font-size:11px;color:var(--txt2);margin-bottom:10px">
-          ℹ️ Ogni distributore riceve solo i propri film con titolo, giorno e orario.
+          ℹ️ Ogni distributore riceve solo i propri film. Se ha più contatti, vengono tutti inclusi nella stessa email.
         </div>
         <div id="dist-preview" style="margin-bottom:10px"></div>
-        <button class="btn bg" style="width:100%;margin-bottom:7px" onclick="previewDist()">👁 Anteprima</button>
+        <button class="btn bg" style="width:100%;margin-bottom:7px" onclick="previewDist()">👁 Anteprima per distributore</button>
         <button class="btn ba" style="width:100%" onclick="sendDistMails()">📧 Invia a tutti i distributori</button>
       </div>
     </div>
@@ -777,7 +787,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
       <div class="fr"><label class="flb">Regia</label><input type="text" id="fDir"></div>
     </div>
     <div class="fgr">
-      <div class="fr"><label class="flb">Distributore</label><input type="text" id="fDist"></div>
+      <div class="fr"><label class="flb">Distributore</label><select id="fDist"><option value="">— Nessuno —</option></select></div>
       <div class="fr"><label class="flb">Data di uscita</label><input type="date" id="fRelease"></div>
     </div>
     <div class="fgr">
@@ -915,7 +925,7 @@ function startListeners(){
     rs();rl();syncSet('ok','Sincronizzato');
   },()=>syncSet('err','Errore sync'));
   onSnapshot(doc(db,'settings','emails'),snap=>{S.emails=snap.exists()?snap.data().list||[]:[];rem();});
-  onSnapshot(doc(db,'settings','distributors'),snap=>{S.distributors=snap.exists()?snap.data().list||[]:[]; if(document.getElementById('dist-list'))renderDist();});
+  onSnapshot(doc(db,'settings','distributors'),snap=>{S.distributors=snap.exists()?snap.data().list||[]:[]; if(document.getElementById('dist-list'))renderDist(); fillFilmDistDropdown();});
   onSnapshot(doc(db,'settings','media'),snap=>{S.media=snap.exists()?snap.data().list||[]:[];if(document.getElementById('media-list'))renderMedia();});
 }
 async function fbSF(film){syncSet('busy','Salvataggio…');await setDoc(doc(db,'films',film.id),film);}
@@ -1497,11 +1507,13 @@ function openFilm(){
   document.getElementById('fRat').value='Per tutti';
   document.getElementById('fId').value='';
   document.getElementById('ovFT').textContent='Nuovo Film';
+  fillFilmDistDropdown();
   document.getElementById('ovF').classList.add('on');
 }
 function editFilm(id){
   const f=S.films.find(x=>x.id===id);if(!f)return;
   document.getElementById('ovFT').textContent='Modifica Film';
+  fillFilmDistDropdown();
   document.getElementById('fTit').value=f.title;
   document.getElementById('fDur').value=f.duration;
   document.getElementById('fGen').value=f.genre;
@@ -1850,30 +1862,98 @@ function sendMail(){
 }
 window.addMail=addMail;window.remMail=remMail;window.sendMail=sendMail;
 
-// ── Distributori ──
-async function addDist(){
+// ── Distributori (multi-contact) ──
+// S.distributors = [{name, contacts:[{email}]}, ...]
+
+async function addDistributor(){
   const name=document.getElementById('dist-name').value.trim();
-  const email=document.getElementById('dist-email').value.trim();
-  if(!name||!email||!email.includes('@')){toast('Nome e email obbligatori','err');return;}
+  if(!name){toast('Inserisci il nome del distributore','err');return;}
   if(!S.distributors)S.distributors=[];
-  if(S.distributors.find(d=>d.email===email)){toast('Già presente','err');return;}
-  S.distributors.push({name,email});
+  if(S.distributors.find(d=>d.name.toLowerCase()===name.toLowerCase())){toast('Distributore già presente','err');return;}
+  S.distributors.push({name,contacts:[]});
   document.getElementById('dist-name').value='';
-  document.getElementById('dist-email').value='';
   await fbSetDoc(db,'settings','distributors',{list:S.distributors});
-  renderDist();toast('Distributore aggiunto','ok');
+  renderDist();
+  fillDistDropdown();
+  toast(name+' aggiunto','ok');
 }
-async function remDist(email){
-  S.distributors=S.distributors.filter(d=>d.email!==email);
+async function addDistContact(){
+  const sel=document.getElementById('dist-sel').value;
+  const email=document.getElementById('dist-contact-email').value.trim();
+  if(!sel){toast('Seleziona un distributore','err');return;}
+  if(!email||!email.includes('@')){toast('Email non valida','err');return;}
+  const dist=S.distributors.find(d=>d.name===sel);
+  if(!dist){toast('Distributore non trovato','err');return;}
+  if(!dist.contacts)dist.contacts=[];
+  if(dist.contacts.find(c=>c.email===email)){toast('Email già presente','err');return;}
+  dist.contacts.push({email});
+  document.getElementById('dist-contact-email').value='';
+  await fbSetDoc(db,'settings','distributors',{list:S.distributors});
+  renderDist();toast('Contatto aggiunto','ok');
+}
+async function remDistContact(distName,email){
+  const dist=S.distributors.find(d=>d.name===distName);
+  if(!dist)return;
+  dist.contacts=dist.contacts.filter(c=>c.email!==email);
   await fbSetDoc(db,'settings','distributors',{list:S.distributors});
   renderDist();
 }
+async function remDistributor(name){
+  if(!confirm('Eliminare '+name+' e tutti i suoi contatti?'))return;
+  S.distributors=S.distributors.filter(d=>d.name!==name);
+  await fbSetDoc(db,'settings','distributors',{list:S.distributors});
+  renderDist();fillDistDropdown();
+}
 function renderDist(){
   const w=document.getElementById('dist-list');
+  if(!w)return;
   if(!S.distributors||!S.distributors.length){
     w.innerHTML='<div style="color:var(--txt2);text-align:center;padding:10px;font-size:12px">Nessun distributore</div>';return;
   }
-  w.innerHTML=S.distributors.map(d=>`<div class="ei"><span>🏢 <strong>${d.name}</strong> — ${d.email}</span><button class="btn bd bs" onclick="remDist('${d.email}')">✕</button></div>`).join('');
+  w.innerHTML=S.distributors.map(d=>{
+    const contacts=d.contacts||[];
+    const hasFilms=S.films.some(f=>(f.distributor||'').toLowerCase()===d.name.toLowerCase());
+    return`<div style="margin-bottom:8px;background:var(--surf2);border:1px solid var(--bdr);border-radius:7px;overflow:hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 12px;border-bottom:1px solid var(--bdr)">
+        <span style="font-weight:600">🏢 ${d.name}${hasFilms?' <span style=\'color:var(--acc);font-size:10px\'>(film abbinati)</span>':''}</span>
+        <button class="btn bd bs" onclick="remDistributor('${d.name}')">✕</button>
+      </div>
+      ${contacts.length?contacts.map(ct=>`
+        <div class="ei" style="padding:5px 12px">
+          <span style="font-size:12px">📧 ${ct.email}</span>
+          <button class="btn bd bs" onclick="remDistContact('${d.name}','${ct.email}')">✕</button>
+        </div>`).join('')
+      :'<div style="padding:6px 12px;font-size:11px;color:var(--txt2)">Nessun contatto — aggiungine uno sopra</div>'}
+    </div>`;
+  }).join('');
+  // update dist-sel dropdown
+  fillDistDropdown();
+}
+function fillDistDropdown(){
+  const sel=document.getElementById('dist-sel');
+  if(!sel)return;
+  const cur=sel.value;
+  sel.innerHTML='<option value="">— Seleziona distributore —</option>';
+  (S.distributors||[]).forEach(d=>{
+    const o=document.createElement('option');
+    o.value=d.name;o.textContent=d.name;
+    if(d.name===cur)o.selected=true;
+    sel.appendChild(o);
+  });
+  // Also update film modal dropdown
+  fillFilmDistDropdown();
+}
+function fillFilmDistDropdown(){
+  const sel=document.getElementById('fDist');
+  if(!sel)return;
+  const cur=sel.value;
+  sel.innerHTML='<option value="">— Nessuno —</option>';
+  (S.distributors||[]).forEach(d=>{
+    const o=document.createElement('option');
+    o.value=d.name;o.textContent=d.name;
+    if(d.name===cur)o.selected=true;
+    sel.appendChild(o);
+  });
 }
 function previewDist(){
   if(!S.distributors||!S.distributors.length){toast('Aggiungi distributori','err');return;}
@@ -1881,18 +1961,18 @@ function previewDist(){
   const shows=S.shows.filter(s=>wd.includes(s.day));
   const box=document.getElementById('dist-preview');
   let html='';
-  S.distributors.forEach(dist=>{
-    // Find films by this distributor
+  S.distributors.forEach(function(dist){
+    const contacts=(dist.contacts||[]).map(c=>c.email);
     const distFilms=S.films.filter(f=>(f.distributor||'').toLowerCase()===dist.name.toLowerCase());
-    if(!distFilms.length)return;
+    if(!distFilms.length&&!contacts.length)return;
     const distShows=shows.filter(s=>distFilms.find(f=>f.id===s.filmId));
-    if(!distShows.length)return;
-    html+=`<div style="margin-bottom:8px;padding:8px 10px;background:var(--surf2);border:1px solid var(--bdr);border-radius:6px;font-size:11px">
-      <strong style="color:var(--acc)">${dist.name}</strong> — ${dist.email}<br>
-      <span style="color:var(--txt2)">${distFilms.map(f=>f.title).join(', ')} (${distShows.length} spettacoli)</span>
-    </div>`;
+    html+='<div style="margin-bottom:8px;padding:8px 10px;background:var(--surf2);border:1px solid var(--bdr);border-radius:6px;font-size:11px">'
+      +'<strong style="color:var(--acc)">'+dist.name+'</strong><br>'
+      +'<span style="color:var(--txt2)">Contatti: '+(contacts.length?contacts.join(', '):'<em>nessuno</em>')+'</span><br>'
+      +(distFilms.length?'<span style="color:var(--txt2)">Film: '+distFilms.map(f=>f.title).join(', ')+' ('+distShows.length+' spettacoli)</span>':'<span style="color:var(--red);font-size:10px">⚠ Nessun film abbinato</span>')
+      +'</div>';
   });
-  box.innerHTML=html||'<div style="font-size:11px;color:var(--txt2)">Nessun film abbinato ai distributori presenti</div>';
+  box.innerHTML=html||'<div style="font-size:11px;color:var(--txt2)">Nessun distributore presente</div>';
 }
 function buildDistBody(dist){
   const days=wdays();const wd=wdates();
@@ -1901,18 +1981,18 @@ function buildDistBody(dist){
   if(!distFilms.length)return null;
   const distShows=shows.filter(s=>distFilms.find(f=>f.id===s.filmId));
   if(!distShows.length)return null;
-  let body=`Gentile ${dist.name},\n\ndi seguito la programmazione dei vostri film per la settimana ${fd(days[0])} - ${fd(days[6])}:\n\n`;
-  distFilms.forEach(film=>{
+  let body='Gentile '+dist.name+',\n\ndi seguito la programmazione dei vostri film per la settimana '+fd(days[0])+' - '+fd(days[6])+':\n\n';
+  distFilms.forEach(function(film){
     const fShows=distShows.filter(s=>s.filmId===film.id).sort((a,b)=>a.day.localeCompare(b.day)||a.start.localeCompare(b.start));
     if(!fShows.length)return;
-    body+=`\n== ${film.title.toUpperCase()} ==\n`;
+    body+='\n== '+film.title.toUpperCase()+' ==\n';
     const byDay={};
     fShows.forEach(s=>{if(!byDay[s.day])byDay[s.day]=[];byDay[s.day].push(s);});
-    Object.keys(byDay).sort().forEach(ds=>{
+    Object.keys(byDay).sort().forEach(function(ds){
       const di=wd.indexOf(ds);
       const dayLabel=di>=0?DIT[di]+' '+fs(days[di]):ds;
       const times=byDay[ds].map(s=>s.start+' ('+sn(s.sala)+')').join('  ');
-      body+=`${dayLabel}: ${times}\n`;
+      body+=dayLabel+': '+times+'\n';
     });
   });
   body+='\n——\nCinema Multisala Teatro Mendrisio';
@@ -1923,13 +2003,16 @@ async function sendDistMails(){
   const subj=encodeURIComponent(document.getElementById('dist-subj').value);
   let sent=0;
   for(const dist of S.distributors){
+    const contacts=(dist.contacts||[]).map(c=>c.email).filter(Boolean);
+    if(!contacts.length)continue; // skip distributors with no contacts
     const body=buildDistBody(dist);
     if(!body)continue;
-    window.open(`mailto:${dist.email}?subject=${subj}&body=${encodeURIComponent(body)}`,'_blank');
+    // All contacts in TO field of same email
+    window.open('mailto:'+contacts.join(',')+'?subject='+subj+'&body='+encodeURIComponent(body),'_blank');
     sent++;
-    await new Promise(r=>setTimeout(r,600));
+    await new Promise(r=>setTimeout(r,700));
   }
-  toast(sent?`${sent} email preparate`:'Nessun film abbinato ai distributori','ok');
+  toast(sent?sent+' email preparate':'Nessun film abbinato ai distributori con contatti','ok');
 }
 window.addDist=addDist;window.remDist=remDist;window.previewDist=previewDist;window.sendDistMails=sendDistMails;
 
