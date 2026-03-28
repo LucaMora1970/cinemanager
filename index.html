@@ -1438,28 +1438,30 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:8.5px;color:#111;backgroun
 .H-bot{display:flex;align-items:baseline;gap:8px;}
 .H-bot .rt{font-size:13px;font-weight:700;color:#f0801a;line-height:1;}
 .H-bot .wl{font-size:8px;color:#888;}
-/* ── PER TITOLO ── */
-.T-film{margin-bottom:6px;}
-.T-film-head{display:flex;align-items:baseline;gap:6px;border-bottom:1.5px solid #f0801a;padding-bottom:2px;margin-bottom:1px;}
-.T-ftit{font-size:9.5px;font-weight:700;color:#f0801a;}
-.T-fmeta{font-size:7px;color:#888;}
-.T-row{display:grid;grid-template-columns:110px 55px 32px 55px;padding:1px 0 1px 8px;border-bottom:.3px solid #eee;}
+/* ── PER TITOLO compatto 2 colonne ── */
+.T-cols{column-count:2;column-gap:14px;column-rule:.5px solid #ddd;}
+.T-film{margin-bottom:5px;break-inside:avoid;page-break-inside:avoid;}
+.T-film-head{display:flex;align-items:baseline;gap:6px;border-bottom:1px solid #f0801a;padding-bottom:1px;margin-bottom:1px;}
+.T-ftit{font-size:9px;font-weight:700;color:#f0801a;}
+.T-fmeta{font-size:7px;color:#999;}
+.T-row{display:grid;grid-template-columns:27px 38px 1fr 42px;padding:1px 0 1px 6px;border-bottom:.3px solid #eee;}
 .T-row:last-child{border-bottom:none;}
-.T-d{color:#444;}.T-s{color:#222;font-weight:600;}.T-t{font-weight:700;}.T-e{color:#888;}
+.T-d{color:#555;font-size:7.5px;}.T-s{color:#333;font-weight:600;font-size:7.5px;}.T-t{font-weight:700;}.T-e{color:#999;font-size:7.5px;text-align:right;}
 /* ── PER SALA ── */
-.S-head{background:#f0801a;color:#fff;padding:3px 6px;font-size:8px;font-weight:700;letter-spacing:.3px;margin-bottom:0;}
-.S-subh{display:grid;grid-template-columns:80px 1fr 30px 28px 50px;background:#eee;padding:2px 6px;font-size:7px;font-weight:700;text-transform:uppercase;color:#555;letter-spacing:.3px;}
-.S-row{display:grid;grid-template-columns:80px 1fr 30px 28px 50px;padding:1.5px 6px;border-bottom:.3px solid #eee;}
-.S-row:nth-child(even){background:#f8f8f8;}
-.S-t{font-weight:700;}.S-e{color:#888;}
+.S-head{display:flex;align-items:center;gap:5px;border-bottom:1px solid #f0801a;padding-bottom:2px;margin-bottom:2px;}
+.S-htit{font-size:9px;font-weight:700;color:#f0801a;text-transform:uppercase;letter-spacing:.4px;}.S-hline{flex:1;height:.5px;background:#ddd;}
+.S-cols{column-count:2;column-gap:14px;column-rule:.5px solid #ddd;}.S-row{display:grid;grid-template-columns:27px 1fr 28px 38px;padding:1px 0 1px 6px;border-bottom:.3px solid #eee;}
+.S-row:last-child{border-bottom:none;}
+.S-t{font-weight:700;}
 .S-block{margin-bottom:7px;}
-/* ── PER GIORNO ── */
-.G-head{background:#f0801a;color:#fff;padding:3px 6px;font-size:8px;font-weight:700;margin-bottom:0;}
-.G-subh{display:grid;grid-template-columns:27px 55px 1fr 28px 45px;background:#eee;padding:2px 6px;font-size:7px;font-weight:700;text-transform:uppercase;color:#555;letter-spacing:.3px;}
-.G-row{display:grid;grid-template-columns:27px 55px 1fr 28px 45px;padding:1.5px 6px;border-bottom:.3px solid #eee;}
-.G-row:nth-child(even){background:#f8f8f8;}
-.G-t{font-weight:700;}.G-e{color:#888;}.G-s{color:#444;}
-.G-block{margin-bottom:7px;}
+/* ── PER GIORNO compatto ── */
+.G-block{margin-bottom:7px;break-inside:avoid;}
+.G-chapter{display:flex;align-items:center;gap:5px;margin-bottom:2px;}
+.G-day{font-size:9px;font-weight:700;color:#f0801a;text-transform:uppercase;letter-spacing:.4px;}
+.G-line{flex:1;height:.5px;background:#ccc;}
+.G-row{display:grid;grid-template-columns:27px 42px 1fr 28px 38px;padding:1px 0 1px 6px;border-bottom:.3px solid #eee;}
+.G-row:last-child{border-bottom:none;}
+.G-t{font-weight:700;}.G-s{color:#555;font-size:7.5px;}.G-e{color:#999;font-size:7.5px;text-align:right;}.G-dur{color:#aaa;font-size:7.5px;text-align:right;}
 /* ── COMPATTO 2 COLONNE ── */
 .cols{column-count:2;column-gap:12px;column-rule:.5px solid #ccc;}
 .D-chapter{break-inside:avoid;page-break-inside:avoid;margin-top:7px;margin-bottom:2px;display:flex;align-items:center;gap:5px;}
@@ -1549,38 +1551,42 @@ async function pPDF(type){
   }
   else if(type==='sala'){
     html=hdr('Programmazione per Sala — Cinema Multisala Teatro Mendrisio');
+    html+='<div class="S-cols">';
     ['1','2','3','4'].forEach(function(sid){
       const sS=allShows.filter(s=>s.sala==sid);
-      html+='<div class="S-block"><div class="S-head">'+sid+' \u2014 '+sn(sid).toUpperCase()+'</div>'
-        +'<div class="S-subh"><span>Data</span><span>Film</span><span>Inizio</span><span>Dur.</span><span>Fine</span></div>';
+      html+='<div class="S-block"><div class="S-head"><span class="S-htit">'+sid+' — '+sn(sid)+'</span><span class="S-hline"></span></div>';
       sS.forEach(function(s){
-        const film=S.films.find(f=>f.id===s.filmId),di=wd.indexOf(s.day);
-        html+='<div class="S-row"><span>'+(di>=0?DAB[di]+' '+String(days[di].getDate()).padStart(2,'0')+'/'+String(days[di].getMonth()+1).padStart(2,'0'):'')+'</span>'
-          +'<span style="font-weight:600">'+(film?film.title:'?')+'</span>'
+        const film=S.films.find(f=>f.id===s.filmId);
+        html+='<div class="S-row">'
           +'<span class="S-t">'+s.start+'</span>'
-          +'<span style="color:#777">'+(film&&film.duration?durFmt(film.duration):'')+'</span>'
+          +'<span style="font-weight:600">'+(film?film.title:'?')+'</span>'
+          +'<span class="S-dur">'+(film&&film.duration?durFmt(film.duration):'')+'</span>'
           +'<span class="S-e">'+s.end+'</span></div>';
       });
       html+='</div>';
     });
+    html+='</div>';
   }
   else if(type==='giorno'){
     html=hdr('Programmazione Giornaliera — Cinema Multisala Teatro Mendrisio');
+    html+='<div class="cols">';
     days.forEach(function(d,di){
       const ds=d.toISOString().slice(0,10);
       const dS=allShows.filter(s=>s.day===ds);if(!dS.length)return;
-      html+='<div class="G-block"><div class="G-head">'+DIT[di].toUpperCase()+' '+fd(d)+'</div>'
-        +'<div class="G-subh"><span>Ora</span><span>Sala</span><span>Film</span><span>Dur.</span><span>Fine</span></div>';
+      html+='<div class="G-block">';
+      html+='<div class="G-chapter"><span class="G-day">'+DIT[di]+' '+String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'</span><span class="G-line"></span></div>';
       dS.forEach(function(s){
         const film=S.films.find(f=>f.id===s.filmId);
-        html+='<div class="G-row"><span class="G-t">'+s.start+'</span>'
+        html+='<div class="G-row">'
+          +'<span class="G-t">'+s.start+'</span>'
           +'<span class="G-s">'+sn(s.sala)+'</span>'
           +'<span style="font-weight:600">'+(film?film.title:'?')+'</span>'
-          +'<span style="color:#777">'+(film&&film.duration?durFmt(film.duration):'')+'</span>'
+          +'<span class="G-dur">'+(film&&film.duration?durFmt(film.duration):'')+'</span>'
           +'<span class="G-e">'+s.end+'</span></div>';
       });
       html+='</div>';
     });
+    html+='</div>';
   }
   else if(type==='compatto'){
     html=hdr('Programma Settimanale — Cinema Multisala Teatro Mendrisio');
