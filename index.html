@@ -583,11 +583,6 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
       <p style="font-size:12px;color:var(--txt2);margin-bottom:10px">Una card per ogni film con titolo, metadati e orari raggruppati per giorno. Layout griglia su A4.</p>
       <button class="btn ba" onclick="pPDF('cards')">⬇ Scarica PDF</button>
     </div>
-    <div class="ps" style="grid-column:1/-1">
-      <h3>🏛 Programma Giornaliero per Sala (card)</h3>
-      <p style="font-size:12px;color:var(--txt2);margin-bottom:10px">Una pagina per sala, 7 card giornaliere con orari e film. Stesso stile delle Schede Film.</p>
-      <button class="btn ba" onclick="pPDF('saladay')">⬇ Scarica PDF</button>
-    </div>
   </div>
 </div>
 
@@ -1439,18 +1434,18 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:8.5px;color:#111;backgroun
 .H-bot .rt{font-size:13px;font-weight:700;color:#f0801a;line-height:1;}
 .H-bot .wl{font-size:8px;color:#888;}
 /* ── PER TITOLO compatto 2 colonne ── */
-.T-cols{column-count:2;column-gap:14px;column-rule:.5px solid #ddd;}
+.T-cols{column-count:2;column-gap:14px;column-rule:.5px solid #ddd;orphans:2;widows:2;}
 .T-film{margin-bottom:5px;break-inside:avoid;page-break-inside:avoid;}
 .T-film-head{display:flex;align-items:baseline;gap:6px;border-bottom:1px solid #f0801a;padding-bottom:1px;margin-bottom:1px;}
 .T-ftit{font-size:9px;font-weight:700;color:#f0801a;}
 .T-fmeta{font-size:7px;color:#999;}
-.T-row{display:grid;grid-template-columns:27px 38px 1fr 42px;padding:1px 0 1px 6px;border-bottom:.3px solid #eee;}
+.T-row{display:grid;grid-template-columns:65px 40px 28px 38px;padding:1px 0 1px 6px;border-bottom:.3px solid #eee;}
 .T-row:last-child{border-bottom:none;}
 .T-d{color:#555;font-size:7.5px;}.T-s{color:#333;font-weight:600;font-size:7.5px;}.T-t{font-weight:700;}.T-e{color:#999;font-size:7.5px;text-align:right;}
 /* ── PER SALA ── */
 .S-head{display:flex;align-items:center;gap:5px;border-bottom:1px solid #f0801a;padding-bottom:2px;margin-bottom:2px;}
 .S-htit{font-size:9px;font-weight:700;color:#f0801a;text-transform:uppercase;letter-spacing:.4px;}.S-hline{flex:1;height:.5px;background:#ddd;}
-.S-cols{column-count:2;column-gap:14px;column-rule:.5px solid #ddd;}.S-row{display:grid;grid-template-columns:27px 1fr 28px 38px;padding:1px 0 1px 6px;border-bottom:.3px solid #eee;}
+.S-cols{column-count:2;column-gap:14px;column-rule:.5px solid #ddd;}.S-row{display:grid;grid-template-columns:60px 28px 1fr 28px 38px;padding:1px 0 1px 6px;border-bottom:.3px solid #eee;}
 .S-row:last-child{border-bottom:none;}
 .S-t{font-weight:700;}
 .S-block{margin-bottom:7px;}
@@ -1521,8 +1516,8 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:8.5px;color:#111;backgroun
 .fc-slot{background:#fff5ee;border:1px solid #f0801a;border-radius:2px;padding:1px 5px;font-size:8px;font-weight:700;color:#f0801a;white-space:nowrap;}
 .fc-slot-sala{font-size:7px;font-weight:400;color:#888;margin-left:2px;}
 @page{size:A4 portrait;margin:15mm;}
-@page landscape{size:A4 landscape;margin:12mm;}
-.land{page:landscape;}
+@page cartello{size:A4 landscape;margin:12mm;}
+.cart-page{page:cartello;}
 </style>`;
 
 async function pPDF(type){
@@ -1538,6 +1533,7 @@ async function pPDF(type){
 
   if(type==='titolo'){
     html=hdr('Programmazione per Titolo — Cinema Multisala Teatro Mendrisio');
+    html+='<div class="T-cols">';
     [...S.films].sort((a,b)=>a.title.localeCompare(b.title,'it')).forEach(function(f){
       const fS=allShows.filter(s=>s.filmId===f.id);if(!fS.length)return;
       const meta=[f.distributor,f.duration?durFmt(f.duration):'',f.rating,f.genre].filter(Boolean).join(' \u00b7 ');
@@ -1556,8 +1552,10 @@ async function pPDF(type){
       const sS=allShows.filter(s=>s.sala==sid);
       html+='<div class="S-block"><div class="S-head"><span class="S-htit">'+sid+' — '+sn(sid)+'</span><span class="S-hline"></span></div>';
       sS.forEach(function(s){
-        const film=S.films.find(f=>f.id===s.filmId);
+        const film=S.films.find(f=>f.id===s.filmId),di=wd.indexOf(s.day);
+        const ds=di>=0?DAB[di]+' '+String(days[di].getDate()).padStart(2,'0')+'/'+String(days[di].getMonth()+1).padStart(2,'0'):'';
         html+='<div class="S-row">'
+          +'<span class="S-e">'+ds+'</span>'
           +'<span class="S-t">'+s.start+'</span>'
           +'<span style="font-weight:600">'+(film?film.title:'?')+'</span>'
           +'<span class="S-dur">'+(film&&film.duration?durFmt(film.duration):'')+'</span>'
@@ -1603,7 +1601,7 @@ async function pPDF(type){
     html+='</div>';
   }
   else if(type==='cartelli'){
-    html=hdr('Cartelli Film — Cinema Multisala Teatro Mendrisio');
+    html='<style>@page{size:A4 landscape;margin:12mm;}</style>'+hdr('Cartelli Film — Cinema Multisala Teatro Mendrisio');
     const filmIds=[...new Set(allShows.map(s=>s.filmId))];
     filmIds.forEach(function(fid){
       const film=S.films.find(f=>f.id===fid);
@@ -1667,39 +1665,7 @@ async function pPDF(type){
     html+='</div>';
   }
 
-  else if(type==='saladay'){
-    html=hdr('Programma Giornaliero per Sala — Cinema Multisala Teatro Mendrisio');
-    // One page per sala, 7 day-cards in a 4+3 grid
-    ['1','2','3','4'].forEach(function(sid,si){
-      const sName2=sn(sid);
-      html+=(si>0?'<div class="sala-cards-page">':'<div>')
-        +'<div class="sala-name-head">'+sid+' — '+sName2+'</div>'
-        +'<div class="sala-day-grid">';
-      days.forEach(function(d,di){
-        const ds=d.toISOString().slice(0,10);
-        const dS=allShows.filter(s=>s.sala==sid&&s.day===ds);
-        const dayLabel=DAB[di]+' '+String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0');
-        const fullDate=DIT[di]+' '+fd(d);
-        html+='<div class="sd-card">'
-          +'<div class="sd-card-head"><div class="sd-day">'+dayLabel+'</div><div class="sd-date">'+fullDate+'</div></div>'
-          +'<div class="sd-body">';
-        if(dS.length){
-          dS.forEach(function(s){
-            const film=S.films.find(f=>f.id===s.filmId);
-            html+='<div class="sd-row">'
-              +'<span class="sd-time">'+s.start+'</span>'
-              +'<span class="sd-film">'+(film?film.title:'?')+'</span>'
-              +'<span class="sd-dur">'+(film&&film.duration?durFmt(film.duration):'')+'</span>'
-              +'</div>';
-          });
-        } else {
-          html+='<div class="sd-empty">Nessuno spettacolo</div>';
-        }
-        html+='</div></div>';
-      });
-      html+='</div></div>';
-    });
-  }
+
   // ── Genera il PDF tramite Blob URL (non richiede popup) ──
   const fullHTML='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+CN+'</title>'+PDF_STYLE+'</head><body>'+html+'<scr'+'ipt>window.onload=function(){setTimeout(function(){window.print();},400);}<\/scr'+'ipt></body></html>';
   const blob=new Blob([fullHTML],{type:'text/html;charset=utf-8'});
