@@ -497,7 +497,28 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
 </head>
 <body>
 
-<div id="loading"><div class="spin"></div><div class="load-txt">Connessione a Firebase…</div></div>
+<div id="loading">
+  <div id="load-connecting" style="display:flex;flex-direction:column;align-items:center;gap:16px">
+    <div class="spin"></div>
+    <div class="load-txt">Connessione a Firebase…</div>
+  </div>
+  <div id="load-login" style="display:none;flex-direction:column;align-items:center;gap:20px;text-align:center">
+    <div style="font-family:'Playfair Display',serif;font-size:28px;font-weight:900;">Cine<span style="color:#e8c84a">Manager</span></div>
+    <div style="font-size:14px;color:#7777aa;margin-bottom:8px;">Cinema Multisala Teatro Mendrisio</div>
+    <button onclick="signInGoogle()" style="display:flex;align-items:center;gap:12px;background:#fff;color:#333;border:none;border-radius:8px;padding:12px 24px;font-size:15px;font-weight:600;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,.15);">
+      <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.2l6.7-6.7C35.7 2.4 30.2 0 24 0 14.6 0 6.6 5.4 2.6 13.3l7.8 6C12.4 13 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.9 7.2l7.6 5.9c4.5-4.1 7.1-10.2 7.1-17.1z"/><path fill="#FBBC05" d="M10.4 28.7A14.6 14.6 0 0 1 9.5 24c0-1.6.3-3.2.9-4.7l-7.8-6A23.9 23.9 0 0 0 0 24c0 3.9.9 7.5 2.6 10.7l7.8-6z"/><path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.2-5.5l-7.6-5.9c-2 1.4-4.7 2.2-7.6 2.2-6.2 0-11.5-4.2-13.4-9.9l-7.8 6C6.6 42.6 14.6 48 24 48z"/></svg>
+      Accedi con Google
+    </button>
+    <div id="login-error" style="color:#e84a4a;font-size:12px;display:none"></div>
+  </div>
+  <div id="load-denied" style="display:none;flex-direction:column;align-items:center;gap:16px;text-align:center">
+    <div style="font-size:40px">🔒</div>
+    <div style="font-family:'Playfair Display',serif;font-size:20px;color:#e8e8f0;">Accesso non autorizzato</div>
+    <div style="font-size:13px;color:#7777aa;max-width:300px">Il tuo account non è nella lista degli utenti autorizzati. Contatta l'amministratore.</div>
+    <div id="denied-email" style="font-size:12px;color:#555;font-family:'DM Mono',monospace"></div>
+    <button onclick="signOutGoogle()" style="background:transparent;border:1px solid #2a2a3a;color:#7777aa;border-radius:6px;padding:8px 16px;cursor:pointer;font-size:13px;">Esci e riprova con un altro account</button>
+  </div>
+</div>
 
 <header>
   <div class="logo">Cine<span>Manager</span></div>
@@ -508,6 +529,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
   </div>
   <div class="hact">
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
+    <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
     <button id="btnTheme" class="btn bg" onclick="toggleTheme()" title="Cambia tema" style="font-size:16px;padding:5px 10px;">☀</button>
     <button id="btnGlobalOpt" class="btn bg" onclick="openGlobalOpt()" style="color:var(--acc);border-color:rgba(232,200,74,.4)">⚡ <span class="btn-label">Ottimizza Tutto</span></button>
     <button id="btnAddShow" class="btn ba" onclick="openShow()">＋ Aggiungi Spettacolo</button>
@@ -520,6 +542,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
   <div class="tab"     onclick="gt('arch')">🎬 Archivio Film</div>
   <div class="tab"     onclick="gt('prnt')">🖨 Stampa & PDF</div>
   <div class="tab"     onclick="gt('mail')">📧 Email</div>
+  <div class="tab" id="tab-users" onclick="gt('users')" style="display:none">👥 Utenti</div>
 </div>
 
 <main>
@@ -709,6 +732,38 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
   </div>
 </div>
 
+<!-- UTENTI (solo admin) -->
+<div id="page-users" class="page">
+  <div class="sh">
+    <div class="st">Gestione Utenti</div>
+    <div style="font-size:12px;color:var(--txt2)">Solo gli utenti in questa lista possono accedere a CineManager</div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+    <div class="ps">
+      <h3>👥 Utenti autorizzati</h3>
+      <div style="display:flex;gap:7px;margin-bottom:10px">
+        <input type="email" id="new-user-email" placeholder="email@gmail.com" style="flex:1">
+        <input type="text" id="new-user-name" placeholder="Nome" style="width:120px">
+        <select id="new-user-role" style="width:100px"><option value="operator">Operatore</option><option value="admin">Admin</option></select>
+        <button class="btn ba" onclick="addUser()">＋</button>
+      </div>
+      <div class="el" id="users-list" style="max-height:350px"></div>
+    </div>
+    <div class="ps">
+      <h3>ℹ️ Ruoli</h3>
+      <div style="font-size:12px;color:var(--txt2);line-height:1.8">
+        <strong style="color:var(--acc)">Admin</strong> — può gestire utenti, distributori e tutte le funzioni<br>
+        <strong style="color:var(--txt)">Operatore</strong> — può gestire programmazione, film e stampe<br><br>
+        <strong>Nota:</strong> il primo utente che accede diventa automaticamente Admin.
+      </div>
+      <div style="margin-top:16px;padding:12px;background:var(--surf2);border-radius:8px;border:1px solid var(--bdr)">
+        <div style="font-size:11px;color:var(--txt2);margin-bottom:6px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px">Account connesso</div>
+        <div id="current-user-info" style="font-size:13px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 </main>
 <div id="pout" style="display:none"></div>
 
@@ -872,6 +927,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
 <script type="module">
 import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import{getFirestore,doc,collection,setDoc,deleteDoc,onSnapshot}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import{getAuth,GoogleAuthProvider,signInWithPopup,signOut,onAuthStateChanged}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 const FB={apiKey:"AIzaSyCYM1tZsUI-pz3D0J6EWEMqyDxrk9hep1o",authDomain:"cinemanager-4c67c.firebaseapp.com",
   projectId:"cinemanager-4c67c",storageBucket:"cinemanager-4c67c.firebasestorage.app",
@@ -916,6 +972,7 @@ function syncSet(s,t){const el=document.getElementById('syncInd');el.className='
 
 // ── FIREBASE ──────────────────────────────────────────────
 function startListeners(){
+  startUsersListener();
   onSnapshot(collection(db,'films'),snap=>{
     S.films=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.title.localeCompare(b.title,'it'));
     rf();rs();rl();syncSet('ok','Sincronizzato');
@@ -936,7 +993,7 @@ async function fbSE(list){await setDoc(doc(db,'settings','emails'),{list});}
 async function fbSetDoc(db2,col,docId,data){await setDoc(doc(db2,col,docId),data);}
 
 // ── TABS ──────────────────────────────────────────────────
-const TABS=['prog','lista','arch','prnt','mail'];
+const TABS=['prog','lista','arch','prnt','mail','users'];
 function gt(id){
   document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('on',TABS[i]===id));
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
@@ -1978,21 +2035,29 @@ function buildDistBody(dist){
   if(!distFilms.length)return null;
   const distShows=shows.filter(s=>distFilms.find(f=>f.id===s.filmId));
   if(!distShows.length)return null;
-  let body='Gentile '+dist.name+',\n\ndi seguito la programmazione dei vostri film per la settimana '+fd(days[0])+' - '+fd(days[6])+':\n\n';
+  const LINE='\u2014'.repeat(30);
+  let body='Gentile '+dist.name+',\n\n';
+  body+='di seguito la programmazione dei vostri film\n';
+  body+='per la settimana '+fd(days[0])+' - '+fd(days[6])+':\n';
+  body+='\n'+LINE+'\n';
   distFilms.forEach(function(film){
     const fShows=distShows.filter(s=>s.filmId===film.id).sort((a,b)=>a.day.localeCompare(b.day)||a.start.localeCompare(b.start));
     if(!fShows.length)return;
-    body+='\n== '+film.title.toUpperCase()+' ==\n';
+    const meta=[film.duration?Math.floor(film.duration/60)+'h'+String(film.duration%60).padStart(2,'0'):'',film.rating,film.genre].filter(Boolean).join(' - ');
+    body+='\n'+film.title.toUpperCase();
+    if(meta)body+='  ('+meta+')';
+    body+='\n\n';
     const byDay={};
     fShows.forEach(s=>{if(!byDay[s.day])byDay[s.day]=[];byDay[s.day].push(s);});
     Object.keys(byDay).sort().forEach(function(ds){
       const di=wd.indexOf(ds);
       const dayLabel=di>=0?DIT[di]+' '+fs(days[di]):ds;
-      const times=byDay[ds].map(s=>s.start+' ('+sn(s.sala)+')').join('  ');
-      body+=dayLabel+': '+times+'\n';
+      const times=byDay[ds].map(s=>s.start+' ('+sn(s.sala)+')').join('   ');
+      body+=dayLabel+':\n'+times+'\n\n';
     });
   });
-  body+='\n——\nCinema Multisala Teatro Mendrisio';
+  body+=LINE+'\n';
+  body+='Cinema Multisala Teatro Mendrisio';
   return body;
 }
 async function sendDistMails(){
@@ -2214,6 +2279,155 @@ function toast(msg,t='ok'){
 document.querySelectorAll('.ov').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('on');}));
 window.co=co;window.toast=toast;
 
+// ── AUTH ─────────────────────────────────────────────────
+const auth=getAuth(app);
+const provider=new GoogleAuthProvider();
+let currentUser=null;
+
+async function signInGoogle(){
+  try{
+    document.getElementById('login-error').style.display='none';
+    await signInWithPopup(auth,provider);
+  }catch(e){
+    const errEl=document.getElementById('login-error');
+    errEl.style.display='block';
+    errEl.textContent='Errore di accesso: '+e.message;
+  }
+}
+async function signOutGoogle(){
+  await signOut(auth);
+  currentUser=null;
+  showLoginScreen();
+}
+window.signInGoogle=signInGoogle;window.signOutGoogle=signOutGoogle;
+
+function showLoginScreen(){
+  document.getElementById('load-connecting').style.display='none';
+  document.getElementById('load-login').style.display='flex';
+  document.getElementById('load-denied').style.display='none';
+  document.getElementById('loading').style.display='flex';
+  document.querySelector('header').style.display='none';
+  document.querySelector('.tabs').style.display='none';
+  document.querySelector('main').style.display='none';
+  document.querySelector('.fab').style.display='none';
+}
+function showDeniedScreen(email){
+  document.getElementById('load-connecting').style.display='none';
+  document.getElementById('load-login').style.display='none';
+  document.getElementById('load-denied').style.display='flex';
+  document.getElementById('denied-email').textContent=email;
+  document.getElementById('loading').style.display='flex';
+  document.querySelector('header').style.display='none';
+  document.querySelector('.tabs').style.display='none';
+  document.querySelector('main').style.display='none';
+  document.querySelector('.fab').style.display='none';
+}
+function showApp(user,role){
+  document.getElementById('loading').style.display='none';
+  document.querySelector('header').style.display='flex';
+  document.querySelector('.tabs').style.display='flex';
+  document.querySelector('main').style.display='block';
+  // Show FAB
+  const fab=document.querySelector('.fab');
+  if(fab)fab.style.display='flex';
+  // User info in header
+  const ui=document.getElementById('userInfo');
+  ui.style.display='flex';
+  document.getElementById('userAvatar').src=user.photoURL||'';
+  document.getElementById('userName').textContent=user.displayName||user.email;
+  // Show users tab only for admin
+  document.getElementById('tab-users').style.display=role==='admin'?'block':'none';
+  // Current user info in users page
+  const cui=document.getElementById('current-user-info');
+  if(cui)cui.innerHTML='<strong>'+(user.displayName||'')+'</strong><br><span style="color:var(--txt2);font-size:12px">'+user.email+'</span><br><span style="font-size:11px;color:var(--acc)">Ruolo: '+role+'</span>';
+}
+
+onAuthStateChanged(auth,async function(user){
+  if(!user){showLoginScreen();return;}
+  // Check if user is authorized
+  const snap=await new Promise(res=>{
+    const unsub=onSnapshot(doc(db,'settings','users'),s=>{unsub();res(s);});
+  });
+  const users=snap.exists()?snap.data().list||[]:[];
+  // First user ever → auto admin
+  if(users.length===0){
+    const newUser={email:user.email,name:user.displayName||'',role:'admin',uid:user.uid};
+    await setDoc(doc(db,'settings','users'),{list:[newUser]});
+    currentUser=newUser;
+    startListeners();
+    showApp(user,'admin');
+    return;
+  }
+  const found=users.find(u=>u.email.toLowerCase()===user.email.toLowerCase());
+  if(!found){showDeniedScreen(user.email);return;}
+  currentUser=found;
+  startListeners();
+  showApp(user,found.role);
+});
+
+// ── USERS MANAGEMENT ─────────────────────────────────────
+async function addUser(){
+  const email=document.getElementById('new-user-email').value.trim();
+  const name=document.getElementById('new-user-name').value.trim();
+  const role=document.getElementById('new-user-role').value;
+  if(!email||!email.includes('@')){toast('Email non valida','err');return;}
+  const snap=await new Promise(res=>{const u=onSnapshot(doc(db,'settings','users'),s=>{u();res(s);});});
+  const users=snap.exists()?snap.data().list||[]:[];
+  if(users.find(u=>u.email.toLowerCase()===email.toLowerCase())){toast('Utente già presente','err');return;}
+  users.push({email,name:name||email,role,uid:''});
+  await setDoc(doc(db,'settings','users'),{list:users});
+  document.getElementById('new-user-email').value='';
+  document.getElementById('new-user-name').value='';
+  toast(name||email+' aggiunto','ok');
+}
+async function removeUser(email){
+  if(email===currentUser?.email){toast('Non puoi rimuovere te stesso','err');return;}
+  if(!confirm('Rimuovere '+email+'?'))return;
+  const snap=await new Promise(res=>{const u=onSnapshot(doc(db,'settings','users'),s=>{u();res(s);});});
+  const users=(snap.exists()?snap.data().list||[]:[] ).filter(u=>u.email.toLowerCase()!==email.toLowerCase());
+  await setDoc(doc(db,'settings','users'),{list:users});
+  toast('Utente rimosso','ok');
+}
+async function changeRole(email,role){
+  const snap=await new Promise(res=>{const u=onSnapshot(doc(db,'settings','users'),s=>{u();res(s);});});
+  const users=snap.exists()?snap.data().list||[]:[];
+  const u=users.find(u=>u.email.toLowerCase()===email.toLowerCase());
+  if(u)u.role=role;
+  await setDoc(doc(db,'settings','users'),{list:users});
+  toast('Ruolo aggiornato','ok');
+}
+function renderUsers(users){
+  const w=document.getElementById('users-list');
+  if(!w)return;
+  if(!users.length){w.innerHTML='<div style="color:var(--txt2);text-align:center;padding:10px;font-size:12px">Nessun utente</div>';return;}
+  w.innerHTML=users.map(function(u){
+    const isMe=u.email===currentUser?.email;
+    const avatar=u.name?u.name.charAt(0).toUpperCase():'?';
+    const emailB64=btoa(u.email);
+    return '<div class="ei" style="padding:8px 12px;align-items:center;gap:10px">'
+      +'<div style="width:32px;height:32px;border-radius:50%;background:rgba(232,200,74,.2);color:var(--acc);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0">'+avatar+'</div>'
+      +'<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px">'+u.name+(isMe?' <span style="font-size:10px;color:var(--acc)">(tu)</span>':'')+'</div><div style="font-size:11px;color:var(--txt2)">'+u.email+'</div></div>'
+      +'<select data-email="'+emailB64+'" onchange="handleRoleChange(this)" style="font-size:11px;padding:2px 6px;width:90px">'
+        +'<option value="admin"'+(u.role==='admin'?' selected':'')+'>Admin</option>'
+        +'<option value="operator"'+(u.role==='operator'?' selected':'')+'>Operatore</option>'
+      +'</select>'
+      +(isMe?'':'<button class="btn bd bs" data-email="'+emailB64+'" onclick="handleRemoveUser(this)">✕</button>')
+      +'</div>';
+  }).join('');
+}
+function handleRoleChange(sel){changeRole(atob(sel.dataset.email),sel.value);}
+function handleRemoveUser(btn){removeUser(atob(btn.dataset.email));}
+window.handleRoleChange=handleRoleChange;window.handleRemoveUser=handleRemoveUser;
+window.addUser=addUser;window.removeUser=removeUser;window.changeRole=changeRole;
+
+// Listen for users list changes
+function startUsersListener(){
+  onSnapshot(doc(db,'settings','users'),snap=>{
+    const users=snap.exists()?snap.data().list||[]:[];
+    renderUsers(users);
+  });
+}
+
 // ── THEME ───────────────────────────────────────────────
 function toggleTheme(){
   const isLight=document.body.classList.toggle('light');
@@ -2227,10 +2441,7 @@ window.toggleTheme=toggleTheme;
 // ── INIT ──────────────────────────────────────────────────
 uwl();
 syncSet('busy','Connessione…');
-startListeners();
-const hideLoad=()=>document.getElementById('loading').style.display='none';
-setTimeout(hideLoad,4000);
-onSnapshot(collection(db,'films'),()=>hideLoad());
+// Auth handles startup — onAuthStateChanged calls startListeners after login
 
 </script>
 </body>
