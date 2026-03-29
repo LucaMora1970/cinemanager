@@ -787,6 +787,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
       <button class="btn ba" onclick="openStaffMember()">＋ Dipendente</button>
       <button class="btn bg" onclick="pPDFStaff()">🖨 Stampa</button>
       <button class="btn bg" onclick="emailStaff()">📧 Invia turni</button>
+      <button class="btn bg" onclick="openStaffReport()">📊 Report</button>
     </div>
   </div>
   <!-- Sub-tabs -->
@@ -1122,6 +1123,26 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="mft">
       <button class="btn bg" onclick="co('ovBook')">Annulla</button>
       <button class="btn ba" onclick="svBook()">Salva Prenotazione</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL REPORT TURNI -->
+<div class="ov" id="ovStaffReport">
+  <div class="modal">
+    <div class="mtitle">Report Turni Personale</div>
+    <div class="fgr">
+      <div class="fr"><label class="flb">Dal</label><input type="date" id="repFrom"></div>
+      <div class="fr"><label class="flb">Al</label><input type="date" id="repTo"></div>
+    </div>
+    <div class="fr"><label class="flb">Dipendente</label>
+      <select id="repStaff">
+        <option value="all">Tutti i dipendenti</option>
+      </select>
+    </div>
+    <div class="mft">
+      <button class="btn bg" onclick="co('ovStaffReport')">Annulla</button>
+      <button class="btn ba" onclick="genStaffReport()">📊 Genera Report PDF</button>
     </div>
   </div>
 </div>
@@ -4250,11 +4271,20 @@ function renderWeekCompact(){
 
   // Staff rows
   S.staff.forEach(function(s){
-    var weekMins=0;
+    // Pre-calculate weekly total
+    var weekMins=wd.reduce(function(acc,ds2){
+      return acc+S.shifts.filter(function(sh){return sh.staffId===s.id&&sh.day===ds2;}).reduce(function(a2,sh){
+        var sm=parseInt(sh.start.split(':')[0])*60+parseInt(sh.start.split(':')[1]);
+        var em=parseInt(sh.end.split(':')[0])*60+parseInt(sh.end.split(':')[1]);
+        return a2+(em>sm?em-sm:0);
+      },0);
+    },0);
+    var whh=Math.floor(weekMins/60);var wmm=weekMins%60;
     html+='<tr>';
     html+='<td style="background:var(--surf2);border:1px solid var(--bdr);padding:8px 10px;position:sticky;left:0;z-index:5;border-left:3px solid '+s.color+'">'
       +'<div style="font-size:12px;font-weight:700;color:'+s.color+'">'+s.name+'</div>'
       +'<div style="font-size:9px;color:var(--txt2)">'+(STAFF_ROLES[s.role]||s.role)+'</div>'
+      +(weekMins?'<div style="font-size:10px;font-weight:700;color:var(--acc);margin-top:3px;background:rgba(232,200,74,.1);border-radius:3px;padding:1px 5px;display:inline-block">'+whh+'h'+String(wmm).padStart(2,'0')+'</div>':'')
       +'</td>';
     wd.forEach(function(ds2,di2){
       var shifts=S.shifts.filter(function(sh){return sh.staffId===s.id&&sh.day===ds2;});
@@ -4263,7 +4293,6 @@ function renderWeekCompact(){
         var em=parseInt(sh.end.split(':')[0])*60+parseInt(sh.end.split(':')[1]);
         return acc+(em>sm?em-sm:0);
       },0);
-      weekMins+=dayMins;
       var hh=Math.floor(dayMins/60);var mm=dayMins%60;
       html+='<td style="border:1px solid var(--bdr);padding:5px 7px;text-align:center;vertical-align:middle;background:'+(dayMins?s.color+'15':'transparent')+'">';
       if(shifts.length){
@@ -4273,17 +4302,111 @@ function renderWeekCompact(){
         });
         html+='<div style="font-size:9px;color:var(--acc);font-weight:600">'+hh+'h'+String(mm).padStart(2,'0')+'</div>';
       } else {
-        html+='<span style="color:var(--bdr);font-size:18px">\u2014</span>';
+        html+='<span style="color:var(--bdr);font-size:18px">—</span>';
       }
       html+='</td>';
     });
     html+='</tr>';
   });
-
   html+='</tbody></table></div>';
   container.innerHTML=html;
 }
 window.renderWeekCompact=renderWeekCompact;
+
+// ── STAFF REPORT ─────────────────────────────────────────
+function openStaffReport(){
+  var today=new Date();
+  var monday=new Date(today);
+  monday.setDate(today.getDate()-today.getDay()+1);
+  var sunday=new Date(monday);
+  sunday.setDate(monday.getDate()+6);
+  document.getElementById('repFrom').value=monday.toISOString().slice(0,10);
+  document.getElementById('repTo').value=sunday.toISOString().slice(0,10);
+  var sel=document.getElementById('repStaff');
+  sel.innerHTML='<option value="all">Tutti i dipendenti</option>';
+  S.staff.forEach(function(s){
+    var o=document.createElement('option');o.value=s.id;o.textContent=s.name;sel.appendChild(o);
+  });
+  document.getElementById('ovStaffReport').classList.add('on');
+}
+function genStaffReport(){
+  var fromStr=document.getElementById('repFrom').value;
+  var toStr=document.getElementById('repTo').value;
+  var staffFilter=document.getElementById('repStaff').value;
+  if(!fromStr||!toStr){toast('Seleziona le date','err');return;}
+  var from=new Date(fromStr);var to=new Date(toStr);
+  // Build list of days in range
+  var rangeDays=[];
+  var cur=new Date(from);
+  while(cur<=to){rangeDays.push(cur.toISOString().slice(0,10));cur.setDate(cur.getDate()+1);}
+  var staffList=staffFilter==='all'?S.staff:S.staff.filter(function(s){return s.id===staffFilter;});
+  var fromLabel=from.toLocaleDateString('it-IT');
+  var toLabel=to.toLocaleDateString('it-IT');
+  var CN='Cinema Multisala Teatro Mendrisio';
+  var css='@page{size:A4 portrait;margin:15mm;}body{font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#111;}'
+    +'.hdr{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:16px;}'
+    +'.hdr-title{font-size:16px;font-weight:700;}.hdr-sub{font-size:11px;color:#555;}'
+    +'.card{border:1px solid #ddd;border-radius:6px;margin-bottom:14px;overflow:hidden;break-inside:avoid;}'
+    +'.card-head{padding:10px 14px;display:flex;align-items:center;justify-content:space-between;}'
+    +'.card-name{font-size:14px;font-weight:700;}.card-role{font-size:11px;color:#777;}'
+    +'.card-total{font-size:13px;font-weight:700;padding:4px 12px;border-radius:4px;}'
+    +'.card-body{padding:0 14px 10px;}'
+    +'.shift-row{display:flex;gap:10px;padding:4px 0;border-bottom:1px solid #f0f0f0;font-size:11px;}'
+    +'.shift-row:last-child{border-bottom:none;}'
+    +'.shift-date{min-width:80px;font-weight:600;color:#333;}'
+    +'.shift-time{min-width:110px;font-family:monospace;}'
+    +'.shift-role{color:#777;}.shift-dur{margin-left:auto;font-weight:700;}';
+
+  var html='<!DOCTYPE html><html><head><meta charset="utf-8"><style>'+css+'</style></head><body>';
+  html+='<div class="hdr"><div><div class="hdr-title">Report Turni — '+fromLabel+' / '+toLabel+'</div><div class="hdr-sub">'+CN+'</div></div><div class="hdr-sub">'+new Date().toLocaleDateString('it-IT')+'</div></div>';
+
+  staffList.forEach(function(s){
+    var shifts=S.shifts.filter(function(sh){return sh.staffId===s.id&&rangeDays.includes(sh.day);});
+    shifts.sort(function(a,b){return a.day.localeCompare(b.day)||a.start.localeCompare(b.start);});
+    var totalMins=shifts.reduce(function(acc,sh){
+      var sm=parseInt(sh.start.split(':')[0])*60+parseInt(sh.start.split(':')[1]);
+      var em=parseInt(sh.end.split(':')[0])*60+parseInt(sh.end.split(':')[1]);
+      return acc+(em>sm?em-sm:0);
+    },0);
+    var hh=Math.floor(totalMins/60);var mm=totalMins%60;
+    html+='<div class="card">';
+    html+='<div class="card-head" style="border-left:4px solid '+s.color+';background:'+s.color+'11">'
+      +'<div><div class="card-name" style="color:'+s.color+'">'+s.name+'</div>'
+      +'<div class="card-role">'+(STAFF_ROLES[s.role]||s.role)+'</div></div>'
+      +'<div class="card-total" style="background:'+s.color+'22;color:'+s.color+'">'+(totalMins?hh+'h'+String(mm).padStart(2,'0'):'nessun turno')+'</div>'
+      +'</div>';
+    if(shifts.length){
+      html+='<div class="card-body">';
+      shifts.forEach(function(sh){
+        var shDate=new Date(sh.day+'T12:00:00');
+        var dateLabel=shDate.toLocaleDateString('it-IT',{weekday:'short',day:'2-digit',month:'2-digit'});
+        var sm=parseInt(sh.start.split(':')[0])*60+parseInt(sh.start.split(':')[1]);
+        var em=parseInt(sh.end.split(':')[0])*60+parseInt(sh.end.split(':')[1]);
+        var durMins=em>sm?em-sm:0;
+        var dhh=Math.floor(durMins/60);var dmm=durMins%60;
+        html+='<div class="shift-row">'
+          +'<span class="shift-date">'+dateLabel+'</span>'
+          +'<span class="shift-time">'+sh.start+' - '+sh.end+'</span>'
+          +'<span class="shift-role">'+(STAFF_ROLES[sh.role]||sh.role)+'</span>'
+          +(sh.note?'<span style="color:#aaa;font-size:10px">'+sh.note+'</span>':'')
+          +'<span class="shift-dur" style="color:'+s.color+'">'+dhh+'h'+String(dmm).padStart(2,'0')+'</span>'
+          +'</div>';
+      });
+      html+='</div>';
+    } else {
+      html+='<div style="padding:8px 14px;font-size:11px;color:#aaa">Nessun turno nel periodo selezionato</div>';
+    }
+    html+='</div>';
+  });
+
+  html+='</body></html>';
+  var blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  var u=URL.createObjectURL(blob);
+  var a=document.createElement('a');a.href=u;a.target='_blank';a.click();
+  setTimeout(function(){URL.revokeObjectURL(u);},10000);
+  document.getElementById('ovStaffReport').classList.remove('on');
+}
+window.openStaffReport=openStaffReport;window.genStaffReport=genStaffReport;
 
 // ── THEME ───────────────────────────────────────────────
 function toggleTheme(){
