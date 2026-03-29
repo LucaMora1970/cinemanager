@@ -595,6 +595,8 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
       </div>
       <button class="btn ba" onclick="openFilm()">＋ Nuovo Film</button>
       <button class="btn bg" onclick="openImport()" style="font-size:12px">⬇ Importa da Biglietteria</button>
+      <button class="btn bg" onclick="openBoxOffice()" style="font-size:12px">📊 Box Office</button>
+      <button class="btn bg" id="bo-batch-btn" onclick="batchBoxOffice()" style="font-size:12px">📊 Box Office</button>
     </div>
   </div>
   <div id="fw" class="fg2"></div>
@@ -858,6 +860,34 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
 <!-- FAB mobile -->
 <button class="fab" onclick="openShow()" title="Aggiungi spettacolo">＋</button>
 
+<!-- MODAL BOX OFFICE -->
+<div class="ov" id="ovBO">
+  <div class="modal" style="max-width:680px;width:95vw">
+    <div class="mtitle">📊 Aggiorna Box Office Italia</div>
+    <div id="bo-step1">
+      <div style="background:var(--surf2);border:1px solid var(--bdr);border-radius:6px;padding:10px 14px;font-size:12px;margin-bottom:12px;line-height:1.8">
+        <strong>Come fare:</strong><br>
+        1. Vai su <a href="https://cinetel.it/homepage" target="_blank" style="color:var(--acc)">cinetel.it/homepage</a><br>
+        2. Seleziona la tabella box office (<strong>Cmd+A</strong> → <strong>Cmd+C</strong>) oppure copia solo le righe della classifica<br>
+        3. Incolla qui sotto e clicca <strong>Aggiorna</strong>
+      </div>
+      <textarea id="bo-paste" placeholder="Incolla qui il testo della classifica Cinetel..." style="width:100%;height:160px;font-size:11px;font-family:monospace;resize:vertical"></textarea>
+      <div id="bo-status" style="font-size:11px;color:var(--txt2);margin-top:6px;min-height:16px"></div>
+      <div class="mft">
+        <button class="btn bg" onclick="co('ovBO')">Annulla</button>
+        <button class="btn ba" onclick="parseBoxOffice()">📊 Aggiorna</button>
+      </div>
+    </div>
+    <div id="bo-step2" style="display:none">
+      <div id="bo-results" style="max-height:380px;overflow-y:auto;display:flex;flex-direction:column;gap:5px"></div>
+      <div id="bo-summary" style="font-size:11px;color:var(--acc);margin-top:8px;font-weight:600"></div>
+      <div class="mft">
+        <button class="btn bg" onclick="document.getElementById('bo-step1').style.display='block';document.getElementById('bo-step2').style.display='none'">← Indietro</button>
+        <button class="btn ba" onclick="saveBoxOffice()">💾 Salva nell'archivio</button>
+      </div>
+    </div>
+  </div>
+</div>
 <!-- MODAL IMPORT BIGLIETTERIA -->
 <div class="ov" id="ovImport">
   <div class="modal" style="max-width:700px;width:95vw">
@@ -918,7 +948,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
         <div id="pdf-status" style="font-size:11px;color:var(--txt2);margin-top:6px;min-height:16px"></div>
         <div class="mft">
           <button class="btn bg" onclick="co('ovImport')">Annulla</button>
-          <button class="btn ba" id="pdf-analyze-btn" onclick="analyzePDF()">🤖 Analizza PDF</button>
+          <button class="btn ba" id="pdf-analyze-btn" onclick="analyzePDF()">🔍 Analizza PDF</button>
         </div>
       </div>
       <div id="pdf-step2" style="display:none">
@@ -1649,9 +1679,15 @@ function rf(){
           ${f.endDate?`<br>🔚 Fine: ${fmtD(f.endDate)}`:''}
         </div>
         <div><span class="fg3">${f.genre}</span></div>
+        ${(f.boxOfficeIT||f.boxOfficeUS)?`<div style="display:flex;gap:10px;margin-top:5px;padding:5px 8px;background:var(--surf2);border-radius:5px;flex-wrap:wrap">
+          ${f.boxOfficeIT?`<div style="font-size:10px"><span style="color:var(--txt2)">🇮🇹 Italia</span> <strong style="color:var(--acc)">€${f.boxOfficeIT}</strong>${f.boxOfficeDaysIT?' <span style="color:var(--txt2);font-size:9px">('+f.boxOfficeDaysIT+'gg)</span>':''}</div>`:''}
+          ${f.boxOfficeUS?`<div style="font-size:10px"><span style="color:var(--txt2)">🇺🇸 USA</span> <strong style="color:var(--acc)">$${f.boxOfficeUS}</strong>${f.boxOfficeDaysUS?' <span style="color:var(--txt2);font-size:9px">('+f.boxOfficeDaysUS+'gg)</span>':''}</div>`:''}
+          ${f.boxOfficeUpdated?`<div style="font-size:9px;color:var(--txt2);align-self:center;margin-left:auto">${new Date(f.boxOfficeUpdated).toLocaleDateString('it-IT')}</div>`:''}
+        </div>`:''}
         <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">
           ${f.trailer?`<a href="https://www.youtube.com/watch?v=${f.trailer}" target="_blank" class="btn bg bs" style="font-size:11px;text-decoration:none">▶ Trailer</a>`:''}
           ${f.ticketUrl?`<a href="${f.ticketUrl}" target="_blank" class="btn bg bs" style="font-size:11px;text-decoration:none">🎟 Biglietteria</a>`:''}
+          <button class="btn bg bs" id="bo-${f.id}" onclick="updateBoxOffice('${f.id}')" style="font-size:11px">📊</button>
         </div>
         <div class="fac">
           <button class="btn bg bs" onclick="editFilm('${f.id}')">✏ Modifica</button>
@@ -4589,8 +4625,13 @@ async function fetchImport(){
   btn.disabled=true;btn.textContent='⏳ Download in corso...';
   document.getElementById('imp-status').textContent='Connessione all\'API biglietteria...';
   try{
-    var resp=await fetch(IMP_API);
-    if(!resp.ok)throw new Error('HTTP '+resp.status);
+    var resp;
+    try{resp=await fetch(IMP_API);}
+    catch(e){
+      // Try CORS proxy as fallback
+      resp=await fetch('https://corsproxy.io/?'+encodeURIComponent(IMP_API));
+    }
+    if(!resp||!resp.ok)throw new Error('HTTP '+(resp?resp.status:'network error'));
     var json=await resp.json();
     var films=json.films||[];
     // Filter out placeholder "Coming soon" entries and films without title
@@ -4603,7 +4644,8 @@ async function fetchImport(){
     document.getElementById('imp-status').textContent='';
     showImportStep2(films);
   }catch(err){
-    document.getElementById('imp-status').innerHTML='<span style="color:#e84a4a">❌ Errore: '+err.message+'. Prova a usare la cache se disponibile.</span>';
+    var msg=err.message.includes('NetworkError')||err.message.includes('Failed to fetch')||err.message.includes('CORS')?'Errore di rete — il sito potrebbe bloccare le richieste dal browser. Usa la cache se disponibile, o riprova più tardi.':err.message;
+    document.getElementById('imp-status').innerHTML='<span style="color:#e84a4a">❌ '+msg+'</span>';
     btn.disabled=false;btn.textContent='🔄 Riprova';
   }
 }
@@ -4778,54 +4820,97 @@ function loadPDFFile(input){
   reader.readAsText(file,'UTF-8');
 }
 window.loadPDFFile=loadPDFFile;
-async function analyzePDF(){
+function analyzePDF(){
   var text=document.getElementById('pdf-paste').value.trim();
   if(!text||text.length<200){
     document.getElementById('pdf-status').textContent='⚠ Incolla il testo del PDF ProCinema';
     return;
   }
   var btn=document.getElementById('pdf-analyze-btn');
-  btn.disabled=true;btn.textContent='⏳ Analisi in corso...';
-  document.getElementById('pdf-status').textContent='Claude sta estraendo i dati...';
+  btn.disabled=true;btn.textContent='⏳ Analisi...';
+  document.getElementById('pdf-status').textContent='Estrazione dati in corso...';
   try{
-    var prompt='Questo è il testo di un documento ProCinema "Competitive Release Schedule Switzerland".\n'
-      +'Estrai SOLO i film che hanno una data nella colonna "Italian Part" (terza colonna data, Ticino).\n'
-      +'Ignora film senza data italiana, film con "NO REL" nella colonna italiana, film solo in tedesco/francese.\n'
-      +'Ignora la sezione "New entries and changes" nella prima pagina — estrai solo dalle settimane numerate.\n'
-      +'Per ogni film estratto, restituisci un array JSON con oggetti:\n'
-      +'{"title":"titolo originale","suisa":"1020.422","genre":"Drama","distributor":"UNIVERSAL","releaseIT":"2026-04-01","age":"14"}\n'
-      +'La data deve essere in formato YYYY-MM-DD. Se la data ha una C finale (changed) ignorala.\n'
-      +'Restituisci SOLO il JSON array, niente altro.\n\n'
-      +text.slice(0,15000);
-
-    var resp=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:8000,
-        messages:[{role:'user',content:prompt}]
-      })
-    });
-    var data=await resp.json();
-    var raw=(data.content&&data.content[0]&&data.content[0].text||'').replace(/```json|```/g,'').trim();
-    var films=JSON.parse(raw);
-    if(!Array.isArray(films))throw new Error('Risposta non valida');
+    var films=parseProCinemaPDF(text);
+    if(!films.length)throw new Error('Nessun film con data italiana trovato. Assicurati di aver copiato il testo correttamente.');
     // Deduplicate by suisa
     var seen=new Set();
-    films=films.filter(function(f){
-      if(seen.has(f.suisa))return false;
-      seen.add(f.suisa);return true;
-    });
+    films=films.filter(function(f){if(seen.has(f.suisa))return false;seen.add(f.suisa);return true;});
     _pdfFilms=films;
     showPDFStep2(films);
     document.getElementById('pdf-status').textContent='';
   }catch(err){
-    document.getElementById('pdf-status').innerHTML='<span style="color:#e84a4a">❌ Errore: '+err.message+'</span>';
+    document.getElementById('pdf-status').innerHTML='<span style="color:#e84a4a">❌ '+err.message+'</span>';
   }finally{
-    btn.disabled=false;btn.textContent='🤖 Analizza PDF';
+    btn.disabled=false;btn.textContent='🔍 Analizza PDF';
   }
 }
+
+function parseProCinemaPDF(text){
+  var films=[];
+  var lines=text.split('\n');
+  var inWeekSection=false;
+  // Date regex: dd.mm.yyyy optionally followed by C or N and spaces
+  var dateRe=/\b(\d{2})\.(\d{2})\.(\d{4})\s*(?:[CN]\s*)?/g;
+  // SUISA code: 4 digits dot 3-4 digits
+  var suisaRe=/\b(\d{4}\.\d{3,4})\b/;
+  // Age at end of line: number in parens or standalone like "16 (18)" or "- (-)"
+  var ageRe=/(?:(\d+)\s*\(-?\d*-?\)|-\s*\(-?-?\))\s*$/;
+
+  for(var i=0;i<lines.length;i++){
+    var line=lines[i];
+    // Detect week sections
+    if(/Week\s+\d+,\s+\d{4}/.test(line)){inWeekSection=true;continue;}
+    // Skip header/footer lines
+    if(/Originaltitle|Copyright|Competitive Release|Changes since|new date|changed date/.test(line))continue;
+    if(!inWeekSection)continue;
+    if(line.trim().length<10)continue;
+
+    // Extract SUISA
+    var suisaM=line.match(suisaRe);
+    if(!suisaM)continue;
+    var suisa=suisaM[1];
+
+    // Skip NO REL lines
+    if(line.indexOf('NO REL')>=0)continue;
+
+    // Find ALL dates in the line
+    var dates=[];
+    var dm;dateRe.lastIndex=0;
+    while((dm=dateRe.exec(line))!==null){
+      var dd=dm[1],mm=dm[2],yyyy=dm[3];
+      dates.push({str:dd+'.'+mm+'.'+yyyy,iso:yyyy+'-'+mm+'-'+dd,pos:dm.index});
+    }
+    if(!dates.length)continue;
+
+    // Italian date = last date in line (column order: German, French, Italian)
+    // But: if only 1 date without Italian column filled, skip
+    // Heuristic: Italian date is after position of French date
+    // Simplification: take the rightmost date
+    var itDate=dates[dates.length-1];
+
+    // Title = text before SUISA code
+    var suisaPos=line.indexOf(suisa);
+    var title=line.slice(0,suisaPos).replace(/^\s+/,'').replace(/\.\.\.\s*$/,'').trim();
+    if(!title||title.length<2)continue;
+
+    // Genre + distributor: text between SUISA and first date
+    var afterSuisa=line.slice(suisaPos+suisa.length).trim();
+    var firstDatePos=dates[0].pos;
+    var beforeDates=line.slice(suisaPos+suisa.length,firstDatePos).trim();
+    var words=beforeDates.split(/\s{2,}/).filter(function(w){return w.trim();});
+    var genre=words[0]||'';var distributor=words.slice(1).join(' ')||'';
+    // Clean distributor trailing dots
+    distributor=distributor.replace(/\.\.\.\s*$/,'').trim();
+
+    // Age
+    var ageM=line.match(ageRe);
+    var age=ageM&&ageM[1]?ageM[1]:'';
+
+    films.push({title:title,suisa:suisa,genre:genre,distributor:distributor,releaseIT:itDate.iso,age:age});
+  }
+  return films;
+}
+window.parseProCinemaPDF=parseProCinemaPDF;
 window.analyzePDF=analyzePDF;
 
 function showPDFStep2(films){
@@ -4921,8 +5006,11 @@ async function doPDFImport(){
       var rec=impGetDailyCount();
       var todayCount=rec.date===today?rec.count:0;
       if(todayCount<IMP_MAX_DAILY){
-        var resp=await fetch(IMP_API);
-        if(resp.ok){
+        var resp;
+        try{resp=await fetch(IMP_API);}catch(e){
+          try{resp=await fetch('https://corsproxy.io/?'+encodeURIComponent(IMP_API));}catch(e2){}
+        }
+        if(resp&&resp.ok){
           var json=await resp.json();
           apiFilms=(json.films||[]).filter(function(f){return f.title&&f.title.toLowerCase()!=='coming soon';});
           impSaveCache(apiFilms);impIncrDailyCount();
