@@ -860,33 +860,75 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
 
 <!-- MODAL IMPORT BIGLIETTERIA -->
 <div class="ov" id="ovImport">
-  <div class="modal" style="max-width:680px;width:95vw">
-    <div class="mtitle">Importa film da Biglietteria</div>
-    <!-- Step 1: paste -->
+  <div class="modal" style="max-width:700px;width:95vw">
+    <div class="mtitle">Importa Film</div>
+    <div style="display:flex;gap:2px;margin-bottom:14px;border-bottom:1px solid var(--bdr)">
+      <div class="tab on" id="imp-tab-api" onclick="gImpTab('api')">🌐 Da Biglietteria (API)</div>
+      <div class="tab" id="imp-tab-pdf" onclick="gImpTab('pdf')">📄 Da PDF ProCinema</div>
+    </div>
+    <div id="imp-api-panel">
+    <!-- Step 1: fetch -->
     <div id="imp-step1">
-      <div style="background:var(--surf2);border:1px solid var(--bdr);border-radius:6px;padding:10px 14px;font-size:12px;margin-bottom:12px;line-height:1.8">
-        <strong>Come fare:</strong><br>
-        1. Apri <a href="https://multisala.mendrisiocinema.ch/coming_soon" target="_blank" style="color:var(--acc)">multisala.mendrisiocinema.ch/coming_soon</a><br>
-        2. Seleziona tutto il testo della pagina (<strong>Cmd+A</strong> poi <strong>Cmd+C</strong>)<br>
-        3. Incolla qui sotto e clicca <strong>Analizza</strong>
+      <div style="background:var(--surf2);border:1px solid var(--bdr);border-radius:6px;padding:10px 14px;font-size:12px;margin-bottom:12px;line-height:1.9">
+        Recupera l'elenco aggiornato dei film in prossimamente dall'API della biglietteria.<br>
+        <strong>Limite:</strong> massimo 2 aggiornamenti al giorno — i dati vengono salvati in cache per 12 ore.
       </div>
-      <textarea id="imp-paste" placeholder="Incolla qui il testo della pagina prossimamente..." style="width:100%;height:160px;font-size:11px;font-family:monospace;resize:vertical"></textarea>
-      <div id="imp-status" style="font-size:11px;color:var(--txt2);margin-top:6px;min-height:16px"></div>
+      <div id="imp-cache-info" style="font-size:11px;color:var(--txt2);margin-bottom:10px"></div>
+      <div id="imp-status" style="font-size:12px;color:var(--txt2);margin-bottom:8px;min-height:18px"></div>
       <div class="mft">
         <button class="btn bg" onclick="co('ovImport')">Annulla</button>
-        <button class="btn ba" id="imp-analyze-btn" onclick="analyzeImport()">🤖 Analizza con AI</button>
+        <button class="btn bg" id="imp-cache-btn" onclick="loadFromCache()" style="display:none">📋 Usa dati in cache</button>
+        <button class="btn ba" id="imp-fetch-btn" onclick="fetchImport()">🔄 Scarica da API</button>
       </div>
     </div>
-    <!-- Step 2: select films to import -->
+    <!-- Step 2: select films -->
     <div id="imp-step2" style="display:none">
-      <div style="font-size:12px;color:var(--txt2);margin-bottom:10px">Seleziona i film da importare (già presenti nell'archivio sono pre-deselezionati)</div>
-      <div id="imp-film-list" style="max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:6px"></div>
-      <div id="imp-count" style="font-size:11px;color:var(--acc);margin-top:8px"></div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <input type="text" id="imp-search" placeholder="Cerca film..." style="flex:1" oninput="filterImportList()">
+        <label style="font-size:12px;display:flex;align-items:center;gap:5px;white-space:nowrap;cursor:pointer">
+          <input type="checkbox" id="imp-only-new" checked onchange="filterImportList()"> Solo nuovi
+        </label>
+      </div>
+      <div id="imp-film-list" style="max-height:340px;overflow-y:auto;display:flex;flex-direction:column;gap:5px"></div>
+      <div id="imp-count" style="font-size:11px;color:var(--acc);margin-top:8px;font-weight:600"></div>
       <div class="mft">
         <button class="btn bg" onclick="impBack()">← Indietro</button>
-        <button class="btn ba" id="imp-import-btn" onclick="doImport()">⬇ Importa selezionati</button>
+        <button class="btn ba" id="imp-import-btn" onclick="doImport()" disabled>⬇ Importa selezionati</button>
       </div>
-    </div>
+    </div><!-- end imp-api-panel -->
+
+    <!-- PDF ProCinema panel -->
+    <div id="imp-pdf-panel" style="display:none">
+      <div style="background:var(--surf2);border:1px solid var(--bdr);border-radius:6px;padding:10px 14px;font-size:12px;margin-bottom:12px;line-height:1.8">
+        <strong>Come fare:</strong><br>
+        1. Apri il PDF ProCinema settimana ricevuto<br>
+        2. Seleziona tutto (<strong>Cmd+A</strong>) → Copia (<strong>Cmd+C</strong>)<br>
+        3. Incolla qui sotto e clicca <strong>Analizza PDF</strong><br>
+        Vengono estratti solo i film con data di uscita italiana.
+      </div>
+      <div id="pdf-step1">
+        <textarea id="pdf-paste" placeholder="Incolla qui il testo del PDF ProCinema..." style="width:100%;height:140px;font-size:11px;font-family:monospace;resize:vertical"></textarea>
+        <div id="pdf-status" style="font-size:11px;color:var(--txt2);margin-top:6px;min-height:16px"></div>
+        <div class="mft">
+          <button class="btn bg" onclick="co('ovImport')">Annulla</button>
+          <button class="btn ba" id="pdf-analyze-btn" onclick="analyzePDF()">🤖 Analizza PDF</button>
+        </div>
+      </div>
+      <div id="pdf-step2" style="display:none">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <input type="text" id="pdf-search" placeholder="Cerca titolo..." style="flex:1" oninput="filterPDFList()">
+          <label style="font-size:12px;display:flex;align-items:center;gap:5px;white-space:nowrap;cursor:pointer">
+            <input type="checkbox" id="pdf-only-new" checked onchange="filterPDFList()"> Solo nuovi
+          </label>
+        </div>
+        <div id="pdf-film-list" style="max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:5px"></div>
+        <div id="pdf-count" style="font-size:11px;color:var(--acc);margin-top:8px;font-weight:600"></div>
+        <div class="mft">
+          <button class="btn bg" onclick="pdfBack()">← Indietro</button>
+          <button class="btn ba" id="pdf-import-btn" onclick="doPDFImport()" disabled>⬇ Importa e arricchisci</button>
+        </div>
+      </div>
+    </div><!-- end imp-pdf-panel -->
   </div>
 </div>
 <!-- MODAL SPETTACOLO -->
@@ -967,6 +1009,9 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="fgr">
       <div class="fr"><label class="flb">Fine programmazione</label><input type="date" id="fEndDate"></div>
       <div class="fr"><label class="flb">URL Locandina</label><input type="url" id="fPoster" placeholder="https://…"></div>
+      <div class="fr"><label class="flb">Codice SUISA</label><input type="text" id="fSuisa" placeholder="es. 1020.422"></div>
+      <div class="fr"><label class="flb">Link Biglietteria</label><input type="url" id="fTicketUrl" placeholder="https://multisala.mendrisiocinema.ch/film/…"></div>
+      <div class="fr"><label class="flb">Trailer YouTube (ID o URL completo)</label><input type="text" id="fTrailer" placeholder="es. bTaytqYtib0 oppure URL completo"></div>
     </div>
     <div class="fr"><label class="flb">Descrizione</label><textarea id="fDes"></textarea></div>
     <input type="hidden" id="fId">
@@ -1589,6 +1634,7 @@ function rf(){
       <div class="fc-body">
         <div class="fn">${f.title} ${stBadge}</div>
         <div class="fi">
+          ${f.titleOriginal&&f.titleOriginal!==f.title?`<div style="font-size:10px;color:var(--txt2);font-style:italic;margin-bottom:2px">${f.titleOriginal}</div>`:''}
           ${f.director?`🎬 ${f.director}<br>`:''}
           ${f.distributor?`🏢 ${f.distributor}<br>`:''}
           ⭐ ${f.rating||'N/D'}
@@ -1596,6 +1642,10 @@ function rf(){
           ${f.endDate?`<br>🔚 Fine: ${fmtD(f.endDate)}`:''}
         </div>
         <div><span class="fg3">${f.genre}</span></div>
+        <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">
+          ${f.trailer?`<a href="https://www.youtube.com/watch?v=${f.trailer}" target="_blank" class="btn bg bs" style="font-size:11px;text-decoration:none">▶ Trailer</a>`:''}
+          ${f.ticketUrl?`<a href="${f.ticketUrl}" target="_blank" class="btn bg bs" style="font-size:11px;text-decoration:none">🎟 Biglietteria</a>`:''}
+        </div>
         <div class="fac">
           <button class="btn bg bs" onclick="editFilm('${f.id}')">✏ Modifica</button>
           <button class="btn bd bs" onclick="delFilm('${f.id}')">✕</button>
@@ -1935,7 +1985,7 @@ async function execGlobalOpt(){
 }
 window.openGlobalOpt=openGlobalOpt;window.goptToggleAll=goptToggleAll;window.execGlobalOpt=execGlobalOpt;
 function openFilm(){
-  ['fTit','fDir','fDist','fDes','fRelease','fEndDate','fPoster'].forEach(id=>document.getElementById(id).value='');
+  ['fTit','fDir','fDist','fDes','fRelease','fEndDate','fPoster','fTicketUrl','fTrailer','fSuisa'].forEach(id=>{var el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('fDur').value=100;
   document.getElementById('fGen').value='Drammatico';
   document.getElementById('fRat').value='Per tutti';
@@ -1958,9 +2008,19 @@ function editFilm(id){
   document.getElementById('fRelease').value=f.release||'';
   document.getElementById('fEndDate').value=f.endDate||'';
   document.getElementById('fPoster').value=f.poster||'';
+  var fsEl=document.getElementById('fSuisa');if(fsEl)fsEl.value=f.suisa||'';
+  var ftEl=document.getElementById('fTicketUrl');if(ftEl)ftEl.value=f.ticketUrl||'';
+  var ftrEl=document.getElementById('fTrailer');if(ftrEl)ftrEl.value=f.trailer||'';
   document.getElementById('fId').value=id;
   document.getElementById('ovF').classList.add('on');
 }
+function normalizeTrailerId(v){
+  if(!v)return '';
+  // Extract video ID from full YouTube URL or return bare ID
+  var m=v.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/);
+  return m?m[1]:v.slice(0,11);
+}
+window.normalizeTrailerId=normalizeTrailerId;
 async function svFilm(){
   const title=document.getElementById('fTit').value.trim(),dur=parseInt(document.getElementById('fDur').value);
   if(!title||!dur){toast('Titolo e durata obbligatori','err');return;}
@@ -1973,7 +2033,9 @@ async function svFilm(){
     desc:document.getElementById('fDes').value,
     release:document.getElementById('fRelease').value||'',
     endDate:document.getElementById('fEndDate').value||'',
-    poster:document.getElementById('fPoster').value||''};
+    poster:document.getElementById('fPoster').value||'',
+    ticketUrl:document.getElementById('fTicketUrl')?document.getElementById('fTicketUrl').value||'':'',
+    trailer:document.getElementById('fTrailer')?normalizeTrailerId(document.getElementById('fTrailer').value||''):''};
   await fbSF(film);co('ovF');toast(eid?'Film aggiornato':'Film aggiunto','ok');
 }
 async function delFilm(id){
@@ -4440,14 +4502,70 @@ function genStaffReport(){
 }
 window.openStaffReport=openStaffReport;window.genStaffReport=genStaffReport;
 
-// ── IMPORT DA BIGLIETTERIA ────────────────────────────────
+// ── IMPORT DA API BIGLIETTERIA ────────────────────────────
 var _importedFilms=[];
+var IMP_API='https://mendrisiocinema.ch/api/v2/films/expanded.json';
+var IMP_CACHE_KEY='cm_imp_cache';
+var IMP_COUNT_KEY='cm_imp_count';
+var IMP_MAX_DAILY=2;
+var IMP_CACHE_TTL=12*60*60*1000; // 12 hours ms
+
+function impGetCache(){
+  try{var v=localStorage.getItem(IMP_CACHE_KEY);return v?JSON.parse(v):null;}catch(e){return null;}
+}
+function impSaveCache(data){
+  try{localStorage.setItem(IMP_CACHE_KEY,JSON.stringify({ts:Date.now(),data:data}));}catch(e){}
+}
+function impGetDailyCount(){
+  try{
+    var v=localStorage.getItem(IMP_COUNT_KEY);
+    if(!v)return{count:0,date:''};
+    return JSON.parse(v);
+  }catch(e){return{count:0,date:''};}
+}
+function impIncrDailyCount(){
+  var today=new Date().toISOString().slice(0,10);
+  var rec=impGetDailyCount();
+  if(rec.date!==today)rec={count:0,date:today};
+  rec.count++;
+  try{localStorage.setItem(IMP_COUNT_KEY,JSON.stringify(rec));}catch(e){}
+  return rec.count;
+}
 
 function openImport(){
-  document.getElementById('imp-paste').value='';
-  document.getElementById('imp-status').textContent='';
   document.getElementById('imp-step1').style.display='block';
   document.getElementById('imp-step2').style.display='none';
+  document.getElementById('imp-status').textContent='';
+
+  var today=new Date().toISOString().slice(0,10);
+  var rec=impGetDailyCount();
+  var todayCount=rec.date===today?rec.count:0;
+  var remaining=IMP_MAX_DAILY-todayCount;
+
+  var cacheInfo=document.getElementById('imp-cache-info');
+  var cache=impGetCache();
+  var cacheAge=cache?Math.floor((Date.now()-cache.ts)/60000):null;
+  var cacheBtn=document.getElementById('imp-cache-btn');
+  var fetchBtn=document.getElementById('imp-fetch-btn');
+
+  if(cache&&cacheAge!==null){
+    var ageLabel=cacheAge<60?cacheAge+' minuti fa':Math.floor(cacheAge/60)+'h'+String(cacheAge%60).padStart(2,'0')+' fa';
+    cacheInfo.innerHTML='📋 Cache disponibile (aggiornata '+ageLabel+', '+cache.data.length+' film)';
+    cacheBtn.style.display='inline-flex';
+  } else {
+    cacheInfo.textContent='Nessuna cache disponibile.';
+    cacheBtn.style.display='none';
+  }
+
+  if(remaining<=0){
+    fetchBtn.disabled=true;
+    fetchBtn.textContent='Limite giornaliero raggiunto ('+IMP_MAX_DAILY+'/giorno)';
+    document.getElementById('imp-status').textContent='Hai già effettuato '+IMP_MAX_DAILY+' aggiornamenti oggi. Riprova domani o usa la cache.';
+  } else {
+    fetchBtn.disabled=false;
+    fetchBtn.textContent='🔄 Scarica da API ('+remaining+' rimaste oggi)';
+  }
+
   document.getElementById('ovImport').classList.add('on');
 }
 window.openImport=openImport;
@@ -4455,112 +4573,123 @@ window.openImport=openImport;
 function impBack(){
   document.getElementById('imp-step1').style.display='block';
   document.getElementById('imp-step2').style.display='none';
+  openImport();
 }
 window.impBack=impBack;
 
-async function analyzeImport(){
-  var text=document.getElementById('imp-paste').value.trim();
-  if(!text||text.length<100){
-    document.getElementById('imp-status').textContent='⚠ Incolla il testo della pagina prossimamente';
-    return;
-  }
-  var btn=document.getElementById('imp-analyze-btn');
-  btn.disabled=true;btn.textContent='⏳ Analisi in corso...';
-  document.getElementById('imp-status').textContent='Claude sta estraendo i dati dei film...';
-
+async function fetchImport(){
+  var btn=document.getElementById('imp-fetch-btn');
+  btn.disabled=true;btn.textContent='⏳ Download in corso...';
+  document.getElementById('imp-status').textContent='Connessione all\'API biglietteria...';
   try{
-    var prompt='Analizza questo testo dalla pagina prossimamente di un cinema e estrai i dati di ogni film.\n'
-      +'Restituisci SOLO un array JSON valido, senza markdown, senza testo prima o dopo.\n'
-      +'Formato per ogni film:\n'
-      +'{"title":"titolo","duration":105,"genre":"Commedia, Dramma","director":"Nome Regista","rating":"Per tutti","release":"YYYY-MM-DD","poster":"URL locandina se presente","description":"trama breve max 200 caratteri"}\n'
-      +'Note: duration in minuti (numero intero), release in formato YYYY-MM-DD, poster solo se vedi un URL immagine cdn.18tickets.net, description max 200 caratteri.\n'
-      +'Se un campo non è disponibile usa stringa vuota o 0 per duration.\n\n'
-      +'TESTO PAGINA:\n'+text.slice(0,12000);
-
-    var resp=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:4000,
-        messages:[{role:'user',content:prompt}]
-      })
+    var resp=await fetch(IMP_API);
+    if(!resp.ok)throw new Error('HTTP '+resp.status);
+    var json=await resp.json();
+    var films=json.films||[];
+    // Filter out placeholder "Coming soon" entries and films without title
+    films=films.filter(function(f){
+      return f.title&&f.title.toLowerCase()!=='coming soon'&&f.title.trim()!=='';
     });
-    var data=await resp.json();
-    var raw=data.content&&data.content[0]&&data.content[0].text||'';
-    // Clean up response
-    raw=raw.replace(/```json/g,'').replace(/```/g,'').trim();
-    var films=JSON.parse(raw);
-    if(!Array.isArray(films))throw new Error('Risposta non valida');
-
+    impSaveCache(films);
+    impIncrDailyCount();
     _importedFilms=films;
+    document.getElementById('imp-status').textContent='';
     showImportStep2(films);
   }catch(err){
-    document.getElementById('imp-status').textContent='❌ Errore: '+err.message;
-  }finally{
-    btn.disabled=false;btn.textContent='🤖 Analizza con AI';
+    document.getElementById('imp-status').innerHTML='<span style="color:#e84a4a">❌ Errore: '+err.message+'. Prova a usare la cache se disponibile.</span>';
+    btn.disabled=false;btn.textContent='🔄 Riprova';
   }
 }
-window.analyzeImport=analyzeImport;
+window.fetchImport=fetchImport;
+
+function loadFromCache(){
+  var cache=impGetCache();
+  if(!cache||!cache.data){toast('Cache non disponibile','err');return;}
+  _importedFilms=cache.data;
+  showImportStep2(cache.data);
+}
+window.loadFromCache=loadFromCache;
 
 function showImportStep2(films){
   document.getElementById('imp-step1').style.display='none';
   document.getElementById('imp-step2').style.display='block';
+  document.getElementById('imp-search').value='';
+  document.getElementById('imp-only-new').checked=true;
+  renderImportList(films);
+}
 
-  // Check which films already exist in archive
+function filterImportList(){
+  var q=document.getElementById('imp-search').value.toLowerCase();
+  var onlyNew=document.getElementById('imp-only-new').checked;
   var existingTitles=S.films.map(function(f){return f.title.toLowerCase().trim();});
+  var filtered=_importedFilms.filter(function(f){
+    var titleMatch=!q||f.title.toLowerCase().includes(q);
+    var isNew=!existingTitles.some(function(t){return t===f.title.toLowerCase().trim();});
+    return titleMatch&&(!onlyNew||isNew);
+  });
+  renderImportList(filtered,true);
+}
+window.filterImportList=filterImportList;
 
+function renderImportList(films,filtered){
+  var existingTitles=S.films.map(function(f){return f.title.toLowerCase().trim();});
   var list=document.getElementById('imp-film-list');
   list.innerHTML='';
-  var newCount=0;
 
-  films.forEach(function(film,idx){
-    var alreadyExists=existingTitles.some(function(t){
-      return t===film.title.toLowerCase().trim()||t.includes(film.title.toLowerCase().slice(0,10));
-    });
+  // Sort by start_date
+  var sorted=films.slice().sort(function(a,b){return (a.start_date||'').localeCompare(b.start_date||'');});
+
+  sorted.forEach(function(film,idx){
+    var realIdx=_importedFilms.indexOf(film);
+    var alreadyExists=existingTitles.some(function(t){return t===film.title.toLowerCase().trim();});
+    var startD=film.start_date?film.start_date.split('-').reverse().join('/'):'';
+    var isPast=film.start_date&&film.start_date<new Date().toISOString().slice(0,10);
 
     var row=document.createElement('div');
-    row.style.cssText='display:flex;align-items:flex-start;gap:10px;padding:8px 10px;background:var(--surf2);border:1px solid var(--bdr);border-radius:6px;'+(alreadyExists?'opacity:.5':'');
+    row.style.cssText='display:flex;align-items:flex-start;gap:10px;padding:7px 10px;background:var(--surf2);border:1px solid var(--bdr);border-radius:6px;'+(alreadyExists?'opacity:.45':'');
 
     var cb=document.createElement('input');
-    cb.type='checkbox';cb.id='imp-cb-'+idx;cb.dataset.idx=idx;
-    cb.checked=!alreadyExists;cb.style.cssText='margin-top:3px;flex-shrink:0';
+    cb.type='checkbox';cb.dataset.idx=realIdx>=0?realIdx:idx;
+    cb.checked=!alreadyExists;cb.style.cssText='margin-top:4px;flex-shrink:0';
     cb.onchange=updateImportCount;
 
-    var info=document.createElement('label');
-    info.htmlFor='imp-cb-'+idx;
-    info.style.cssText='cursor:pointer;flex:1';
-    info.innerHTML='<div style="font-weight:700;font-size:13px;color:var(--txt)">'+film.title+'</div>'
-      +'<div style="font-size:11px;color:var(--txt2)">'
-      +(film.duration?film.duration+'\'  ':'')
-      +(film.genre||'')
-      +(film.director?' · Regia: '+film.director:'')
-      +(film.release?' · Uscita: '+film.release.split('-').reverse().join('/'):'')
-      +(alreadyExists?' <span style="color:#e84a4a;font-size:10px">(già in archivio)</span>':'')
-      +'</div>';
-
-    if(film.poster){
+    if(film.playbill_path){
       var img=document.createElement('img');
-      img.src=film.poster;
-      img.style.cssText='width:36px;height:54px;object-fit:cover;border-radius:3px;flex-shrink:0';
+      img.src=film.playbill_path;
+      img.style.cssText='width:32px;height:48px;object-fit:cover;border-radius:3px;flex-shrink:0';
       img.onerror=function(){this.style.display='none';};
       row.appendChild(img);
     }
     row.appendChild(cb);
+
+    var info=document.createElement('label');
+    info.style.cssText='cursor:pointer;flex:1;min-width:0';
+    info.htmlFor=cb.id;
+    info.innerHTML='<div style="font-weight:700;font-size:12px;color:var(--txt)">'+(isPast?'<span style="color:#888;font-size:9px">[passato] </span>':'')+film.title+'</div>'
+      +'<div style="font-size:10px;color:var(--txt2);margin-top:1px">'
+      +(film.length?film.length+'min ':'')
+      +(film.genre||'')
+      +(film.director?' · '+film.director:'')
+      +(startD?' · Uscita: '+startD:'')
+      +(alreadyExists?' <span style="color:#e84a4a;font-size:9px">già in archivio</span>':'')
+      +'</div>';
     row.appendChild(info);
     list.appendChild(row);
-
-    if(!alreadyExists)newCount++;
   });
 
+  if(!sorted.length){
+    list.innerHTML='<div style="padding:12px;font-size:12px;color:var(--txt2);text-align:center">Nessun film trovato</div>';
+  }
   updateImportCount();
-  document.getElementById('imp-status').textContent='';
 }
 
 function updateImportCount(){
-  var selected=document.querySelectorAll('#imp-film-list input[type=checkbox]:checked').length;
-  document.getElementById('imp-count').textContent=selected+' film selezionati da importare';
-  document.getElementById('imp-import-btn').disabled=selected===0;
+  var cbs=document.querySelectorAll('#imp-film-list input[type=checkbox]');
+  var selected=0;
+  cbs.forEach(function(cb){if(cb.checked)selected++;});
+  document.getElementById('imp-count').textContent=selected+' film selezionati';
+  var btn=document.getElementById('imp-import-btn');
+  if(btn)btn.disabled=selected===0;
 }
 window.updateImportCount=updateImportCount;
 
@@ -4569,33 +4698,409 @@ async function doImport(){
   btn.disabled=true;btn.textContent='⏳ Importazione...';
   var selected=[];
   document.querySelectorAll('#imp-film-list input[type=checkbox]:checked').forEach(function(cb){
-    selected.push(_importedFilms[parseInt(cb.dataset.idx)]);
+    var film=_importedFilms[parseInt(cb.dataset.idx)];
+    if(film)selected.push(film);
   });
   var imported=0;
   for(var i=0;i<selected.length;i++){
-    var film=selected[i];
+    var f=selected[i];
     var id=uid();
+    var trailerRaw=f.url_trailer||'';
+    var trailerId=trailerRaw.match(/[\w-]{11}/)?trailerRaw.match(/[\w-]{11}/)[0]:'';
     var filmDoc={
       id:id,
-      title:film.title||'',
-      duration:parseInt(film.duration)||0,
-      genre:film.genre||'',
-      director:film.director||'',
-      rating:film.rating||'Per tutti',
-      release:film.release||'',
+      title:f.title||'',
+      duration:parseInt(f.length)||0,
+      genre:f.genre||'',
+      director:f.director||'',
+      rating:f.age&&f.age!=='n/p'?f.age:'',
+      release:f.start_date||'',
       endDate:'',
-      poster:film.poster||'',
-      description:film.description||'',
-      distributor:''
+      poster:f.playbill_path||'',
+      description:f.plot?f.plot.slice(0,300):'',
+      distributor:'',
+      ticketUrl:f.film_url_for_cinema||f.film_url||'',
+      trailer:trailerId,
+      cast:f.cast||'',
+      language:f.language||'',
+      country:f.country_name||'',
+      tmdbId:f.tmdb_id||null,
+      apiId:f.original_id||null
     };
     await setDoc(doc(db,'films',id),filmDoc);
     imported++;
   }
   co('ovImport');
-  toast(imported+' film importati nell\'archivio','ok');
+  toast(imported+' film importati','ok');
   rf();
 }
 window.doImport=doImport;
+
+
+// ── IMPORT TAB SWITCHER ───────────────────────────────────
+function gImpTab(t){
+  document.getElementById('imp-tab-api').classList.toggle('on',t==='api');
+  document.getElementById('imp-tab-pdf').classList.toggle('on',t==='pdf');
+  document.getElementById('imp-api-panel').style.display=t==='api'?'block':'none';
+  document.getElementById('imp-pdf-panel').style.display=t==='pdf'?'block':'none';
+}
+window.gImpTab=gImpTab;
+
+// ── PDF PROCINEMA IMPORT ──────────────────────────────────
+var _pdfFilms=[];
+
+function pdfBack(){
+  document.getElementById('pdf-step1').style.display='block';
+  document.getElementById('pdf-step2').style.display='none';
+}
+window.pdfBack=pdfBack;
+
+async function analyzePDF(){
+  var text=document.getElementById('pdf-paste').value.trim();
+  if(!text||text.length<200){
+    document.getElementById('pdf-status').textContent='⚠ Incolla il testo del PDF ProCinema';
+    return;
+  }
+  var btn=document.getElementById('pdf-analyze-btn');
+  btn.disabled=true;btn.textContent='⏳ Analisi in corso...';
+  document.getElementById('pdf-status').textContent='Claude sta estraendo i dati...';
+  try{
+    var prompt='Questo è il testo di un documento ProCinema "Competitive Release Schedule Switzerland".\n'
+      +'Estrai SOLO i film che hanno una data nella colonna "Italian Part" (terza colonna data, Ticino).\n'
+      +'Ignora film senza data italiana, film con "NO REL" nella colonna italiana, film solo in tedesco/francese.\n'
+      +'Ignora la sezione "New entries and changes" nella prima pagina — estrai solo dalle settimane numerate.\n'
+      +'Per ogni film estratto, restituisci un array JSON con oggetti:\n'
+      +'{"title":"titolo originale","suisa":"1020.422","genre":"Drama","distributor":"UNIVERSAL","releaseIT":"2026-04-01","age":"14"}\n'
+      +'La data deve essere in formato YYYY-MM-DD. Se la data ha una C finale (changed) ignorala.\n'
+      +'Restituisci SOLO il JSON array, niente altro.\n\n'
+      +text.slice(0,15000);
+
+    var resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:8000,
+        messages:[{role:'user',content:prompt}]
+      })
+    });
+    var data=await resp.json();
+    var raw=(data.content&&data.content[0]&&data.content[0].text||'').replace(/```json|```/g,'').trim();
+    var films=JSON.parse(raw);
+    if(!Array.isArray(films))throw new Error('Risposta non valida');
+    // Deduplicate by suisa
+    var seen=new Set();
+    films=films.filter(function(f){
+      if(seen.has(f.suisa))return false;
+      seen.add(f.suisa);return true;
+    });
+    _pdfFilms=films;
+    showPDFStep2(films);
+    document.getElementById('pdf-status').textContent='';
+  }catch(err){
+    document.getElementById('pdf-status').innerHTML='<span style="color:#e84a4a">❌ Errore: '+err.message+'</span>';
+  }finally{
+    btn.disabled=false;btn.textContent='🤖 Analizza PDF';
+  }
+}
+window.analyzePDF=analyzePDF;
+
+function showPDFStep2(films){
+  document.getElementById('pdf-step1').style.display='none';
+  document.getElementById('pdf-step2').style.display='block';
+  document.getElementById('pdf-search').value='';
+  document.getElementById('pdf-only-new').checked=true;
+  renderPDFList(films);
+}
+
+function filterPDFList(){
+  var q=document.getElementById('pdf-search').value.toLowerCase();
+  var onlyNew=document.getElementById('pdf-only-new').checked;
+  var existingSuisa=S.films.map(function(f){return f.suisa||'';}).filter(Boolean);
+  var existingTitles=S.films.map(function(f){return f.title.toLowerCase().trim();});
+  var filtered=_pdfFilms.filter(function(f){
+    var titleMatch=!q||f.title.toLowerCase().includes(q);
+    var isNew=!existingSuisa.includes(f.suisa)&&!existingTitles.some(function(t){
+      return t===f.title.toLowerCase().trim();
+    });
+    return titleMatch&&(!onlyNew||isNew);
+  });
+  renderPDFList(filtered,true);
+}
+window.filterPDFList=filterPDFList;
+
+function renderPDFList(films,filtered){
+  var existingSuisa=S.films.map(function(f){return f.suisa||'';}).filter(Boolean);
+  var existingTitles=S.films.map(function(f){return f.title.toLowerCase().trim();});
+  var list=document.getElementById('pdf-film-list');
+  list.innerHTML='';
+  var sorted=films.slice().sort(function(a,b){return (a.releaseIT||'').localeCompare(b.releaseIT||'');});
+  sorted.forEach(function(film){
+    var realIdx=_pdfFilms.indexOf(film);
+    var alreadyExists=existingSuisa.includes(film.suisa)||existingTitles.some(function(t){
+      return t===film.title.toLowerCase().trim();
+    });
+    var dateLabel=film.releaseIT?film.releaseIT.split('-').reverse().join('/'):'';
+    var row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:flex-start;gap:10px;padding:7px 10px;background:var(--surf2);border:1px solid var(--bdr);border-radius:6px;'+(alreadyExists?'opacity:.45':'');
+    var cb=document.createElement('input');
+    cb.type='checkbox';cb.dataset.idx=realIdx>=0?realIdx:0;
+    cb.checked=!alreadyExists;cb.style.cssText='margin-top:4px;flex-shrink:0';
+    cb.onchange=updatePDFCount;
+    var info=document.createElement('label');
+    info.style.cssText='cursor:pointer;flex:1';
+    info.innerHTML='<div style="font-weight:700;font-size:12px;color:var(--txt)">'+film.title+'</div>'
+      +'<div style="font-size:10px;color:var(--txt2);margin-top:2px">'
+      +(film.genre||'')+(film.distributor?' · '+film.distributor:'')
+      +(dateLabel?' · 🇮🇹 '+dateLabel:'')
+      +(film.suisa?' · SUISA '+film.suisa:'')
+      +(film.age&&film.age!=='-'?' · '+film.age+'anni':'')
+      +(alreadyExists?' <span style="color:#e84a4a;font-size:9px">già in archivio</span>':'')
+      +'</div>';
+    row.appendChild(cb);row.appendChild(info);
+    list.appendChild(row);
+  });
+  if(!sorted.length){
+    list.innerHTML='<div style="padding:12px;font-size:12px;color:var(--txt2);text-align:center">Nessun film trovato</div>';
+  }
+  updatePDFCount();
+}
+
+function updatePDFCount(){
+  var cbs=document.querySelectorAll('#pdf-film-list input[type=checkbox]');
+  var sel=0;cbs.forEach(function(cb){if(cb.checked)sel++;});
+  document.getElementById('pdf-count').textContent=sel+' film selezionati';
+  var btn=document.getElementById('pdf-import-btn');
+  if(btn)btn.disabled=sel===0;
+}
+window.updatePDFCount=updatePDFCount;
+
+async function doPDFImport(){
+  var btn=document.getElementById('pdf-import-btn');
+  btn.disabled=true;btn.textContent='⏳ Analisi corrispondenze...';
+
+  var selected=[];
+  document.querySelectorAll('#pdf-film-list input[type=checkbox]:checked').forEach(function(cb){
+    var film=_pdfFilms[parseInt(cb.dataset.idx)];
+    if(film)selected.push(film);
+  });
+  if(!selected.length){toast('Nessun film selezionato','err');btn.disabled=false;btn.textContent='⬇ Importa e arricchisci';return;}
+
+  // Fetch API mendrisio (use cache if available)
+  var apiFilms=[];
+  try{
+    var cache=impGetCache();
+    var cacheAge=cache?Date.now()-cache.ts:Infinity;
+    if(cache&&cacheAge<IMP_CACHE_TTL){
+      apiFilms=cache.data;
+    } else {
+      var today=new Date().toISOString().slice(0,10);
+      var rec=impGetDailyCount();
+      var todayCount=rec.date===today?rec.count:0;
+      if(todayCount<IMP_MAX_DAILY){
+        var resp=await fetch(IMP_API);
+        if(resp.ok){
+          var json=await resp.json();
+          apiFilms=(json.films||[]).filter(function(f){return f.title&&f.title.toLowerCase()!=='coming soon';});
+          impSaveCache(apiFilms);impIncrDailyCount();
+        }
+      } else if(cache){apiFilms=cache.data;}
+    }
+  }catch(e){}
+
+  // ── MATCHING ENGINE ──────────────────────────────────────
+  function normT(t){return(t||'').toLowerCase().replace(/[^a-z0-9\s]/g,'').replace(/\s+/g,' ').trim();}
+  function wordOverlap(a,b){
+    var wa=normT(a).split(' ').filter(function(w){return w.length>3;});
+    var wb=normT(b).split(' ').filter(function(w){return w.length>3;});
+    var matches=wa.filter(function(w){return wb.includes(w);});
+    return wa.length?matches.length/Math.max(wa.length,wb.length):0;
+  }
+
+  function matchFilm(pf){
+    // Level 1: exact date match (same Italian release date)
+    var dateMatches=apiFilms.filter(function(f){
+      return f.start_date&&pf.releaseIT&&f.start_date===pf.releaseIT;
+    });
+    if(dateMatches.length===1)return{film:dateMatches[0],confidence:'high',method:'data'};
+
+    // Level 2: exact title match (case-insensitive)
+    var exactMatch=apiFilms.find(function(f){return normT(f.title)===normT(pf.title);});
+    if(exactMatch)return{film:exactMatch,confidence:'high',method:'titolo esatto'};
+
+    // Level 3: fuzzy word overlap > 60%
+    var best=null;var bestScore=0;
+    apiFilms.forEach(function(f){
+      var score=wordOverlap(f.title,pf.title);
+      if(score>bestScore){bestScore=score;best=f;}
+    });
+    if(bestScore>=0.6)return{film:best,confidence:'medium',method:'titolo simile ('+Math.round(bestScore*100)+'%)'};
+
+    // Level 4: date within ±3 days (sometimes dates differ slightly)
+    if(pf.releaseIT){
+      var pDate=new Date(pf.releaseIT);
+      var closeDateMatches=apiFilms.filter(function(f){
+        if(!f.start_date)return false;
+        var diff=Math.abs(new Date(f.start_date)-pDate);
+        return diff<=3*86400000;
+      });
+      if(closeDateMatches.length===1&&wordOverlap(closeDateMatches[0].title,pf.title)>0.3){
+        return{film:closeDateMatches[0],confidence:'low',method:'data simile'};
+      }
+    }
+
+    return null;
+  }
+
+  // ── BUILD MATCHES FOR REVIEW ─────────────────────────────
+  var matched=[];var unmatched=[];
+  selected.forEach(function(pf){
+    var m=matchFilm(pf);
+    if(m)matched.push({pf:pf,api:m.film,confidence:m.confidence,method:m.method});
+    else unmatched.push(pf);
+  });
+
+  // If all high confidence → import directly
+  var needsReview=matched.filter(function(m){return m.confidence!=='high';});
+  var highConf=matched.filter(function(m){return m.confidence==='high';});
+
+  if(needsReview.length===0&&unmatched.length===0){
+    // All matched confidently — import directly
+    await importMatched(matched.concat(unmatched.map(function(pf){return{pf:pf,api:null,confidence:'none',method:'nessuna'};})));
+    co('ovImport');
+    toast(selected.length+' film importati ('+matched.length+' arricchiti)','ok');
+    rf();
+  } else {
+    // Show review panel
+    showMatchReview(matched,unmatched);
+  }
+  btn.disabled=false;btn.textContent='⬇ Importa e arricchisci';
+}
+window.doPDFImport=doPDFImport;
+
+function showMatchReview(matched,unmatched){
+  // Replace step2 content with review panel
+  var step2=document.getElementById('pdf-step2');
+  var confColors={high:'#4ae87a',medium:'#e8c84a',low:'#e89a3a',none:'#e84a4a'};
+  var html='<div style="font-size:12px;font-weight:700;margin-bottom:10px">Verifica corrispondenze prima di importare:</div>'
+    +'<div style="max-height:360px;overflow-y:auto;display:flex;flex-direction:column;gap:6px" id="match-review-list">';
+
+  matched.forEach(function(m,i){
+    var col=confColors[m.confidence];
+    html+='<div style="background:var(--surf2);border:1px solid var(--bdr);border-radius:6px;padding:8px 12px">'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">'
+      +'<span style="width:8px;height:8px;border-radius:50%;background:'+col+';flex-shrink:0"></span>'
+      +'<span style="font-size:10px;color:'+col+';font-weight:700;text-transform:uppercase">'+m.confidence+' · '+m.method+'</span>'
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;font-size:11px">'
+      +'<div><div style="font-size:9px;color:var(--txt2);margin-bottom:2px">PROCINEMA (originale)</div>'
+      +'<div style="font-weight:700">'+m.pf.title+'</div>'
+      +(m.pf.releaseIT?'<div style="color:var(--txt2);font-size:10px">🇮🇹 '+m.pf.releaseIT.split('-').reverse().join('/')+'</div>':'')
+      +(m.pf.distributor?'<div style="color:var(--txt2);font-size:10px">'+m.pf.distributor+'</div>':'')
+      +'</div>'
+      +'<div style="text-align:center;color:var(--txt2)">→</div>'
+      +'<div><div style="font-size:9px;color:var(--txt2);margin-bottom:2px">MENDRISIO (italiano)</div>'
+      +'<div style="font-weight:700;color:'+col+'">'+m.api.title+'</div>'
+      +(m.api.start_date?'<div style="color:var(--txt2);font-size:10px">🇮🇹 '+m.api.start_date.split('-').reverse().join('/')+'</div>':'')
+      +'</div>'
+      +'</div>'
+      +(m.confidence!=='high'?'<div style="margin-top:6px;display:flex;gap:5px">'
+        +'<button class="btn ba bs" style="font-size:10px" data-idx="'+i+'" onclick="confirmMatch(this,true)">✓ Conferma</button>'
+        +'<button class="btn bd bs" style="font-size:10px" data-idx="'+i+'" onclick="confirmMatch(this,false)">✗ Non corrisponde</button>'
+        +'</div>':'')
+      +'<input type="hidden" class="match-confirmed" data-idx="'+i+'" value="'+(m.confidence==='high'?'yes':'pending')+'">'
+      +'</div>';
+  });
+
+  unmatched.forEach(function(pf,i){
+    html+='<div style="background:var(--surf2);border:1px solid rgba(232,74,74,.3);border-radius:6px;padding:8px 12px">'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
+      +'<span style="width:8px;height:8px;border-radius:50%;background:#e84a4a;flex-shrink:0"></span>'
+      +'<span style="font-size:10px;color:#e84a4a;font-weight:700">NESSUNA CORRISPONDENZA</span>'
+      +'</div>'
+      +'<div style="font-size:12px;font-weight:700">'+pf.title+'</div>'
+      +(pf.releaseIT?'<div style="font-size:10px;color:var(--txt2)">🇮🇹 '+pf.releaseIT.split('-').reverse().join('/')+'</div>':'')
+      +'<div style="font-size:10px;color:var(--txt2);margin-top:3px">Verrà importato senza locandina/trama — arricchisci manualmente dall\'archivio</div>'
+      +'</div>';
+  });
+
+  html+='</div>'
+    +'<div style="font-size:11px;color:var(--acc);margin-top:8px">'
+    +matched.length+' corrispondenze trovate · '+unmatched.length+' senza match'
+    +'</div>'
+    +'<div class="mft">'
+    +'<button class="btn bg" onclick="pdfBack()">← Indietro</button>'
+    +'<button class="btn ba" onclick="doConfirmedImport('+JSON.stringify(matched.map(function(m){return{pf:m.pf,api:m.api,confidence:m.confidence};})).replace(/"/g,"'")+','+JSON.stringify(unmatched).replace(/"/g,"'")+')">⬇ Importa tutto</button>'
+    +'</div>';
+
+  // Store globally for confirmMatch
+  window._matchReview={matched:matched,unmatched:unmatched};
+  step2.innerHTML=html;
+}
+
+function confirmMatch(btn,confirmed){
+  var idx=parseInt(btn.dataset.idx);
+  var m=window._matchReview&&window._matchReview.matched[idx];
+  if(!m)return;
+  var hidden=document.querySelector('.match-confirmed[data-idx="'+idx+'"]');
+  if(confirmed){
+    m.confidence='high';
+    if(hidden)hidden.value='yes';
+    btn.parentElement.innerHTML='<span style="color:#4ae87a;font-size:11px">✓ Confermato</span>';
+  } else {
+    m.api=null;m.confidence='none';
+    if(hidden)hidden.value='no';
+    btn.parentElement.innerHTML='<span style="color:#e84a4a;font-size:11px">✗ Importa senza arricchimento</span>';
+  }
+}
+window.confirmMatch=confirmMatch;
+
+async function doConfirmedImport(matched,unmatched){
+  var allItems=matched.map(function(m){return{pf:m.pf,api:m.api};})
+    .concat(unmatched.map(function(pf){return{pf:pf,api:null};}));
+  // Use live _matchReview for confirmed/rejected
+  if(window._matchReview){
+    allItems=window._matchReview.matched.map(function(m){return{pf:m.pf,api:m.api};})
+      .concat(window._matchReview.unmatched.map(function(pf){return{pf:pf,api:null};}));
+  }
+  await importMatched(allItems);
+  co('ovImport');
+  var enriched=allItems.filter(function(x){return x.api;}).length;
+  toast(allItems.length+' film importati ('+enriched+' arricchiti)','ok');
+  rf();
+}
+window.doConfirmedImport=doConfirmedImport;
+
+async function importMatched(items){
+  for(var i=0;i<items.length;i++){
+    var pf=items[i].pf;var api=items[i].api;
+    var id=uid();
+    var trailerId='';
+    if(api&&api.url_trailer){var mt=api.url_trailer.match(/[\w-]{11}/);trailerId=mt?mt[0]:'';}
+    var filmDoc={
+      id:id,
+      title:api?api.title:pf.title,
+      titleOriginal:pf.title,
+      duration:api?parseInt(api.length)||0:0,
+      genre:api?api.genre||pf.genre||'':pf.genre||'',
+      director:api?api.director||'':'',
+      rating:pf.age&&pf.age!=='-'?pf.age+'anni':(api&&api.age&&api.age!=='n/p'?api.age:''),
+      release:pf.releaseIT||'',endDate:'',
+      poster:api?api.playbill_path||'':'',
+      description:api?api.plot?api.plot.slice(0,300):'':'',
+      distributor:pf.distributor||'',
+      ticketUrl:api?api.film_url_for_cinema||'':'',
+      trailer:trailerId,
+      cast:api?api.cast||'':'',
+      language:api?api.language||'':'',
+      suisa:pf.suisa||'',
+      apiId:api?api.original_id||null:null
+    };
+    await setDoc(doc(db,'films',id),filmDoc);
+  }
+}
+window.importMatched=importMatched;
+
 
 // ── THEME ───────────────────────────────────────────────
 function toggleTheme(){
