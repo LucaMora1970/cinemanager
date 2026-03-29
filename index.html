@@ -1245,10 +1245,10 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
         <div class="fr">
           <label class="flb">Date e orari</label>
           <div style="display:flex;gap:7px;margin-bottom:6px">
-            <input type="date" id="bDateInput" style="flex:1">
-            <input type="time" id="bStart" value="20:30" list="oaTimeList"><datalist id="oaTimeList"><option value="20:30"><option value="20:45"><option value="21:00"><option value="21:15"></datalist>
-            <span style="align-self:center;color:var(--txt2);font-size:12px">→</span>
-            <input type="time" id="bEnd" value="22:30">
+            <input type="date" id="bDateInput" style="flex:2;min-width:130px">
+            <input type="time" id="bStart" value="20:30" list="oaTimeList" style="flex:1;min-width:90px"><datalist id="oaTimeList"><option value="20:30"><option value="20:45"><option value="21:00"><option value="21:15"></datalist>
+            <span style="align-self:center;color:var(--txt2);font-size:12px;flex-shrink:0">→</span>
+            <input type="time" id="bEnd" value="22:30" style="flex:1;min-width:90px">
             <button type="button" class="btn ba" onclick="addBookDate()">＋</button>
           </div>
           <div class="date-chips" id="bDates"></div>
