@@ -601,6 +601,8 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
   </div>
   <div id="arch-upcoming" style="margin-bottom:18px"></div>
   <div id="arch-current" style="margin-bottom:18px"></div>
+  <div id="arch-coming" style="margin-bottom:18px"></div>
+  <div id="arch-past" style="margin-bottom:18px"></div>
   <div id="fw" class="fg2"></div>
 </div>
 
@@ -1660,84 +1662,113 @@ window.rl=rl;
 function renderArchSections(){
   var today=new Date();today.setHours(0,0,0,0);
   var todayStr=today.toISOString().slice(0,10);
+
+  // +7 days: new releases window
   var in7=new Date(today);in7.setDate(in7.getDate()+7);
   var in7Str=in7.toISOString().slice(0,10);
+
+  // +10 days: prossimamente window (from tomorrow to +10)
+  var tomorrow=new Date(today);tomorrow.setDate(tomorrow.getDate()+1);
+  var tomorrowStr=tomorrow.toISOString().slice(0,10);
+  var in10=new Date(today);in10.setDate(in10.getDate()+10);
+  var in10Str=in10.toISOString().slice(0,10);
 
   // Week range (Thu-Wed)
   var wd=wdates();
   var weekStart=wd[0];var weekEnd=wd[6];
 
-  // Films with Italian release in next 7 days (new releases)
+  // All film IDs currently in shows (any date)
+  var allShowFilmIds=new Set(S.shows.map(function(s){return s.filmId;}));
+
+  // ── SECTION: Nuove uscite (oggi + prossimi 7 gg) ──
   var upcoming=S.films.filter(function(f){
     return f.release&&f.release>=todayStr&&f.release<=in7Str;
   }).sort(function(a,b){return a.release.localeCompare(b.release);});
 
-  // Films showing in current week (have at least one show this week)
+  // ── SECTION: In programma questa settimana ──
   var weekFilmIds=new Set(S.shows.filter(function(s){
     return s.day>=weekStart&&s.day<=weekEnd;
   }).map(function(s){return s.filmId;}));
   var current=S.films.filter(function(f){return weekFilmIds.has(f.id);})
     .sort(function(a,b){return a.title.localeCompare(b.title);});
 
-  // Render upcoming
-  var upEl=document.getElementById('arch-upcoming');
-  if(upcoming.length){
+  // ── SECTION: Prossimamente (uscita tra 8-10 gg, non ancora in programma) ──
+  var coming=S.films.filter(function(f){
+    return f.release&&f.release>in7Str&&f.release<=in10Str;
+  }).sort(function(a,b){return a.release.localeCompare(b.release);});
+
+  // ── SECTION: Passati (release < oggi E non più in nessuno show) ──
+  var past=S.films.filter(function(f){
+    var hasFutureShow=S.shows.some(function(s){return s.filmId===f.id&&s.day>=todayStr;});
+    var isExpired=f.endDate?f.endDate<todayStr:(f.release&&f.release<todayStr&&!hasFutureShow);
+    return isExpired&&!hasFutureShow;
+  }).sort(function(a,b){
+    // Sort by release descending (most recent first)
+    return (b.release||'').localeCompare(a.release||'');
+  });
+
+  function renderSection(elId,title,badge,badgeStyle,films){
+    var el=document.getElementById(elId);
+    if(!el)return;
+    if(!films.length){el.innerHTML='';return;}
     var html='<div class="arch-section-hdr">'
-      +'<span class="arch-section-title">🆕 Nuove uscite — prossimi 7 giorni</span>'
-      +'<span class="arch-section-badge" style="background:rgba(232,200,74,.15);color:var(--acc)">'+upcoming.length+' film</span>'
-      +'</div><div class="arch-section-films">';
-    upcoming.forEach(function(f){html+=archMiniCard(f);});
+      +'<span class="arch-section-title">'+title+'</span>'
+      +'<span class="arch-section-badge" style="'+badgeStyle+'">'+badge+'</span>'
+      +'</div><div class="fg2">';
+    films.forEach(function(f){html+=archMiniCard(f);});
     html+='</div>';
-    upEl.innerHTML=html;
-  } else {
-    upEl.innerHTML='';
+    el.innerHTML=html;
   }
 
-  // Render current week
-  var curEl=document.getElementById('arch-current');
-  if(current.length){
-    var html2='<div class="arch-section-hdr">'
-      +'<span class="arch-section-title">🎬 In programma questa settimana</span>'
-      +'<span class="arch-section-badge" style="background:rgba(74,232,122,.1);color:#4ae87a">'+current.length+' film</span>'
-      +'</div><div class="arch-section-films">';
-    current.forEach(function(f){html2+=archMiniCard(f);});
-    html2+='</div>';
-    curEl.innerHTML=html2;
-  } else {
-    curEl.innerHTML='';
-  }
+  renderSection('arch-upcoming','🆕 Nuove uscite — prossimi 7 giorni',
+    upcoming.length+' film','background:rgba(232,200,74,.15);color:var(--acc)',upcoming);
+
+  renderSection('arch-current','🎬 In programma questa settimana',
+    current.length+' film','background:rgba(74,232,122,.1);color:#4ae87a',current);
+
+  renderSection('arch-coming','📅 Prossimamente — prossimi 10 giorni',
+    coming.length+' film','background:rgba(74,162,232,.15);color:#4ab4e8',coming);
+
+  renderSection('arch-past','📦 Passati — non più in programma',
+    past.length+' film','background:rgba(150,150,150,.15);color:var(--txt2)',past);
+
+
 }
 window.renderArchSections=renderArchSections;
 
 function archMiniCard(f){
   var fmtD=function(d){return d?d.split('-').reverse().join('/'):'';}; 
-  var dayShows=S.shows.filter(function(s){return s.filmId===f.id;});
+  var st=filmStatus(f);
+  var stBadge=st==='exp'?'<span class="fstatus exp">Scaduto</span>':
+    st==='nd'?'<span class="fstatus nd">Non uscito</span>':
+    f.release?'<span class="fstatus ok">In programmazione</span>':'';
   var wd=wdates();
-  var weekShows=dayShows.filter(function(s){return wd.includes(s.day);});
-  var nextShow=dayShows.filter(function(s){
-    var today=new Date().toISOString().slice(0,10);
-    return s.day>=today;
-  }).sort(function(a,b){return a.day.localeCompare(b.day)||a.start.localeCompare(b.start);})[0];
-  
-  var meta='';
-  if(f.release&&f.release>=new Date().toISOString().slice(0,10)){
-    meta='<div class="arch-mini-date">📅 Uscita '+fmtD(f.release)+'</div>';
-  } else if(nextShow){
-    meta='<div class="arch-mini-date">🕐 '+nextShow.start+' '+fmtD(nextShow.day)+'</div>';
-  }
-  if(weekShows.length){
-    meta+='<div class="arch-mini-genre">'+weekShows.length+' spett. questa sett.</div>';
-  } else if(f.genre){
-    meta+='<div class="arch-mini-genre">'+f.genre.split(',')[0]+'</div>';
-  }
-
-  return '<div class="arch-mini-card" data-fid="'+f.id+'"'
-    +(f.poster
-      ?'<img class="arch-mini-poster" src="'+f.poster+'" alt="">'
-      :'<div class="arch-mini-poster-ph">🎬</div>')
-    +'<div class="arch-mini-body">'
-    +'<div class="arch-mini-title">'+f.title+'</div>'
-    +meta
+  var weekShows=S.shows.filter(function(s){return s.filmId===f.id&&wd.includes(s.day);});
+  var boLine=f.boITTotale?'<br>🇮🇹 BO IT: <strong>€ '+Math.round(f.boITTotale).toLocaleString('it-IT')+'</strong>'+(f.boITPos?' (#'+f.boITPos+')':''):'';
+  return '<div class="fc">'
+    +(f.poster?'<img class="fc-poster" src="'+f.poster+'" alt="">':'<div class="fc-poster-ph">🎬</div>')
+    +(f.duration?'<div class="fdur">'+f.duration+' min</div>':'')
+    +'<div class="fc-body">'
+    +'<div class="fn">'+f.title+' '+stBadge+'</div>'
+    +'<div class="fi">'
+    +(f.titleOriginal&&f.titleOriginal!==f.title?'<div style="font-size:10px;color:var(--txt2);font-style:italic;margin-bottom:2px">'+f.titleOriginal+'</div>':'')
+    +(f.director?'🎬 '+f.director+'<br>':'')
+    +(f.distributor?'🏢 '+f.distributor+'<br>':'')
+    +(f.rating?'⭐ '+f.rating:'')
+    +(f.release?'<br>📅 Uscita: '+fmtD(f.release):'')
+    +(f.endDate?'<br>🔚 Fine: '+fmtD(f.endDate):'')
+    +(weekShows.length?'<br>🎬 '+weekShows.length+' spett. questa sett.':'')
+    +boLine
+    +'</div>'
+    +(f.genre?'<div><span class="fg3">'+f.genre+'</span></div>':'')
+    +'<div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">'
+    +(f.trailer?'<a href="https://www.youtube.com/watch?v='+f.trailer+'" target="_blank" class="btn bg bs" style="font-size:11px;text-decoration:none">▶ Trailer</a>':'')
+    +(f.ticketUrl?'<a href="'+f.ticketUrl+'" target="_blank" class="btn bg bs" style="font-size:11px;text-decoration:none">🎟 Biglietteria</a>':'')
+    +'</div>'
+    +'<div class="fac">'
+    +'<button class="btn bg bs" data-fid="'+f.id+'" onclick="editFilm(this.dataset.fid)">✏ Modifica</button>'
+    +'<button class="btn bd bs" data-fid="'+f.id+'" onclick="delFilm(this.dataset.fid)">✕</button>'
+    +'</div>'
     +'</div></div>';
 }
 window.archMiniCard=archMiniCard;
@@ -2280,15 +2311,15 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:8.5px;color:#111;backgroun
 .arch-section-hdr{display:flex;align-items:center;gap:10px;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--bdr);}
 .arch-section-title{font-size:13px;font-weight:700;color:var(--txt);}
 .arch-section-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;}
-.arch-section-films{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;}
-.arch-mini-card{background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;overflow:hidden;cursor:pointer;transition:transform .15s;}
-.arch-mini-card:hover{transform:translateY(-2px);}
-.arch-mini-poster{width:100%;aspect-ratio:2/3;object-fit:cover;display:block;background:var(--surf);}
-.arch-mini-poster-ph{width:100%;aspect-ratio:2/3;display:flex;align-items:center;justify-content:center;font-size:28px;background:var(--surf);}
-.arch-mini-body{padding:7px 8px;}
-.arch-mini-title{font-size:11px;font-weight:700;color:var(--txt);line-height:1.3;margin-bottom:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-.arch-mini-date{font-size:10px;color:var(--acc);font-weight:600;}
-.arch-mini-genre{font-size:9px;color:var(--txt2);}
+
+
+
+
+
+
+
+
+
 
 /* ── PRENOTAZIONI ── */
 .book-pill{border-radius:5px;padding:5px 7px;margin-bottom:3px;border-left:3px solid #e84a4a;background:rgba(232,74,74,.12);position:relative;cursor:pointer;transition:transform .1s;}
@@ -2411,15 +2442,15 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:8.5px;color:#111;backgroun
 .arch-section-hdr{display:flex;align-items:center;gap:10px;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--bdr);}
 .arch-section-title{font-size:13px;font-weight:700;color:var(--txt);}
 .arch-section-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;}
-.arch-section-films{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;}
-.arch-mini-card{background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;overflow:hidden;cursor:pointer;transition:transform .15s;}
-.arch-mini-card:hover{transform:translateY(-2px);}
-.arch-mini-poster{width:100%;aspect-ratio:2/3;object-fit:cover;display:block;background:var(--surf);}
-.arch-mini-poster-ph{width:100%;aspect-ratio:2/3;display:flex;align-items:center;justify-content:center;font-size:28px;background:var(--surf);}
-.arch-mini-body{padding:7px 8px;}
-.arch-mini-title{font-size:11px;font-weight:700;color:var(--txt);line-height:1.3;margin-bottom:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-.arch-mini-date{font-size:10px;color:var(--acc);font-weight:600;}
-.arch-mini-genre{font-size:9px;color:var(--txt2);}
+
+
+
+
+
+
+
+
+
 
 /* ── PRENOTAZIONI ── */
 .book-pill{border-radius:5px;padding:5px 7px;margin-bottom:3px;border-left:3px solid #e84a4a;background:rgba(232,74,74,.12);position:relative;cursor:pointer;transition:transform .1s;}
@@ -4952,28 +4983,70 @@ function loadPDFFile(input){
 }
 window.loadPDFFile=loadPDFFile;
 function analyzePDF(){
-  var text=document.getElementById('pdf-paste').value.trim();
-  if(!text||text.length<200){
-    document.getElementById('pdf-status').textContent='⚠ Incolla il testo del PDF ProCinema';
+  // Grab elements safely
+  var pasteEl=document.getElementById('pdf-paste');
+  var btnEl=document.getElementById('pdf-analyze-btn');
+  var statusEl=document.getElementById('pdf-status');
+  var step1El=document.getElementById('pdf-step1');
+  var step2El=document.getElementById('pdf-step2');
+
+  // Make sure panel is visible (parent might be hidden)
+  var panel=document.getElementById('imp-pdf-panel');
+  if(panel)panel.style.display='block';
+
+  if(!pasteEl){toast('Errore: campo testo non trovato','err');return;}
+  var text=(pasteEl.value||'').split('\r\n').join('\n').split('\r').join('\n').trim();
+
+  if(!text||text.length<50){
+    if(statusEl)statusEl.textContent='⚠ Incolla il testo del PDF ProCinema';
     return;
   }
-  var btn=document.getElementById('pdf-analyze-btn');
-  btn.disabled=true;btn.textContent='⏳ Analisi...';
-  document.getElementById('pdf-status').textContent='Estrazione dati in corso...';
-  try{
-    var films=parseProCinemaPDF(text);
-    if(!films.length)throw new Error('Nessun film con data italiana trovato. Assicurati di aver copiato il testo correttamente.');
+
+  if(btnEl){btnEl.disabled=true;btnEl.textContent='⏳ Analisi...';}
+  if(statusEl)statusEl.textContent='Estrazione in corso...';
+
+  // Run in next tick to allow UI to update
+  setTimeout(function(){
+    var films=[];
+    try{
+      films=parseProCinemaPDF(text);
+    }catch(parseErr){
+      if(statusEl)statusEl.innerHTML='<span style="color:#e84a4a">❌ Errore parser: '+parseErr.message+'</span>';
+      if(btnEl){btnEl.disabled=false;btnEl.textContent='🔍 Analizza PDF';}
+      return;
+    }
+
+    if(!films.length){
+      var wks=(text.match(/Week\s+\d+/g)||[]).length;
+      var msg=wks===0
+        ?'Nessuna sezione "Week" trovata. Copia il testo dal PDF con Cmd+A → Cmd+C.'
+        :'Trovate '+wks+' settimane ma nessun film con data italiana. Controlla che la colonna Italian Part sia presente.';
+      if(statusEl)statusEl.innerHTML='<span style="color:#e84a4a">❌ '+msg+'</span>';
+      if(btnEl){btnEl.disabled=false;btnEl.textContent='🔍 Analizza PDF';}
+      return;
+    }
+
     // Deduplicate by suisa
     var seen=new Set();
     films=films.filter(function(f){if(seen.has(f.suisa))return false;seen.add(f.suisa);return true;});
     _pdfFilms=films;
-    showPDFStep2(films);
-    document.getElementById('pdf-status').textContent='';
-  }catch(err){
-    document.getElementById('pdf-status').innerHTML='<span style="color:#e84a4a">❌ '+err.message+'</span>';
-  }finally{
-    btn.disabled=false;btn.textContent='🔍 Analizza PDF';
-  }
+
+    // Switch to step2
+    try{
+      if(step1El)step1El.style.display='none';
+      if(step2El)step2El.style.display='block';
+      var searchEl=document.getElementById('pdf-search');
+      if(searchEl)searchEl.value='';
+      var onlyNewEl=document.getElementById('pdf-only-new');
+      if(onlyNewEl)onlyNewEl.checked=true;
+      if(statusEl)statusEl.textContent='';
+      renderPDFList(films);
+    }catch(uiErr){
+      if(statusEl)statusEl.innerHTML='<span style="color:#e84a4a">❌ Errore UI: '+uiErr.message+'</span>';
+    }
+
+    if(btnEl){btnEl.disabled=false;btnEl.textContent='🔍 Analizza PDF';}
+  },30);
 }
 
 function parseProCinemaPDF(text){
@@ -5045,10 +5118,10 @@ window.parseProCinemaPDF=parseProCinemaPDF;
 window.analyzePDF=analyzePDF;
 
 function showPDFStep2(films){
-  document.getElementById('pdf-step1').style.display='none';
-  document.getElementById('pdf-step2').style.display='block';
-  document.getElementById('pdf-search').value='';
-  document.getElementById('pdf-only-new').checked=true;
+  var s1=document.getElementById('pdf-step1');if(s1)s1.style.display='none';
+  var s2=document.getElementById('pdf-step2');if(s2)s2.style.display='block';
+  var se=document.getElementById('pdf-search');if(se)se.value='';
+  var on=document.getElementById('pdf-only-new');if(on)on.checked=true;
   renderPDFList(films);
 }
 
