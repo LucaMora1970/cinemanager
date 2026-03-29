@@ -387,7 +387,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
 @media print{
   *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;}
   body{background:#fff !important;color:#000 !important;}
-  header,.tabs,.ctl,.sh .btn,.sp-del,.fac,.ov,.hact,.toast,#loading{display:none !important;}
+  header,.tabs,.ctl,.sh .btn,.sp-del,.fac,.hact,.toast,#loading{display:none !important;}
   main{padding:5px;max-width:100%;}
   .page{display:none !important;}
   #pout{display:block !important;}
@@ -1885,17 +1885,18 @@ window.applySugg=applySugg;
 
 // ── MODAL SHOW ────────────────────────────────────────────
 function openShow(){
-  document.getElementById('ovST').textContent='Aggiungi Spettacolo';
-  document.getElementById('mId').value='';
-  document.getElementById('mNote').value='';
-  document.getElementById('mStart').value='';
-  document.getElementById('cb').style.display='none';
-  document.getElementById('cfb').style.display='none';
-  document.getElementById('suggBox').style.display='none';
-  document.getElementById('suggBox').innerHTML='';
+  const _g=id=>{const el=document.getElementById(id);if(!el)console.error('openShow: missing #'+id);return el;};
+  const ovST=_g('ovST');if(ovST)ovST.textContent='Aggiungi Spettacolo';
+  const mId=_g('mId');if(mId)mId.value='';
+  const mNote=_g('mNote');if(mNote)mNote.value='';
+  const mStart=_g('mStart');if(mStart)mStart.value='';
+  const cb=_g('cb');if(cb)cb.style.display='none';
+  const cfb=_g('cfb');if(cfb)cfb.style.display='none';
+  const sBox=_g('suggBox');if(sBox){sBox.style.display='none';sBox.innerHTML='';}
   document.querySelectorAll('.fascia-btn').forEach(b=>b.classList.remove('active'));
   fillF();fillD();
-  document.getElementById('ovS').classList.add('on');
+  const ovS=_g('ovS');if(ovS)ovS.classList.add('on');
+  else console.error('openShow: ovS modal not found — cannot open');
 }
 function openShowSlot(day,time,sala){
   openShow();
@@ -1921,6 +1922,7 @@ function editShow(id){
 }
 function fillF(sel){
   const el=document.getElementById('mFilm');
+  if(!el){console.error('fillF: mFilm element not found');return;}
   el.innerHTML='<option value="">— Seleziona —</option>';
   const today=new Date();today.setHours(0,0,0,0);
   const todayStr=today.toISOString().slice(0,10);
