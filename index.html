@@ -9,6 +9,7 @@
   <!-- v20260329-1311 -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CineManager — Cinema Multisala</title>
+  <!-- build:29/03/2026 18:04 -->
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -539,7 +540,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
     <button id="btnTheme" class="btn bg" onclick="toggleTheme()" title="Cambia tema" style="font-size:16px;padding:5px 10px;">☀</button>
     <button id="btnGlobalOpt" class="btn bg" onclick="openGlobalOpt()" style="color:var(--acc);border-color:rgba(240,128,26,.4)">⚡ <span class="btn-label">Ottimizza Tutto</span></button>
-    <button id="btnAddShow" class="btn ba" onclick="openShow()">＋ Aggiungi Spettacolo</button>
+    <button id="btnAddShow" class="btn ba" onclick="try{openShow();}catch(e){alert('Errore: '+e.message);}">＋ Aggiungi Spettacolo</button>
   </div>
 </header>
 
@@ -869,7 +870,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
 <div id="pout" style="display:none"></div>
 
 <!-- FAB mobile -->
-<button class="fab" onclick="openShow()" title="Aggiungi spettacolo">＋</button>
+<button class="fab" onclick="try{openShow();}catch(e){alert('Errore: '+e.message);}" title="Aggiungi spettacolo">＋</button>
 
 <!-- MODAL BOX OFFICE -->
 <div class="ov" id="ovBO">
@@ -1423,7 +1424,14 @@ function syncSet(s,t){const el=document.getElementById('syncInd');el.className='
 function startListeners(){
   startUsersListener();
   onSnapshot(collection(db,'films'),snap=>{
-    S.films=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.title.localeCompare(b.title,'it'));
+    S.films=snap.docs.map(d=>({id:d.id,...d.data()})).map(f=>{if(f.poster&&f.poster.includes('noposter'))f.poster='';return f;}).sort((a,b)=>a.title.localeCompare(b.title,'it'));
+    // Auto-fix noposter URLs in Firestore silently
+    snap.docs.forEach(async d=>{
+      const data=d.data();
+      if(data.poster&&(data.poster.includes('noposter')||data.poster.includes('github.io/images'))){
+        try{await setDoc(doc(db,'films',d.id),{...data,poster:''});}catch(e){}
+      }
+    });
     rf();rs();rl();syncSet('ok','Sincronizzato');
   },()=>syncSet('err','Errore sync'));
   onSnapshot(collection(db,'shows'),snap=>{
@@ -1813,7 +1821,7 @@ function rf(){
     const stBadge=st==='exp'?`<span class="fstatus exp">Scaduto</span>`:st==='nd'?`<span class="fstatus nd">Non uscito</span>`:f.release?`<span class="fstatus ok">In programmazione</span>`:'';
     const oaBadge=f.openAir?`<span class="fstatus" style="background:rgba(240,128,26,.15);color:#f0801a;border-color:rgba(240,128,26,.3)">☀ Open Air</span>`:'';
     return`<div class="fc${st==='exp'?' film-expired':''}">
-      ${f.poster?`<img class="fc-poster" src="${f.poster}" onerror="this.style.display='none'" alt="">`:`<div class="fc-poster-ph">🎬</div>`}
+      ${f.poster?`<img class="fc-poster" src="${f.poster}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt="">`:`<div class="fc-poster-ph">🎬</div>`}
       <div class="fdur">${f.duration} min</div>
       <div class="fc-body">
         <div class="fn">${f.title} ${stBadge} ${oaBadge}</div>
@@ -1957,7 +1965,9 @@ function fillF(sel){
     });
 }
 function fillD(sel){
-  const el=document.getElementById('mDay');el.innerHTML='';
+  const el=document.getElementById('mDay');
+  if(!el){console.error('fillD: mDay not found');return;}
+  el.innerHTML='';
   wdays().forEach((d,i)=>{const o=document.createElement('option');o.value=d.toISOString().slice(0,10);o.textContent=`${DIT[i]} ${fs(d)}`;if(o.value===sel)o.selected=true;el.appendChild(o);});
 }
 function ce(){
@@ -4992,7 +5002,7 @@ async function doImport(){
       rating:f.age&&f.age!=='n/p'?f.age:'',
       release:f.start_date||'',
       endDate:'',
-      poster:f.playbill_path||'',
+      poster:(f.playbill_path&&!f.playbill_path.includes('noposter'))?f.playbill_path:'',
       description:f.plot?f.plot.slice(0,300):'',
       distributor:'',
       ticketUrl:f.film_url_for_cinema||f.film_url||'',
@@ -5473,7 +5483,7 @@ async function importMatched(items){
       director:api?api.director||'':'',
       rating:pf.age&&pf.age!=='-'?pf.age+'anni':(api&&api.age&&api.age!=='n/p'?api.age:''),
       release:pf.releaseIT||'',endDate:'',
-      poster:api?api.playbill_path||'':'',
+      poster:(api&&api.playbill_path&&!api.playbill_path.includes('noposter'))?api.playbill_path:'',
       description:api?api.plot?api.plot.slice(0,300):'':'',
       distributor:pf.distributor||'',
       ticketUrl:api?api.film_url_for_cinema||'':'',
@@ -5720,6 +5730,20 @@ async function cleanOrphanShows(){
 }
 window.cleanOrphanShows=cleanOrphanShows;
 window.countOrphanShows=countOrphanShows;
+
+
+// ── NOPOSTER CLEANUP ─────────────────────────────────
+async function cleanNoPosterUrls(){
+  const bad=S.films.filter(f=>f.poster&&(f.poster.includes('noposter')||f.poster.includes('github.io/images')));
+  if(!bad.length){toast('Nessun poster da pulire','ok');return;}
+  let fixed=0;
+  for(const f of bad){
+    const updated={...f,poster:''};
+    try{await setDoc(doc(db,'films',f.id),updated);fixed++;}catch(e){console.error('cleanup err',f.id,e);}
+  }
+  toast(fixed+' poster noposter rimossi','ok');
+}
+window.cleanNoPosterUrls=cleanNoPosterUrls;
 
 // ── THEME ───────────────────────────────────────────────
 function toggleTheme(){
