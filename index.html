@@ -594,6 +594,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
         <label class="toggle"><input type="checkbox" id="showExp" onchange="rf()"><span class="toggle-slider"></span></label>
       </div>
       <button class="btn ba" onclick="openFilm()">＋ Nuovo Film</button>
+      <button class="btn bg" onclick="openImport()" style="font-size:12px">⬇ Importa da Biglietteria</button>
     </div>
   </div>
   <div id="fw" class="fg2"></div>
@@ -857,6 +858,37 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
 <!-- FAB mobile -->
 <button class="fab" onclick="openShow()" title="Aggiungi spettacolo">＋</button>
 
+<!-- MODAL IMPORT BIGLIETTERIA -->
+<div class="ov" id="ovImport">
+  <div class="modal" style="max-width:680px;width:95vw">
+    <div class="mtitle">Importa film da Biglietteria</div>
+    <!-- Step 1: paste -->
+    <div id="imp-step1">
+      <div style="background:var(--surf2);border:1px solid var(--bdr);border-radius:6px;padding:10px 14px;font-size:12px;margin-bottom:12px;line-height:1.8">
+        <strong>Come fare:</strong><br>
+        1. Apri <a href="https://multisala.mendrisiocinema.ch/coming_soon" target="_blank" style="color:var(--acc)">multisala.mendrisiocinema.ch/coming_soon</a><br>
+        2. Seleziona tutto il testo della pagina (<strong>Cmd+A</strong> poi <strong>Cmd+C</strong>)<br>
+        3. Incolla qui sotto e clicca <strong>Analizza</strong>
+      </div>
+      <textarea id="imp-paste" placeholder="Incolla qui il testo della pagina prossimamente..." style="width:100%;height:160px;font-size:11px;font-family:monospace;resize:vertical"></textarea>
+      <div id="imp-status" style="font-size:11px;color:var(--txt2);margin-top:6px;min-height:16px"></div>
+      <div class="mft">
+        <button class="btn bg" onclick="co('ovImport')">Annulla</button>
+        <button class="btn ba" id="imp-analyze-btn" onclick="analyzeImport()">🤖 Analizza con AI</button>
+      </div>
+    </div>
+    <!-- Step 2: select films to import -->
+    <div id="imp-step2" style="display:none">
+      <div style="font-size:12px;color:var(--txt2);margin-bottom:10px">Seleziona i film da importare (già presenti nell'archivio sono pre-deselezionati)</div>
+      <div id="imp-film-list" style="max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:6px"></div>
+      <div id="imp-count" style="font-size:11px;color:var(--acc);margin-top:8px"></div>
+      <div class="mft">
+        <button class="btn bg" onclick="impBack()">← Indietro</button>
+        <button class="btn ba" id="imp-import-btn" onclick="doImport()">⬇ Importa selezionati</button>
+      </div>
+    </div>
+  </div>
+</div>
 <!-- MODAL SPETTACOLO -->
 <div class="ov" id="ovS">
   <div class="modal">
@@ -4407,6 +4439,163 @@ function genStaffReport(){
   document.getElementById('ovStaffReport').classList.remove('on');
 }
 window.openStaffReport=openStaffReport;window.genStaffReport=genStaffReport;
+
+// ── IMPORT DA BIGLIETTERIA ────────────────────────────────
+var _importedFilms=[];
+
+function openImport(){
+  document.getElementById('imp-paste').value='';
+  document.getElementById('imp-status').textContent='';
+  document.getElementById('imp-step1').style.display='block';
+  document.getElementById('imp-step2').style.display='none';
+  document.getElementById('ovImport').classList.add('on');
+}
+window.openImport=openImport;
+
+function impBack(){
+  document.getElementById('imp-step1').style.display='block';
+  document.getElementById('imp-step2').style.display='none';
+}
+window.impBack=impBack;
+
+async function analyzeImport(){
+  var text=document.getElementById('imp-paste').value.trim();
+  if(!text||text.length<100){
+    document.getElementById('imp-status').textContent='⚠ Incolla il testo della pagina prossimamente';
+    return;
+  }
+  var btn=document.getElementById('imp-analyze-btn');
+  btn.disabled=true;btn.textContent='⏳ Analisi in corso...';
+  document.getElementById('imp-status').textContent='Claude sta estraendo i dati dei film...';
+
+  try{
+    var prompt='Analizza questo testo dalla pagina prossimamente di un cinema e estrai i dati di ogni film.\n'
+      +'Restituisci SOLO un array JSON valido, senza markdown, senza testo prima o dopo.\n'
+      +'Formato per ogni film:\n'
+      +'{"title":"titolo","duration":105,"genre":"Commedia, Dramma","director":"Nome Regista","rating":"Per tutti","release":"YYYY-MM-DD","poster":"URL locandina se presente","description":"trama breve max 200 caratteri"}\n'
+      +'Note: duration in minuti (numero intero), release in formato YYYY-MM-DD, poster solo se vedi un URL immagine cdn.18tickets.net, description max 200 caratteri.\n'
+      +'Se un campo non è disponibile usa stringa vuota o 0 per duration.\n\n'
+      +'TESTO PAGINA:\n'+text.slice(0,12000);
+
+    var resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:4000,
+        messages:[{role:'user',content:prompt}]
+      })
+    });
+    var data=await resp.json();
+    var raw=data.content&&data.content[0]&&data.content[0].text||'';
+    // Clean up response
+    raw=raw.replace(/```json/g,'').replace(/```/g,'').trim();
+    var films=JSON.parse(raw);
+    if(!Array.isArray(films))throw new Error('Risposta non valida');
+
+    _importedFilms=films;
+    showImportStep2(films);
+  }catch(err){
+    document.getElementById('imp-status').textContent='❌ Errore: '+err.message;
+  }finally{
+    btn.disabled=false;btn.textContent='🤖 Analizza con AI';
+  }
+}
+window.analyzeImport=analyzeImport;
+
+function showImportStep2(films){
+  document.getElementById('imp-step1').style.display='none';
+  document.getElementById('imp-step2').style.display='block';
+
+  // Check which films already exist in archive
+  var existingTitles=S.films.map(function(f){return f.title.toLowerCase().trim();});
+
+  var list=document.getElementById('imp-film-list');
+  list.innerHTML='';
+  var newCount=0;
+
+  films.forEach(function(film,idx){
+    var alreadyExists=existingTitles.some(function(t){
+      return t===film.title.toLowerCase().trim()||t.includes(film.title.toLowerCase().slice(0,10));
+    });
+
+    var row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:flex-start;gap:10px;padding:8px 10px;background:var(--surf2);border:1px solid var(--bdr);border-radius:6px;'+(alreadyExists?'opacity:.5':'');
+
+    var cb=document.createElement('input');
+    cb.type='checkbox';cb.id='imp-cb-'+idx;cb.dataset.idx=idx;
+    cb.checked=!alreadyExists;cb.style.cssText='margin-top:3px;flex-shrink:0';
+    cb.onchange=updateImportCount;
+
+    var info=document.createElement('label');
+    info.htmlFor='imp-cb-'+idx;
+    info.style.cssText='cursor:pointer;flex:1';
+    info.innerHTML='<div style="font-weight:700;font-size:13px;color:var(--txt)">'+film.title+'</div>'
+      +'<div style="font-size:11px;color:var(--txt2)">'
+      +(film.duration?film.duration+'\'  ':'')
+      +(film.genre||'')
+      +(film.director?' · Regia: '+film.director:'')
+      +(film.release?' · Uscita: '+film.release.split('-').reverse().join('/'):'')
+      +(alreadyExists?' <span style="color:#e84a4a;font-size:10px">(già in archivio)</span>':'')
+      +'</div>';
+
+    if(film.poster){
+      var img=document.createElement('img');
+      img.src=film.poster;
+      img.style.cssText='width:36px;height:54px;object-fit:cover;border-radius:3px;flex-shrink:0';
+      img.onerror=function(){this.style.display='none';};
+      row.appendChild(img);
+    }
+    row.appendChild(cb);
+    row.appendChild(info);
+    list.appendChild(row);
+
+    if(!alreadyExists)newCount++;
+  });
+
+  updateImportCount();
+  document.getElementById('imp-status').textContent='';
+}
+
+function updateImportCount(){
+  var selected=document.querySelectorAll('#imp-film-list input[type=checkbox]:checked').length;
+  document.getElementById('imp-count').textContent=selected+' film selezionati da importare';
+  document.getElementById('imp-import-btn').disabled=selected===0;
+}
+window.updateImportCount=updateImportCount;
+
+async function doImport(){
+  var btn=document.getElementById('imp-import-btn');
+  btn.disabled=true;btn.textContent='⏳ Importazione...';
+  var selected=[];
+  document.querySelectorAll('#imp-film-list input[type=checkbox]:checked').forEach(function(cb){
+    selected.push(_importedFilms[parseInt(cb.dataset.idx)]);
+  });
+  var imported=0;
+  for(var i=0;i<selected.length;i++){
+    var film=selected[i];
+    var id=uid();
+    var filmDoc={
+      id:id,
+      title:film.title||'',
+      duration:parseInt(film.duration)||0,
+      genre:film.genre||'',
+      director:film.director||'',
+      rating:film.rating||'Per tutti',
+      release:film.release||'',
+      endDate:'',
+      poster:film.poster||'',
+      description:film.description||'',
+      distributor:''
+    };
+    await setDoc(doc(db,'films',id),filmDoc);
+    imported++;
+  }
+  co('ovImport');
+  toast(imported+' film importati nell\'archivio','ok');
+  rf();
+}
+window.doImport=doImport;
 
 // ── THEME ───────────────────────────────────────────────
 function toggleTheme(){
