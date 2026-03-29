@@ -1429,6 +1429,7 @@ function startListeners(){
   onSnapshot(collection(db,'shows'),snap=>{
     S.shows=snap.docs.map(d=>({id:d.id,...d.data()}));
     rs();rl();syncSet('ok','Sincronizzato');
+    if(typeof checkOrphanBadge==='function')checkOrphanBadge();
     var sp=document.getElementById('page-staff');
     if(sp&&sp.classList.contains('on')){var at=document.getElementById('stab-days');if(at&&at.classList.contains('on'))renderAllDays();else if(document.getElementById('stab-week')&&document.getElementById('stab-week').classList.contains('on'))renderWeekCompact();}
   },()=>syncSet('err','Errore sync'));
@@ -1593,7 +1594,7 @@ function rs(){
             const film=S.films.find(f=>f.id===s.filmId);
             html.push(`<div class="show-pill ${SALE[s.sala].sc}" onclick="event.stopPropagation();editShow('${s.id}')">
               <button class="sp-del" onclick="event.stopPropagation();delShow('${s.id}')">×</button>
-              <div class="sp-title">${film?film.title:'?'}</div>
+              <div class="sp-title" style="${film?'':'color:#e84a4a'}">${film?film.title:'⚠ Film eliminato'}</div>
               <div class="sp-time">${s.start} → ${s.end}</div>
             </div>`);
           });
@@ -1613,6 +1614,17 @@ function rs(){
   wrap.innerHTML=html.length?html.join(''):`<div class="empty"><div class="ei2">📅</div><div class="et">Nessun dato da visualizzare</div></div>`;
 }
 window.rs=rs;
+
+// Show orphan badge in sync indicator if needed
+function checkOrphanBadge(){
+  var n=countOrphanShows();
+  var el=document.getElementById('orphan-badge');
+  if(!el)return;
+  el.style.display=n>0?'inline-flex':'none';
+  el.textContent='⚠ '+n+' spett. orfan'+(n===1?'o':'i');
+  el.title='Spettacoli con film eliminato — clicca per pulire';
+}
+window.checkOrphanBadge=checkOrphanBadge;
 
 // ── LIST ──────────────────────────────────────────────────
 function rl(){
@@ -5688,6 +5700,24 @@ async function saveBoxOffice(){
   rf();
 }
 window.saveBoxOffice=saveBoxOffice;
+
+
+// ── ORPHAN SHOW CLEANUP ──────────────────────────────
+function countOrphanShows(){
+  return S.shows.filter(function(s){return!S.films.find(function(f){return f.id===s.filmId;});}).length;
+}
+
+async function cleanOrphanShows(){
+  var orphans=S.shows.filter(function(s){return!S.films.find(function(f){return f.id===s.filmId;});});
+  if(!orphans.length){toast('Nessuno spettacolo orfano trovato','ok');return;}
+  if(!confirm('Eliminare '+orphans.length+' spettacol'+(orphans.length===1?'o':'i')+' con film non più in archivio?'))return;
+  for(var i=0;i<orphans.length;i++){
+    await deleteDoc(doc(db,'shows',orphans[i].id));
+  }
+  toast(orphans.length+' spettacol'+(orphans.length===1?'o orfano eliminato':'i orfani eliminati'),'ok');
+}
+window.cleanOrphanShows=cleanOrphanShows;
+window.countOrphanShows=countOrphanShows;
 
 // ── THEME ───────────────────────────────────────────────
 function toggleTheme(){
