@@ -1586,7 +1586,7 @@ function rs(){
 
         // Bookings for this sala/day that fall in this row slot
         const rowBookings=(S.bookings||[]).filter(function(b){
-          if(b.sala!=sid)return false;
+          if(salaId(b.sala)!==sid)return false;
           return (b.dates||[]).some(function(bd){
             return bd.date===ds&&nearestFascia(bd.start)===rowKey;
           });
@@ -3462,7 +3462,7 @@ async function svBook(){
   const bType=document.getElementById('bType').value;
   const isOA=bType==='openair';
   let dates=_bDates;
-  let sala=isOA?(document.getElementById('bOAPost')?.value||'OA1'):document.getElementById('bSala').value;
+  let sala=isOA?(document.getElementById('bOAPost')?.value||'OA1'):salaId(document.getElementById('bSala').value)||document.getElementById('bSala').value;
   const oaFilmMode=document.querySelector('input[name="bOAFilmMode"]:checked')?.value||'arch';
   let filmId='';let oaFilmTitle='';let oaDistributor='';
   if(isOA){
@@ -3522,9 +3522,9 @@ function renderBookings(){
   let books=S.bookings||[];
   if(filter==='upcoming') books=books.filter(function(b){return(b.dates||[]).some(function(d){return d.date>=today;});});
   else if(filter!=='all') books=books.filter(function(b){return b.type===filter;});
-  books.sort(function(a,b){
+  books.sort(function(a,b2){
     const aMin=(a.dates||[{date:'9999'}]).map(function(d){return d.date;}).sort()[0];
-    const bMin=(b.dates||[{date:'9999'}]).map(function(d){return d.date;}).sort()[0];
+    const bMin=(b2.dates||[{date:'9999'}]).map(function(d){return d.date;}).sort()[0];
     return aMin>bMin?1:-1;
   });
   if(!books.length){
@@ -3532,44 +3532,49 @@ function renderBookings(){
     return;
   }
   const canEdit=currentUser&&(currentUser.role==='admin'||currentUser.role==='segretaria'||currentUser.role==='operator');
-  w.innerHTML='';
+  let h='<div class="lfc-grid">';
   books.forEach(function(b){
-    const upcomingDates=(b.dates||[]).filter(function(d){return d.date>=today;}).slice(0,3);
     const allDates=b.dates||[];
+    const upDates=allDates.filter(function(d){return d.date>=today;});
     const linkedFilm=b.filmId?S.films.find(function(f){return f.id===b.filmId;}):null;
-    const isOABook=b.type==='openair';
-    const linkedShow=b.linkedShowId?S.shows.find(function(s){return s.id===b.linkedShowId;}):null;
-    const card=document.createElement('div');
-    card.className='book-card';
-    const upcomingStr=upcomingDates.length
-      ?'<br><span style="color:var(--acc)">Prossime: '+upcomingDates.map(function(d){const p=d.date.split('-');return p[2]+'/'+p[1]+' '+d.start;}).join(' · ')+'</span>':'';
-    const filmInfo=linkedFilm?'<br>🎬 <strong>'+linkedFilm.title+'</strong>'+(linkedShow?' · '+linkedShow.start:''):''
-    const oaHeader=isOABook?'<div style="font-size:11px;color:#0d5c8a;font-weight:600;margin-bottom:2px">★ '+(b.postazione||sn(b.sala))+'</div>':'';
-    const oaTitle=isOABook?(linkedFilm?linkedFilm.title:(b.oaFilmTitle||b.name)):b.name;
-    card.innerHTML='<div class="book-card-type">'+(BOOK_TYPES[b.type]||b.type)+'</div>'
-      +'<div class="book-card-name">'+oaTitle+'</div>'
-      +oaHeader
-      +'<div class="book-card-info">'
-      +(isOABook&&b.location?'📍 '+b.location+'<br>':'🎭 '+sn(b.sala)+filmInfo+'<br>')
-      +(isOABook&&b.oaDistributor?'🏢 '+b.oaDistributor+'<br>':'')
-      +(b.seats?'💺 '+b.seats+' posti riservati<br>':'')
-      +(b.contact?'📞 '+b.contact+'<br>':'')
-      +'📅 '+allDates.length+' data'+(allDates.length===1?'':'e')+' totali'
-      +upcomingStr
-      +(b.note?'<br>📝 '+b.note:'')
-      +'</div>';
+    const isOA=b.type==='openair';
+    const title=isOA?(linkedFilm?linkedFilm.title:(b.oaFilmTitle||b.name)):b.name;
+    const typeLabel=BOOK_TYPES[b.type]||b.type;
+    const accent=isOA?'#0d5c8a':'#e84a4a';
+    const sid=salaId(b.sala);
+    const salaNome=sid&&SALE[sid]?SALE[sid].n:(b.postazione||b.sala||'');
+    const meta=[typeLabel,salaNome?'🎭 '+salaNome:'',b.contact?'📞 '+b.contact:'',isOA&&b.location?'📍 '+b.location:'',b.seats?'💺 '+b.seats+' posti':''].filter(Boolean).join(' · ');
+    const showDates=(upDates.length?upDates:allDates).slice(0,8);
+    const byDay={};
+    showDates.forEach(function(d){if(!byDay[d.date])byDay[d.date]=[];byDay[d.date].push(d);});
+    h+='<div class="lfc" style="border-top-color:'+accent+'">';
+    h+='<div class="lfc-head">';
+    h+='<div class="lfc-title" style="color:'+accent+'">'+title+'</div>';
+    h+='<div class="lfc-meta">'+meta+'</div>';
+    h+='<div class="lfc-count" style="background:'+accent+'22;color:'+accent+'">'+allDates.length+' data'+(allDates.length===1?'':'te')+' totali'+(upDates.length?' · '+upDates.length+' future':'')+'</div>';
+    h+='</div><div class="lfc-days">';
+    Object.keys(byDay).sort().forEach(function(ds){
+      const d=new Date(ds+'T12:00:00');
+      const dayLabel=d.toLocaleDateString('it-IT',{weekday:'short',day:'2-digit',month:'2-digit'});
+      h+='<div><div class="lfc-day-name">'+dayLabel+'</div><div class="lfc-slots">';
+      byDay[ds].forEach(function(slot){
+        h+='<span class="lfc-slot"><span class="lfc-slot-time">'+slot.start+(slot.end?' → '+slot.end:'')+'</span></span>';
+      });
+      h+='</div></div>';
+    });
+    if(allDates.length>showDates.length)h+='<div style="font-size:10px;color:var(--txt2);padding:4px 14px">+ altre '+(allDates.length-showDates.length)+' date</div>';
+    h+='</div>';
+    if(b.note)h+='<div style="font-size:11px;color:var(--txt2);padding:6px 14px;border-top:1px solid var(--bdr)">📝 '+b.note+'</div>';
     if(canEdit){
-      const acts=document.createElement('div');
-      acts.className='fac';acts.style.marginTop='8px';
-      const btnE=document.createElement('button');btnE.className='btn bg bs';btnE.textContent='✏ Modifica';
-      btnE.onclick=function(){editBook(b.id);};
-      const btnD=document.createElement('button');btnD.className='btn bd bs';btnD.textContent='✕ Elimina';
-      btnD.onclick=function(){delBook(b.id);};
-      acts.appendChild(btnE);acts.appendChild(btnD);
-      card.appendChild(acts);
+      h+='<div class="fac" style="padding:8px 14px;border-top:1px solid var(--bdr)">';
+      h+='<button class="btn bg bs" data-bid="'+b.id+'" onclick="editBook(this.dataset.bid)">✏ Modifica</button>';
+      h+='<button class="btn bd bs" data-bid="'+b.id+'" onclick="delBook(this.dataset.bid)">✕ Elimina</button>';
+      h+='</div>';
     }
-    w.appendChild(card);
+    h+='</div>';
   });
+  h+='</div>';
+  w.innerHTML=h;
 }
 window.openBook=openBook;window.editBook=editBook;window.svBook=svBook;
 window.setBMode=setBMode;window.fillBShows=fillBShows;window.fillBShowTimes=fillBShowTimes;window.onBShowSelect=onBShowSelect;
@@ -5854,6 +5859,19 @@ async function cleanNoPosterUrls(){
 }
 window.cleanNoPosterUrls=cleanNoPosterUrls;
 
+
+
+// ── SALA ID HELPER ────────────────────────────────────
+// Normalizza la sala a ID numerico ('1'-'4') indipendentemente dal formato salvato
+function salaId(val){
+  if(!val)return null;
+  // Già numerico
+  if(/^[1-4]$/.test(String(val)))return String(val);
+  // Nome → numero
+  const byName={'teatro':'1','ciak':'2','1908':'3','mignon':'4'};
+  return byName[(val+'').toLowerCase()]||String(val);
+}
+window.salaId=salaId;
 
 // ── CANCELLA GIORNATA ─────────────────────────────────
 async function clearDay(day){
