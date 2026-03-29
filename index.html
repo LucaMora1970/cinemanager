@@ -605,10 +605,10 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
       <button class="btn bg" id="bo-batch-btn" onclick="batchBoxOffice()" style="font-size:12px">📊 Box Office</button>
     </div>
   </div>
-  <div id="arch-upcoming" style="margin-bottom:18px"></div>
-  <div id="arch-current" style="margin-bottom:18px"></div>
-  <div id="arch-coming" style="margin-bottom:18px"></div>
-  <div id="arch-past" style="margin-bottom:18px"></div>
+  <div id="arch-upcoming" style="margin-bottom:32px"></div>
+  <div id="arch-current" style="margin-bottom:32px"></div>
+  <div id="arch-coming" style="margin-bottom:32px"></div>
+  <div id="arch-past" style="margin-bottom:32px"></div>
   <div id="fw" class="fg2"></div>
 </div>
 
@@ -2354,7 +2354,7 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:8.5px;color:#111;backgroun
 
 
 /* ── ARCHIVIO SECTIONS ── */
-.arch-section-hdr{display:flex;align-items:center;gap:10px;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--bdr);}
+.arch-section-hdr{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:8px;border-bottom:2px solid var(--bdr);}
 .arch-section-title{font-size:13px;font-weight:700;color:var(--txt);}
 .arch-section-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;}
 
@@ -2485,7 +2485,7 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:8.5px;color:#111;backgroun
 
 
 /* ── ARCHIVIO SECTIONS ── */
-.arch-section-hdr{display:flex;align-items:center;gap:10px;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--bdr);}
+.arch-section-hdr{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:8px;border-bottom:2px solid var(--bdr);}
 .arch-section-title{font-size:13px;font-weight:700;color:var(--txt);}
 .arch-section-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;}
 
@@ -5400,7 +5400,7 @@ function showMatchReview(matched,unmatched){
     +'</div>'
     +'<div class="mft">'
     +'<button class="btn bg" onclick="pdfBack()">← Indietro</button>'
-    +'<button class="btn ba" onclick="doConfirmedImport('+JSON.stringify(matched.map(function(m){return{pf:m.pf,api:m.api,confidence:m.confidence};})).replace(/"/g,"'")+','+JSON.stringify(unmatched).replace(/"/g,"'")+')">⬇ Importa tutto</button>'
+    +'<button class="btn ba" onclick="doConfirmedImport()">⬇ Importa tutto</button>'
     +'</div>';
 
   // Store globally for confirmMatch
@@ -5425,7 +5425,9 @@ function confirmMatch(btn,confirmed){
 }
 window.confirmMatch=confirmMatch;
 
-async function doConfirmedImport(matched,unmatched){
+async function doConfirmedImport(){
+  var matched=window._matchReview?window._matchReview.matched:[];
+  var unmatched=window._matchReview?window._matchReview.unmatched:[];
   var allItems=matched.map(function(m){return{pf:m.pf,api:m.api};})
     .concat(unmatched.map(function(pf){return{pf:pf,api:null};}));
   // Use live _matchReview for confirmed/rejected
