@@ -2627,7 +2627,7 @@ async function pPDF(type){
       html+='<div class="T-film"><div class="T-film-head"><span class="T-ftit">'+f.title+'</span><span class="T-fmeta">'+meta+'</span></div>';
       fS.forEach(function(s){
         const di=wd.indexOf(s.day);
-        html+='<div class="T-row"><span class="T-d">'+(di>=0?DAB[di]+' '+fd(days[di]):'')+'</span><span class="T-s">'+snPDF(s)+'</span><span class="T-t">'+s.start+'</span><span class="T-e">fine '+s.end+'</span></div>';
+        html+='<div class="T-row"><span class="T-d">'+(di>=0?DAB[di]+' '+fd(days[di]):'')+'</span><span class="T-s">'+sn(s.sala)+'</span><span class="T-t">'+s.start+'</span><span class="T-e">fine '+s.end+'</span></div>';
       });
       html+='</div>';
     });
@@ -2664,7 +2664,7 @@ async function pPDF(type){
         const film=S.films.find(f=>f.id===s.filmId);
         html+='<div class="G-row">'
           +'<span class="G-t">'+s.start+'</span>'
-          +'<span class="G-s">'+snPDF(s)+'</span>'
+          +'<span class="G-s">'+sn(s.sala)+'</span>'
           +'<span style="font-weight:600">'+(film?film.title:'?')+'</span>'
           +'<span class="G-dur">'+(film&&film.duration?durFmt(film.duration):'')+'</span>'
           +'<span class="G-e">'+s.end+'</span></div>';
@@ -2682,7 +2682,7 @@ async function pPDF(type){
       html+='<div class="D-chapter"><span class="D-day">'+DIT[di]+' '+String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'</span><span class="D-line"></span></div>';
       dS.forEach(function(s){
         const film=S.films.find(f=>f.id===s.filmId);
-        html+='<div class="D-row"><span class="D-t">'+s.start+'</span><span class="D-s">'+snPDF(s)+'</span><span class="D-f">'+(film?film.title:'?')+'</span><span class="D-d">'+(film&&film.duration?durFmt(film.duration):'')+'</span></div>';
+        html+='<div class="D-row"><span class="D-t">'+s.start+'</span><span class="D-s">'+sn(s.sala)+'</span><span class="D-f">'+(film?film.title:'?')+'</span><span class="D-d">'+(film&&film.duration?durFmt(film.duration):'')+'</span></div>';
       });
     });
     html+='</div>';
@@ -2709,7 +2709,7 @@ async function pPDF(type){
         const isPrev=di<2;
         const dn=allCartDAB[di]+' '+String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+(isPrev?' ▸':' ');
         const rows=dS.length
-          ? dS.map(function(s){return '<div class="cart-show-row"><span class="cart-show-time">'+s.start+'</span><span class="cart-show-sala">'+snPDF(s)+'</span></div>';}).join('')
+          ? dS.map(function(s){return '<div class="cart-show-row"><span class="cart-show-time">'+s.start+'</span><span class="cart-show-sala">'+sn(s.sala)+'</span></div>';}).join('')
           : '<div class="cart-no-show">—</div>';
         return '<div class="cart-day-card'+(isPrev?' cart-prev-day':'')+'">'
           +'<div class="cart-day-head"><div class="cart-day-name">'+dn+'</div></div>'
@@ -2750,7 +2750,7 @@ async function pPDF(type){
           +'<span class="fc-day-name">'+dayLabel+'</span>'
           +'<div class="fc-slots">';
         byDay[ds].forEach(function(s){
-          html+='<span class="fc-slot">'+s.start+'<span class="fc-slot-sala">'+snPDF(s)+'</span></span>';
+          html+='<span class="fc-slot">'+s.start+'<span class="fc-slot-sala">'+sn(s.sala)+'</span></span>';
         });
         html+='</div></div>';
       });
@@ -3073,7 +3073,7 @@ function buildDistBody(dist){
     Object.keys(byDay).sort().forEach(function(ds){
       const di=wd.indexOf(ds);
       const dayLabel=di>=0?DIT[di]+' '+fs(days[di]):ds;
-      const times=byDay[ds].map(s=>s.start+' ('+snPDF(s)+')').join('   ');
+      const times=byDay[ds].map(s=>s.start+' ('+sn(s.sala)+')').join('   ');
       body+=dayLabel+':\n'+times+'\n\n';
     });
   });
