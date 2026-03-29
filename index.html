@@ -504,7 +504,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
 <div id="loading">
   <div id="load-connecting" style="display:flex;flex-direction:column;align-items:center;gap:16px">
     <div class="spin"></div>
-    <div class="load-txt">Connessione a Firebase…</div>
+    <div class="load-txt" id="load-txt">Connessione a Firebase…</div>
     <div id="load-err" style="display:none;font-size:12px;color:#e84a4a;max-width:300px;text-align:center;margin-top:8px"></div>
     <button id="load-retry-btn" onclick="location.reload()" style="display:none;margin-top:8px;padding:8px 20px;background:#f0801a;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">🔄 Riprova</button>
   </div>
@@ -1652,7 +1652,7 @@ function rl(){
       <span style="font-weight:600">${film?.title||'\u2014'}</span>
       <span><span class="sb ${SALE[s.sala]?.bc||''}">${sn(s.sala)}</span></span>
       <span style="font-family:monospace;font-size:12px">${s.start} \u2192 ${s.end}</span>
-      <span style="font-size:11px;color:var(--txt2)">${film?.duration||0}'</span>
+      <span style="font-size:11px;color:var(--txt2)">${film?.duration||0} min</span>
       <div class="lac">
         <button class="btn bg bs" onclick="editShow('${s.id}')">&#9999;</button>
         <button class="btn bd bs" onclick="delShow('${s.id}')">&#10005;</button>
@@ -2635,11 +2635,7 @@ async function pPDF(type){
 
   // ── Genera il PDF tramite Blob URL (non richiede popup) ──
   const pageOverride=type==='cartelli'?'<style>@page{size:A4 landscape!important;margin:12mm;}body{width:277mm;}</style>':'';
-  const fullHTML='<!DOCTYPE html><html><head><meta charset="UTF-8">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0">
-  <!-- v20260329-1311 --><title>'+CN+'</title>'+PDF_STYLE+pageOverride+'</head><body>'+html+'<scr'+'ipt>window.onload=function(){setTimeout(function(){window.print();},400);}<\/scr'+'ipt></body></html>';
+  const fullHTML='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+CN+'</title>'+PDF_STYLE+pageOverride+'</head><body>'+html+'<scr'+'ipt>window.onload=function(){setTimeout(function(){window.print();},400);}<\/scr'+'ipt></body></html>';
   const blob=new Blob([fullHTML],{type:'text/html;charset=utf-8'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
@@ -5665,6 +5661,28 @@ uwl();
 syncSet('busy','Connessione…');
 // Auth handles startup — onAuthStateChanged calls startListeners after login
 
+
+// ── LOADING DIAGNOSTICS ──────────────────────────────
+(function(){
+  var t1=setTimeout(function(){
+    var el=document.getElementById('load-txt');
+    if(el&&document.getElementById('loading').style.display!=='none'){
+      el.textContent='Verifica connessione internet…';
+    }
+  },5000);
+  var t2=setTimeout(function(){
+    var loading=document.getElementById('loading');
+    if(!loading||loading.style.display==='none')return;
+    var errEl=document.getElementById('load-err');
+    var retryBtn=document.getElementById('load-retry-btn');
+    var msg='Impossibile connettersi. Possibili cause:\n'
+      +'• Connessione internet assente\n'
+      +'• Dominio non autorizzato in Firebase Auth\n'
+      +'• Firebase SDK bloccato da firewall/proxy';
+    if(errEl){errEl.style.display='block';errEl.textContent=msg;errEl.style.whiteSpace='pre-line';}
+    if(retryBtn)retryBtn.style.display='block';
+  },10000);
+})();
 </script>
 </body>
 </html>
