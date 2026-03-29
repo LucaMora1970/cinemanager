@@ -1677,6 +1677,7 @@ function rf(){
           ⭐ ${f.rating||'N/D'}
           ${f.release?`<br>📅 Uscita: ${fmtD(f.release)}`:''}
           ${f.endDate?`<br>🔚 Fine: ${fmtD(f.endDate)}`:''}
+          ${f.boITTotale?`<br>🇮🇹 Box Office IT: <strong>€ ${Math.round(f.boITTotale).toLocaleString('it-IT')}</strong>${f.boITPos?` (#${f.boITPos})`:''}${f.boITDate?` <span style='font-size:10px;color:var(--txt2)'>${f.boITDate}</span>`:''}`:''}
         </div>
         <div><span class="fg3">${f.genre}</span></div>
         ${(f.boxOfficeIT||f.boxOfficeUS)?`<div style="display:flex;gap:10px;margin-top:5px;padding:5px 8px;background:var(--surf2);border-radius:5px;flex-wrap:wrap">
@@ -5212,6 +5213,220 @@ async function importMatched(items){
 }
 window.importMatched=importMatched;
 
+
+// ── BOX OFFICE ITALIA (Cinetel) ──────────────────────────
+var _boData=[];
+
+function openBoxOffice(){
+  document.getElementById('bo-paste').value='';
+  document.getElementById('bo-status').textContent='';
+  document.getElementById('bo-step1').style.display='block';
+  document.getElementById('bo-step2').style.display='none';
+  document.getElementById('ovBO').classList.add('on');
+}
+window.openBoxOffice=openBoxOffice;
+
+function parseCinetelText(text){
+  // Format: pos \n title \n date \n nation \n distributor \n incasso \n presenze \n incasso totale \n presenze totale
+  // Lines come in blocks. Key patterns:
+  // - Position: standalone number 1-50
+  // - Euro amounts: € 1.234.567 or € 234.567
+  // - Dates: dd/mm/yyyy
+  // - Title: UPPERCASE line after position
+  var lines=text.split('\n').map(function(l){return l.trim();}).filter(function(l){return l.length>0;});
+  var films=[];
+  var i=0;
+  // Find the date header
+  var dateHeader='';
+  for(var j=0;j<lines.length;j++){
+    if(/Box Office al \d{2}\/\d{2}\/\d{4}/.test(lines[j])){
+      dateHeader=lines[j];break;
+    }
+  }
+
+  while(i<lines.length){
+    // Look for position number (1-50 standalone)
+    var posM=lines[i].match(/^(\d{1,2})$/);
+    if(!posM||parseInt(posM[1])<1||parseInt(posM[1])>50){i++;continue;}
+    var pos=parseInt(posM[1]);
+    if(i+1>=lines.length){i++;continue;}
+
+    // Next line = title (uppercase)
+    var title=lines[i+1];
+    if(!title||title.length<2){i++;continue;}
+
+    // Scan next lines for euro amounts
+    var euros=[];var dates=[];var nation='';var distrib='';
+    var j2=i+2;
+    while(j2<lines.length&&j2<i+12){
+      var l=lines[j2];
+      // Euro amount
+      var euroM=l.match(/^€\s*([\d.,]+)$/);
+      if(euroM)euros.push(euroM[1].replace(/\./g,'').replace(',','.'));
+      // Date
+      if(/^\d{2}\/\d{2}\/\d{4}$/.test(l))dates.push(l);
+      // Nation code (ITA, USA, GBR, FRA, etc)
+      if(/^[A-Z]{3}$/.test(l)&&l!=='BOX')nation=l;
+      // Distributor (mixed case, > 3 chars, not a number)
+      if(l.length>5&&!/^\d/.test(l)&&!/^€/.test(l)&&!/^\d{2}\//.test(l)&&!/^[A-Z]{3}$/.test(l)&&l!==title&&l!==String(pos))distrib=l;
+      // Stop if we hit the next position number
+      if(/^\d{1,2}$/.test(l)&&parseInt(l)===pos+1)break;
+      j2++;
+    }
+
+    if(euros.length>=2){
+      films.push({
+        pos:pos,
+        title:title,
+        firstRelease:dates[0]||'',
+        nation:nation,
+        distributor:distrib,
+        incassoGiorno:parseFloat(euros[0])||0,
+        incassoTotale:parseFloat(euros[2]||euros[1])||0,
+        presenzeGiorno:parseFloat((euros[1]||'').replace(/\./g,''))||0,
+        presenzeTotale:parseFloat((euros[3]||euros[2]||'').replace(/\./g,''))||0,
+        dateHeader:dateHeader
+      });
+      i=j2;
+    } else {
+      i++;
+    }
+  }
+  return films;
+}
+
+function parseBoxOffice(){
+  var text=document.getElementById('bo-paste').value.trim();
+  if(!text||text.length<50){
+    document.getElementById('bo-status').textContent='⚠ Incolla il testo della classifica Cinetel';
+    return;
+  }
+  // Parse the pasted text
+  var films=parseCinetelText(text);
+  if(!films.length){
+    document.getElementById('bo-status').textContent='❌ Nessun film trovato. Assicurati di aver copiato tutta la tabella incluse le righe con €';
+    return;
+  }
+
+  // Match each film against the archive
+  function normBO(t){return(t||'').toLowerCase().replace(/[^a-z0-9]/g,' ').replace(/\s+/g,' ').trim();}
+  function wordScore(a,b){
+    var wa=normBO(a).split(' ').filter(function(w){return w.length>2;});
+    var wb=normBO(b).split(' ').filter(function(w){return w.length>2;});
+    if(!wa.length||!wb.length)return 0;
+    var hits=wa.filter(function(w){return wb.includes(w);}).length;
+    return hits/Math.max(wa.length,wb.length);
+  }
+
+  _boData=films.map(function(f){
+    var best=null;var bestScore=0;
+    S.films.forEach(function(af){
+      // Try title match (Italian titles in archive)
+      var score=Math.max(wordScore(af.title,f.title),wordScore(af.titleOriginal||'',f.title));
+      if(score>bestScore){bestScore=score;best=af;}
+    });
+    return{bo:f,match:bestScore>=0.5?best:null,score:bestScore};
+  });
+
+  showBOResults();
+}
+window.parseBoxOffice=parseBoxOffice;
+
+function showBOResults(){
+  document.getElementById('bo-step1').style.display='none';
+  document.getElementById('bo-step2').style.display='block';
+  var list=document.getElementById('bo-results');
+  var matched=0;
+  var html='';
+  var dateLabel=_boData.length&&_boData[0].bo.dateHeader?_boData[0].bo.dateHeader:'';
+  if(dateLabel){
+    html+='<div style="font-size:11px;color:var(--txt2);margin-bottom:6px;font-weight:700">'+dateLabel+'</div>';
+  }
+
+  // Sort archive films for dropdown: active films first
+  var archFilms=S.films.slice().sort(function(a,b){return a.title.localeCompare(b.title);});
+
+  _boData.forEach(function(item,idx){
+    var f=item.bo;var m=item.match;
+    if(m)matched++;
+    var fmtEuro=function(n){return n?'€ '+Math.round(n).toLocaleString('it-IT'):'-';};
+    var borderCol=m?'#4ae87a':'#e84a4a';
+
+    html+='<div style="display:grid;grid-template-columns:24px 1fr auto;gap:8px;align-items:start;padding:7px 10px;background:var(--surf2);border:1px solid var(--bdr);border-radius:6px;border-left:3px solid '+borderCol+'">'
+      +'<div style="font-size:12px;font-weight:700;color:var(--txt2);padding-top:2px">'+f.pos+'</div>'
+      +'<div>'
+      +'<div style="font-size:11px;font-weight:700;color:var(--txt);margin-bottom:3px">'+f.title+'</div>';
+
+    if(m){
+      // Matched — show result + option to change
+      html+='<div style="display:flex;align-items:center;gap:6px">'
+        +'<span style="font-size:10px;color:#4ae87a">✓</span>'
+        +'<select class="bo-match-sel" data-idx="'+idx+'" style="font-size:10px;padding:2px 4px;flex:1" onchange="boPick(this)">'
+        +'<option value="'+m.id+'" selected>'+m.title+'</option>';
+      archFilms.forEach(function(af){
+        if(af.id!==m.id)html+='<option value="'+af.id+'">'+af.title+'</option>';
+      });
+      html+='<option value="">— Non collegare —</option>';
+      html+='</select></div>';
+    } else {
+      // Not matched — show dropdown to pick
+      html+='<select class="bo-match-sel" data-idx="'+idx+'" style="font-size:10px;padding:2px 4px;width:100%;border:1px solid #e84a4a;border-radius:3px" onchange="boPick(this)">'
+        +'<option value="">— Seleziona film in archivio —</option>';
+      archFilms.forEach(function(af){
+        html+='<option value="'+af.id+'">'+af.title+'</option>';
+      });
+      html+='</select>';
+    }
+    html+='</div>'
+      +'<div style="text-align:right;font-size:10px;white-space:nowrap">'
+      +'<div style="color:var(--txt2)">giorno<br><strong style="color:var(--txt)">'+fmtEuro(f.incassoGiorno)+'</strong></div>'
+      +'<div style="color:var(--acc);margin-top:2px">totale<br><strong>'+fmtEuro(f.incassoTotale)+'</strong></div>'
+      +'</div>'
+      +'</div>';
+  });
+  list.innerHTML=html;
+  document.getElementById('bo-summary').textContent=matched+' film abbinati automaticamente su '+_boData.length+' — modifica le corrispondenze se necessario';
+}
+
+function boPick(sel){
+  var idx=parseInt(sel.dataset.idx);
+  var filmId=sel.value;
+  if(!filmId){_boData[idx].match=null;return;}
+  var film=S.films.find(function(f){return f.id===filmId;});
+  _boData[idx].match=film||null;
+  // Update border color
+  var row=sel.closest('div[style*="border-left"]');
+  if(row)row.style.borderLeftColor=_boData[idx].match?'#4ae87a':'#e84a4a';
+}
+window.boPick=boPick;
+window.showBOResults=showBOResults;
+
+
+async function saveBoxOffice(){
+  var saved=0;
+  var dateLabel=_boData.length&&_boData[0].bo.dateHeader?_boData[0].bo.dateHeader:'';
+  for(var i=0;i<_boData.length;i++){
+    var item=_boData[i];
+    if(!item.match)continue;
+    var update={
+      boITDate:dateLabel,
+      boITGiorno:item.bo.incassoGiorno,
+      boITTotale:item.bo.incassoTotale,
+      boITPos:item.bo.pos,
+      boITNazione:item.bo.nation
+    };
+    // Merge with existing film data
+    var existing=S.films.find(function(f){return f.id===item.match.id;});
+    if(existing){
+      await setDoc(doc(db,'films',item.match.id),Object.assign({},existing,update));
+      saved++;
+    }
+  }
+  co('ovBO');
+  toast(saved+' film aggiornati con dati box office Italia','ok');
+  rf();
+}
+window.saveBoxOffice=saveBoxOffice;
 
 // ── THEME ───────────────────────────────────────────────
 function toggleTheme(){
