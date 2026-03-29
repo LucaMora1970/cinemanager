@@ -505,6 +505,8 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
   <div id="load-connecting" style="display:flex;flex-direction:column;align-items:center;gap:16px">
     <div class="spin"></div>
     <div class="load-txt">Connessione a Firebase…</div>
+    <div id="load-err" style="display:none;font-size:12px;color:#e84a4a;max-width:300px;text-align:center;margin-top:8px"></div>
+    <button id="load-retry-btn" onclick="location.reload()" style="display:none;margin-top:8px;padding:8px 20px;background:#f0801a;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">🔄 Riprova</button>
   </div>
   <div id="load-login" style="display:none;flex-direction:column;align-items:center;gap:20px;text-align:center">
     <div style="font-family:'Playfair Display',serif;font-size:28px;font-weight:900;">Cine<span style="color:#e8c84a">Manager</span></div>
@@ -3626,9 +3628,16 @@ function showApp(user,role){
 
 onAuthStateChanged(auth,async function(user){
   if(!user){showLoginScreen();return;}
+  // Timeout: se dopo 15s non si connette mostra errore
+  var _authTimeout=setTimeout(function(){
+    var errEl=document.getElementById('load-err');
+    var retryBtn=document.getElementById('load-retry-btn');
+    if(errEl){errEl.style.display='block';errEl.textContent='Impossibile connettersi a Firebase. Verifica la connessione internet e riprova.';}
+    if(retryBtn)retryBtn.style.display='block';
+  },15000);
   // Check if user is authorized
   const snap=await new Promise(res=>{
-    const unsub=onSnapshot(doc(db,'settings','users'),s=>{unsub();res(s);});
+    const unsub=onSnapshot(doc(db,'settings','users'),s=>{unsub();res(s);},(err)=>{unsub();console.error('Firebase auth error:',err);res({exists:()=>false,data:()=>({})});});
   });
   const users=snap.exists()?snap.data().list||[]:[];
   // First user ever → auto admin
@@ -3636,6 +3645,7 @@ onAuthStateChanged(auth,async function(user){
     const newUser={email:user.email,name:user.displayName||'',role:'admin',uid:user.uid};
     await setDoc(doc(db,'settings','users'),{list:[newUser]});
     currentUser=newUser;
+    if(typeof _authTimeout!=='undefined')clearTimeout(_authTimeout);
     startListeners();
     showApp(user,'admin');
     return;
@@ -3643,6 +3653,7 @@ onAuthStateChanged(auth,async function(user){
   const found=users.find(u=>u.email.toLowerCase()===user.email.toLowerCase());
   if(!found){showDeniedScreen(user.email);return;}
   currentUser=found;
+  if(typeof _authTimeout!=='undefined')clearTimeout(_authTimeout);
   startListeners();
   showApp(user,found.role);
 });
