@@ -2762,7 +2762,7 @@ async function pPDF(type){
 
   // ── Genera il PDF tramite Blob URL (non richiede popup) ──
   const pageOverride=type==='cartelli'?'<style>@page{size:A4 landscape!important;margin:12mm;}body{width:277mm;}</style>':'';
-  const fullHTML='<!DOCTYPE html><html><head><meta charset="UTF-8">'+pageOverride+'<style>body{font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#111;background:#fff;}@media print{body{margin:0;}}</style></head><body>'+html+'</body></html>';
+  const fullHTML='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+CN+'</title>'+PDF_STYLE+pageOverride+'</head><body>'+html+'</body></html>';
   const blob=new Blob([fullHTML],{type:'text/html;charset=utf-8'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
