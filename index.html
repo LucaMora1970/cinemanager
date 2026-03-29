@@ -9,7 +9,7 @@
   <!-- v20260329-1311 -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CineManager — Cinema Multisala</title>
-  <!-- build:29/03/2026 18:04 -->
+  <!-- build:29/03 18:22 29/03/2026 18:04 -->
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -535,6 +535,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="wlbl" id="wlbl">—</div>
     <button onclick="cw(1)">›</button>
   </div>
+  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v29/03 18:22</small>
   <div class="hact">
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
     <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
@@ -3657,6 +3658,9 @@ function showApp(user,role){
   document.querySelector('header').style.display='flex';
   document.querySelector('.tabs').style.display='flex';
   document.querySelector('main').style.display='block';
+  // Reveal the header actions block (has display:none !important by default)
+  const hact=document.querySelector('.hact');
+  if(hact){hact.style.cssText='display:flex !important;align-items:center;gap:8px;';}
   // Show FAB
   const fab=document.querySelector('.fab');
   if(fab)fab.style.display='flex';
