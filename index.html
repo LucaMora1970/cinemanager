@@ -5554,74 +5554,152 @@ window.socialRenderCarousel=socialRenderCarousel;
 
 function drawSlideText(ctx,film,fShows,wd,days,W,H,fmt){
   var isStory=fmt==='story';
+  var isLand=fmt==='landscape';
   var DIT2=['Gio','Ven','Sab','Dom','Lun','Mar','Mer'];
+  var px=function(v){return Math.round(v);};
 
-  // Barra brand in alto
+  // Barra brand in cima
   ctx.fillStyle='#e8c84a';
-  ctx.fillRect(0,0,W,isStory?5:4);
+  ctx.fillRect(0,0,W,isStory?6:4);
 
-  // Titolo cinema in alto
-  ctx.fillStyle='rgba(232,200,74,0.85)';
-  ctx.font='bold '+(isStory?13:11)+'px Arial,sans-serif';
+  // Label cinema in alto
+  ctx.fillStyle='rgba(232,200,74,0.75)';
+  ctx.font='bold '+(isStory?11:9)+'px Arial,sans-serif';
   ctx.textAlign='left';
-  ctx.fillText('CINEMA MULTISALA TEATRO MENDRISIO',14,isStory?26:22);
+  ctx.letterSpacing='1px';
+  ctx.fillText('CINEMA MULTISALA \u00b7 TEATRO MENDRISIO',14,isStory?24:19);
 
-  // Titolo film (grande, in basso)
-  var titleY=H-(isStory?180:150);
-  ctx.fillStyle='#ffffff';
-  var titleSize=isStory?28:22;
-  ctx.font='bold '+titleSize+'px Arial,sans-serif';
-  // Tronca titolo se troppo lungo
-  var title=film.title.toUpperCase();
-  while(ctx.measureText(title).width>W-28&&title.length>10){title=title.slice(0,-1);}
-  if(title!==film.title.toUpperCase())title=title.trim()+'…';
-  ctx.fillText(title,14,titleY);
-
-  // Meta: durata · rating · distributore
-  var dur=film.duration?Math.floor(film.duration/60)+'h'+String(film.duration%60).padStart(2,'0'):'';
-  var meta=[dur,film.rating,film.genre].filter(Boolean).join(' · ');
-  if(meta){
-    ctx.fillStyle='rgba(255,255,255,0.7)';
-    ctx.font=(isStory?14:12)+'px Arial,sans-serif';
-    ctx.fillText(meta,14,titleY+(isStory?26:22));
-  }
-
-  // Orari raggruppati per giorno
+  // ── Calcola zona orari in basso ──────────────────────
+  // Raggruppa per giorno con orari e sala
   var byDay={};var dayOrd=[];
   fShows.forEach(function(s){
     var di=wd.indexOf(s.day);if(di<0)return;
-    if(!byDay[di]){byDay[di]=[];dayOrd.push(di);}
-    byDay[di].push(s.start);
+    if(!byDay[di]){byDay[di]={times:[],sala:s.sala};dayOrd.push(di);}
+    if(byDay[di].times.indexOf(s.start)<0)byDay[di].times.push(s.start);
   });
-  var schedY=H-(isStory?130:100);
-  ctx.font='bold '+(isStory?13:11)+'px Arial,sans-serif';
-  dayOrd.slice(0,7).forEach(function(di,i){
-    var x=14+(i*Math.floor((W-28)/Math.min(dayOrd.length,7)));
-    var dayName=DIT2[di]||'?';
-    var times=byDay[di].join(' ');
-    ctx.fillStyle='rgba(232,200,74,0.9)';
-    ctx.textAlign='left';
-    ctx.fillText(dayName,x,schedY);
-    ctx.fillStyle='rgba(255,255,255,0.85)';
-    ctx.font=(isStory?11:10)+'px Arial,sans-serif';
-    ctx.fillText(times,x,schedY+(isStory?16:14));
-    ctx.font='bold '+(isStory?13:11)+'px Arial,sans-serif';
-  });
+  dayOrd.sort(function(a,b){return a-b;});
 
-  // Link biglietteria
-  var linkY=H-(isStory?70:50);
-  if(film.ticketUrl){
-    ctx.fillStyle='rgba(255,255,255,0.6)';
-    ctx.font=(isStory?12:10)+'px Arial,sans-serif';
-    ctx.textAlign='left';
-    var shortUrl=film.ticketUrl.replace(/^https?:\/\/(www\.)?/,'').slice(0,50);
-    ctx.fillText('\uD83C\uDFAB '+shortUrl,14,linkY);
+  var nDays=dayOrd.length;
+  if(!nDays){
+    // Nessun orario — solo titolo
+    ctx.fillStyle='#ffffff';
+    ctx.font='bold '+(isStory?30:22)+'px Arial,sans-serif';
+    ctx.fillText(film.title.toUpperCase().slice(0,20),14,H*0.65);
+    return;
   }
 
-  // Website in basso
-  ctx.fillStyle='rgba(255,255,255,0.5)';
-  ctx.font=(isStory?12:10)+'px Arial,sans-serif';
-  ctx.fillText('mendrisiocinema.ch',14,H-16);
+  // ── Zona orari: altezza fissa in basso ──
+  // Story: 180px, Quadrato: 140px, Landscape: 100px
+  var schedH=isStory?180:isLand?100:140;
+  var schedY=H-schedH;
+
+  // Gradient overlay scuro sulla locandina
+  var grad=ctx.createLinearGradient(0,schedY-60,0,H);
+  grad.addColorStop(0,'rgba(0,0,0,0)');
+  grad.addColorStop(0.3,'rgba(0,0,0,0.75)');
+  grad.addColorStop(1,'rgba(0,0,0,0.95)');
+  ctx.fillStyle=grad;
+  ctx.fillRect(0,schedY-60,W,H-(schedY-60));
+
+  // ── Titolo film ──
+  var titleSize=isStory?26:isLand?16:20;
+  ctx.fillStyle='#ffffff';
+  ctx.font='bold '+titleSize+'px Arial,sans-serif';
+  ctx.textAlign='left';
+  var title=film.title.toUpperCase();
+  var maxW=W-28;
+  while(ctx.measureText(title).width>maxW&&title.length>6){title=title.slice(0,-1);}
+  if(title!==film.title.toUpperCase())title=title.trim()+'\u2026';
+  var titleY=schedY-(isStory?58:isLand?30:42);
+  ctx.fillText(title,14,titleY);
+
+  // Meta: durata · rating
+  var dur=film.duration?Math.floor(film.duration/60)+'h'+String(film.duration%60).padStart(2,'0'):'';
+  var meta=[dur,film.rating,film.genre].filter(Boolean).join(' \u00b7 ');
+  if(meta){
+    ctx.fillStyle='rgba(255,255,255,0.6)';
+    ctx.font=(isStory?12:10)+'px Arial,sans-serif';
+    ctx.fillText(meta,14,titleY+(isStory?20:16));
+  }
+
+  // Linea separatrice oro
+  var lineY=schedY-(isStory?22:isLand?14:16);
+  ctx.strokeStyle='rgba(232,200,74,0.35)';
+  ctx.lineWidth=0.5;
+  ctx.beginPath();ctx.moveTo(14,lineY);ctx.lineTo(W-14,lineY);ctx.stroke();
+
+  // Label ORARI
+  var labelY=schedY-(isStory?8:isLand?5:6);
+  ctx.fillStyle='rgba(232,200,74,0.5)';
+  ctx.font='bold '+(isStory?8:7)+'px Arial,sans-serif';
+  ctx.textAlign='center';
+  ctx.fillText('ORARI IN PROGRAMMAZIONE',W/2,labelY);
+
+  // ── GRIGLIA BLOCCHI GIORNO ──
+  // 4 blocchi per riga, 2 righe max
+  var COLS=Math.min(4,nDays);
+  var ROWS=Math.ceil(nDays/COLS);
+  var padX=14;
+  var blockW=Math.floor((W-padX*2-3*(COLS-1))/COLS);
+  var blockH=isStory?38:isLand?30:34;
+  var gapY=4;
+  var gridStartY=schedY+4;
+
+  dayOrd.forEach(function(di,i){
+    var col=i%COLS;
+    var row=Math.floor(i/COLS);
+    var bx=padX+col*(blockW+3);
+    var by=gridStartY+row*(blockH+gapY);
+    var isNear=i<4; // prime 4 date = più luminose
+
+    // Sfondo blocco
+    ctx.fillStyle=isNear?'rgba(232,200,74,0.2)':'rgba(232,200,74,0.08)';
+    ctx.strokeStyle=isNear?'rgba(232,200,74,0.5)':'rgba(232,200,74,0.2)';
+    ctx.lineWidth=0.5;
+    ctx.beginPath();
+    var r=3;
+    ctx.moveTo(bx+r,by);ctx.lineTo(bx+blockW-r,by);ctx.arcTo(bx+blockW,by,bx+blockW,by+r,r);
+    ctx.lineTo(bx+blockW,by+blockH-r);ctx.arcTo(bx+blockW,by+blockH,bx+blockW-r,by+blockH,r);
+    ctx.lineTo(bx+r,by+blockH);ctx.arcTo(bx,by+blockH,bx,by+blockH-r,r);
+    ctx.lineTo(bx,by+r);ctx.arcTo(bx,by,bx+r,by,r);ctx.closePath();
+    ctx.fill();ctx.stroke();
+
+    // Giorno + data
+    var dayStr=DIT2[di]||'?';
+    var dateStr='';
+    if(wd[di]){var dp=wd[di].split('-');dateStr=' '+dp[2]+'/'+dp[1];}
+    ctx.fillStyle=isNear?'#e8c84a':'rgba(232,200,74,0.65)';
+    ctx.font='bold '+(isStory?9:8)+'px Arial,sans-serif';
+    ctx.textAlign='center';
+    var cx=bx+blockW/2;
+    ctx.fillText((dayStr+dateStr).toUpperCase(),cx,by+(isStory?13:11));
+
+    // Orari (possono essere più di uno)
+    var times=byDay[di].times.sort();
+    var timeStr=times.join(' ');
+    var timeSize=isStory?13:isLand?10:11;
+    ctx.fillStyle=isNear?'#ffffff':'rgba(255,255,255,0.65)';
+    ctx.font='bold '+timeSize+'px Arial,sans-serif';
+    // Scala se troppo largo
+    while(ctx.measureText(timeStr).width>blockW-6&&timeSize>8){
+      timeSize--;ctx.font='bold '+timeSize+'px Arial,sans-serif';
+    }
+    ctx.fillText(timeStr,cx,by+blockH-(isStory?8:6));
+  });
+
+  // Link biglietteria + sito
+  var footY=gridStartY+ROWS*(blockH+gapY)+4;
+  if(film.ticketUrl&&footY<H-8){
+    ctx.fillStyle='rgba(255,255,255,0.4)';
+    ctx.font=(isStory?9:8)+'px Arial,sans-serif';
+    ctx.textAlign='left';
+    var shortUrl=film.ticketUrl.replace(/^https?:\/\/(www\.)?/,'').slice(0,45);
+    ctx.fillText('\uD83C\uDFAB '+shortUrl,14,footY+10);
+  }
+  ctx.fillStyle='rgba(255,255,255,0.35)';
+  ctx.font=(isStory?9:8)+'px Arial,sans-serif';
+  ctx.textAlign='right';
+  ctx.fillText('mendrisiocinema.ch',W-14,H-6);
 }
 
 function socialDownloadAll(){
