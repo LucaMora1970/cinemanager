@@ -585,6 +585,8 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div style="display:flex;align-items:center;gap:10px"><span class="fl">Vista:</span>
       <select id="ls" onchange="rl()">
         <option value="cards">Card per Film</option>
+        <option value="giorno">📅 Card per Giorno</option>
+        <option value="giorno-sala">🎭 Card Giorno × Sala</option>
         <option value="dt">Lista per Data/Ora</option>
         <option value="sala">Lista per Sala</option>
         <option value="day">Lista per Giorno</option>
@@ -1619,13 +1621,15 @@ function rs(){
           const icon=BOOK_ICONS[b.type]||'📋';
           const typeLabel=BOOK_TYPES[b.type]||b.type;
           const delBtn=canEdit?'<button class="book-slot-del" data-bid="'+b.id+'" onclick="event.stopPropagation();(function(el){delBook(el.dataset.bid);})(this)" title="Elimina">×</button>':'';
-          html.push('<div class="book-slot" data-bid="'+b.id+'" style="color:'+sl.col+';border-color:'+sl.col+'" onclick="event.stopPropagation();(function(el){editBook(el.dataset.bid);})(this)" title="'+typeLabel+': '+b.name+'">'+            +delBtn
+          html.push(
+            '<div class="book-slot" data-bid="'+b.id+'" style="color:'+sl.col+';border-color:'+sl.col+';border-left-color:'+sl.col+'" onclick="event.stopPropagation();(function(el){editBook(el.dataset.bid);})(this)" title="'+typeLabel+': '+b.name+'">'
+            +delBtn
             +'<div class="book-slot-type">'+icon+' '+typeLabel+'</div>'
             +'<div class="book-slot-name">'+b.name+'</div>'
-            +(bFilm?'<div class="book-slot-time">'+bFilm.title+'</div>':'')
             +'<div class="book-slot-time">'+bDate.start+(bDate.end?' → '+bDate.end:'')+'</div>'
-            +(b.seats?'<div class="book-slot-time">💺 '+b.seats+' posti</div>':'')
-            +'</div>');
+            +(b.seats?'<div class="book-slot-time">💺 '+b.seats+'</div>':'')
+            +'</div>'
+          );
         });
 
         if(rowShows.length){
@@ -1698,6 +1702,69 @@ function rl(){
     });
     h+='</div>';
     w.innerHTML=h;
+    return;
+  }
+
+  // ── VISTA: Card per Giorno ──────────────────────────────
+  if(sort==='giorno'){
+    let h='';
+    const dayMap={};
+    shows.forEach(function(s){if(!dayMap[s.day])dayMap[s.day]=[];dayMap[s.day].push(s);});
+    Object.keys(dayMap).sort().forEach(function(ds){
+      const di=wd.indexOf(ds);
+      const dayLabel=di>=0?DIT[di]+' '+fs(days[di]):ds;
+      const dayShows=dayMap[ds].slice().sort((a,b)=>a.start.localeCompare(b.start));
+      h+='<div class="lday-card">';
+      h+='<div class="lday-head"><span class="lday-name">'+dayLabel+'</span><span class="lday-count">'+dayShows.length+' spettacol'+(dayShows.length===1?'o':'i')+'</span></div>';
+      h+='<div class="lday-shows">';
+      dayShows.forEach(function(s){
+        const film=S.films.find(f=>f.id===s.filmId);
+        const sl=SALE[s.sala]||{n:'Sala '+s.sala,col:'#888',bc:'sb1'};
+        h+='<div class="lday-row">'
+          +'<span class="lday-time">'+s.start+'</span>'
+          +'<span class="lday-sala"><span class="sb '+sl.bc+'">'+sl.n+'</span></span>'
+          +'<span class="lday-film">'+(film?film.title:'—')+'</span>'
+          +'<span class="lday-dur">'+(film&&film.duration?Math.floor(film.duration/60)+'h'+String(film.duration%60).padStart(2,'0'):'')+'</span>'
+          +'</div>';
+      });
+      h+='</div></div>';
+    });
+    w.innerHTML=h||'<div class="empty"><div class="ei2">📅</div><div class="et">Nessuno spettacolo questa settimana</div></div>';
+    return;
+  }
+
+  // ── VISTA: Card Giorno × Sala ────────────────────────────
+  if(sort==='giorno-sala'){
+    const SALE_IDS=['1','2','3','4'];
+    let h='';
+    const dayMap={};
+    shows.forEach(function(s){if(!dayMap[s.day])dayMap[s.day]=[];dayMap[s.day].push(s);});
+    Object.keys(dayMap).sort().forEach(function(ds){
+      const di=wd.indexOf(ds);
+      const dayLabel=di>=0?DIT[di]+' '+fs(days[di]):ds;
+      const dayShows=dayMap[ds];
+      h+='<div class="lgs-day">';
+      h+='<div class="lday-head"><span class="lday-name">'+dayLabel+'</span><span class="lday-count">'+dayShows.length+' spettacol'+(dayShows.length===1?'o':'i')+'</span></div>';
+      h+='<div class="lgs-grid">';
+      SALE_IDS.forEach(function(sid){
+        const sl=SALE[sid];
+        const salaShows=dayShows.filter(function(s){return s.sala==sid;}).sort((a,b)=>a.start.localeCompare(b.start));
+        if(!salaShows.length)return;
+        h+='<div class="lgs-sala-card" style="border-top-color:'+sl.col+'">';
+        h+='<div class="lgs-sala-head" style="color:'+sl.col+'"><span class="sdot" style="background:'+sl.col+'"></span>'+sl.n+'</div>';
+        salaShows.forEach(function(s){
+          const film=S.films.find(f=>f.id===s.filmId);
+          h+='<div class="lday-row">'
+            +'<span class="lday-time">'+s.start+'</span>'
+            +'<span class="lday-film">'+(film?film.title:'—')+'</span>'
+            +'<span class="lday-dur">'+(film&&film.duration?Math.floor(film.duration/60)+'h'+String(film.duration%60).padStart(2,'0'):'')+'</span>'
+            +'</div>';
+        });
+        h+='</div>';
+      });
+      h+='</div></div>';
+    });
+    w.innerHTML=h||'<div class="empty"><div class="ei2">📅</div><div class="et">Nessuno spettacolo questa settimana</div></div>';
     return;
   }
 
@@ -2481,38 +2548,62 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:8.5px;color:#111;backgroun
 
 /* ── BOOKING SLOTS IN PROGRAMMAZIONE GRID ── */
 .book-slot{
-  border:2px dashed currentColor;
   border-radius:5px;
-  padding:5px 8px 5px 10px;
+  padding:5px 22px 5px 9px;
   margin-bottom:3px;
   cursor:pointer;
   position:relative;
-  background:rgba(0,0,0,.35);
-  transition:transform .12s,opacity .12s;
-  border-left-width:4px;
-  border-left-style:solid;
+  background:rgba(0,0,0,.30);
+  border-left:3px solid currentColor;
+  border-top:1px dashed currentColor;
+  border-right:1px dashed currentColor;
+  border-bottom:1px dashed currentColor;
+  transition:transform .12s;
 }
-.book-slot:hover{transform:translateX(2px);opacity:.9;}
+.book-slot:hover{transform:translateX(2px);}
 .book-slot-type{
-  font-size:9px;font-weight:800;text-transform:uppercase;
-  letter-spacing:.5px;opacity:.9;line-height:1.3;
-  display:flex;align-items:center;gap:3px;
+  font-size:9px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.4px;opacity:.75;line-height:1.4;
 }
 .book-slot-name{
   font-size:12px;font-weight:700;line-height:1.3;
-  margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  margin-top:1px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  max-width:100%;
 }
 .book-slot-time{
-  font-size:10px;font-family:monospace;
-  opacity:.7;margin-top:1px;
+  font-size:11px;font-family:monospace;
+  font-weight:600;opacity:.85;margin-top:2px;
 }
 .book-slot-del{
   position:absolute;top:3px;right:4px;
   background:none;border:none;color:inherit;
-  cursor:pointer;font-size:13px;opacity:0;padding:0;line-height:1;
+  cursor:pointer;font-size:14px;opacity:0;padding:0;line-height:1;
 }
-.book-slot:hover .book-slot-del{opacity:.6;}
+.book-slot:hover .book-slot-del{opacity:.5;}
 .book-slot-del:hover{opacity:1!important;}
+
+
+/* ── LISTA: Card per Giorno ── */
+.lday-card{background:var(--surf);border:1px solid var(--bdr);border-radius:10px;margin-bottom:14px;overflow:hidden;}
+.lday-head{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--surf2);border-bottom:2px solid var(--bdr);}
+.lday-name{font-size:15px;font-weight:700;color:var(--txt);}
+.lday-count{font-size:11px;font-weight:600;color:var(--acc);background:rgba(232,200,74,.12);border:1px solid rgba(232,200,74,.25);border-radius:10px;padding:2px 9px;}
+.lday-shows{display:flex;flex-direction:column;}
+.lday-row{display:grid;grid-template-columns:52px 90px 1fr 44px;align-items:center;padding:8px 16px;border-bottom:1px solid var(--bdr);gap:8px;transition:background .1s;}
+.lday-row:last-child{border-bottom:none;}
+.lday-row:hover{background:var(--surf2);}
+.lday-time{font-family:monospace;font-size:13px;font-weight:700;color:var(--txt);}
+.lday-sala{font-size:11px;}
+.lday-film{font-size:13px;font-weight:600;color:var(--txt);}
+.lday-dur{font-size:11px;color:var(--txt2);text-align:right;}
+
+/* ── LISTA: Card Giorno × Sala ── */
+.lgs-day{margin-bottom:20px;}
+.lgs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:10px;}
+.lgs-sala-card{background:var(--surf);border:1px solid var(--bdr);border-top:3px solid;border-radius:8px;overflow:hidden;}
+.lgs-sala-head{display:flex;align-items:center;gap:6px;padding:7px 12px;font-size:12px;font-weight:700;background:var(--surf2);border-bottom:1px solid var(--bdr);}
+.lgs-sala-card .lday-row{grid-template-columns:50px 1fr 40px;padding:6px 12px;}
 
 /* ── PRENOTAZIONI ── */
 .book-pill{border-radius:5px;padding:5px 7px;margin-bottom:3px;border-left:3px solid #e84a4a;background:rgba(232,74,74,.12);position:relative;cursor:pointer;transition:transform .1s;}
@@ -2648,38 +2739,62 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:8.5px;color:#111;backgroun
 
 /* ── BOOKING SLOTS IN PROGRAMMAZIONE GRID ── */
 .book-slot{
-  border:2px dashed currentColor;
   border-radius:5px;
-  padding:5px 8px 5px 10px;
+  padding:5px 22px 5px 9px;
   margin-bottom:3px;
   cursor:pointer;
   position:relative;
-  background:rgba(0,0,0,.35);
-  transition:transform .12s,opacity .12s;
-  border-left-width:4px;
-  border-left-style:solid;
+  background:rgba(0,0,0,.30);
+  border-left:3px solid currentColor;
+  border-top:1px dashed currentColor;
+  border-right:1px dashed currentColor;
+  border-bottom:1px dashed currentColor;
+  transition:transform .12s;
 }
-.book-slot:hover{transform:translateX(2px);opacity:.9;}
+.book-slot:hover{transform:translateX(2px);}
 .book-slot-type{
-  font-size:9px;font-weight:800;text-transform:uppercase;
-  letter-spacing:.5px;opacity:.9;line-height:1.3;
-  display:flex;align-items:center;gap:3px;
+  font-size:9px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.4px;opacity:.75;line-height:1.4;
 }
 .book-slot-name{
   font-size:12px;font-weight:700;line-height:1.3;
-  margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  margin-top:1px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  max-width:100%;
 }
 .book-slot-time{
-  font-size:10px;font-family:monospace;
-  opacity:.7;margin-top:1px;
+  font-size:11px;font-family:monospace;
+  font-weight:600;opacity:.85;margin-top:2px;
 }
 .book-slot-del{
   position:absolute;top:3px;right:4px;
   background:none;border:none;color:inherit;
-  cursor:pointer;font-size:13px;opacity:0;padding:0;line-height:1;
+  cursor:pointer;font-size:14px;opacity:0;padding:0;line-height:1;
 }
-.book-slot:hover .book-slot-del{opacity:.6;}
+.book-slot:hover .book-slot-del{opacity:.5;}
 .book-slot-del:hover{opacity:1!important;}
+
+
+/* ── LISTA: Card per Giorno ── */
+.lday-card{background:var(--surf);border:1px solid var(--bdr);border-radius:10px;margin-bottom:14px;overflow:hidden;}
+.lday-head{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--surf2);border-bottom:2px solid var(--bdr);}
+.lday-name{font-size:15px;font-weight:700;color:var(--txt);}
+.lday-count{font-size:11px;font-weight:600;color:var(--acc);background:rgba(232,200,74,.12);border:1px solid rgba(232,200,74,.25);border-radius:10px;padding:2px 9px;}
+.lday-shows{display:flex;flex-direction:column;}
+.lday-row{display:grid;grid-template-columns:52px 90px 1fr 44px;align-items:center;padding:8px 16px;border-bottom:1px solid var(--bdr);gap:8px;transition:background .1s;}
+.lday-row:last-child{border-bottom:none;}
+.lday-row:hover{background:var(--surf2);}
+.lday-time{font-family:monospace;font-size:13px;font-weight:700;color:var(--txt);}
+.lday-sala{font-size:11px;}
+.lday-film{font-size:13px;font-weight:600;color:var(--txt);}
+.lday-dur{font-size:11px;color:var(--txt2);text-align:right;}
+
+/* ── LISTA: Card Giorno × Sala ── */
+.lgs-day{margin-bottom:20px;}
+.lgs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:10px;}
+.lgs-sala-card{background:var(--surf);border:1px solid var(--bdr);border-top:3px solid;border-radius:8px;overflow:hidden;}
+.lgs-sala-head{display:flex;align-items:center;gap:6px;padding:7px 12px;font-size:12px;font-weight:700;background:var(--surf2);border-bottom:1px solid var(--bdr);}
+.lgs-sala-card .lday-row{grid-template-columns:50px 1fr 40px;padding:6px 12px;}
 
 /* ── PRENOTAZIONI ── */
 .book-pill{border-radius:5px;padding:5px 7px;margin-bottom:3px;border-left:3px solid #e84a4a;background:rgba(232,74,74,.12);position:relative;cursor:pointer;transition:transform .1s;}
