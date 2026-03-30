@@ -905,6 +905,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     </div>
   </div>
   <div id="pl-week" style="font-size:12px;color:var(--txt2);margin-bottom:14px;padding:0 2px"></div>
+  <div style="font-size:11px;color:var(--txt2);margin-bottom:8px">Mostra tutti i film in programma nella sala selezionata — scegli i trailer da proiettare prima di ogni film</div>
   <div id="pl-list"></div>
 </div>
 
@@ -1207,40 +1208,110 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
       </div>
     </div>
 
-    <!-- OpenAir specific fields -->
+    <!-- ══ CineTour OpenAir: campi specifici ══ -->
     <div id="oaFields" style="display:none">
-      <div class="fgr">
+
+      <!-- Separatore visivo -->
+      <div style="background:linear-gradient(135deg,rgba(13,92,138,.15),rgba(13,92,138,.05));border:1px solid rgba(13,92,138,.3);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+        <div style="font-size:11px;font-weight:700;color:#4ab4e8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">☀ CineTour Open Air — Dati Evento</div>
+
+        <!-- Postazione -->
         <div class="fr"><label class="flb">Postazione</label>
           <select id="bOAPost">
             <option value="OA1">CineTour A</option>
             <option value="OA2">CineTour B</option>
           </select>
         </div>
+
+        <!-- Località -->
         <div class="fr"><label class="flb">📍 Località *</label>
-          <input type="text" id="bLocation" placeholder="Es. Piazza Grande Mendrisio...">
+          <input type="text" id="bLocation" placeholder="Es. Piazza Grande Mendrisio, Parco Comunale...">
         </div>
-      </div>
-      <div class="fr"><label class="flb">Film</label>
-        <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
-          <label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer">
-            <input type="radio" name="bOAFilmMode" value="arch" onchange="onOAFilmMode()" checked> Dall'archivio
-          </label>
-          <label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer">
-            <input type="radio" name="bOAFilmMode" value="free" onchange="onOAFilmMode()"> Titolo libero
-          </label>
+
+        <!-- Data e Ora -->
+        <div class="fr">
+          <label class="flb">📅 Data e Ora *</label>
+          <div style="display:flex;gap:7px;margin-bottom:6px">
+            <input type="date" id="bDateInput" style="flex:2;min-width:130px">
+            <input type="time" id="bStart" value="21:00" list="oaTimeList" style="flex:1;min-width:90px">
+            <datalist id="oaTimeList"><option value="20:30"><option value="20:45"><option value="21:00"><option value="21:15"></datalist>
+            <span style="align-self:center;color:var(--txt2);font-size:12px;flex-shrink:0">→</span>
+            <input type="time" id="bEnd" value="23:00" style="flex:1;min-width:90px">
+            <button type="button" class="btn ba" onclick="addBookDate()">＋</button>
+          </div>
+          <div class="date-chips" id="bDates"></div>
+          <div style="font-size:10px;color:var(--txt2);margin-top:4px">Aggiungi tutte le date della stagione</div>
         </div>
-        <select id="bOAFilm" style="width:100%"><option value="">— Seleziona film —</option></select>
-        <input type="text" id="bOAFilmFree" placeholder="Titolo del film..." style="width:100%;display:none">
-      </div>
-      <div class="fr" id="bOADistRow" style="display:none">
-        <label class="flb">Distributore</label>
-        <select id="bOADistSel" style="width:100%;margin-bottom:5px"><option value="">— Seleziona distributore —</option></select>
-        <input type="text" id="bOADistFree" placeholder="o inserisci distributore manualmente...">
-      </div>
-      <div style="background:var(--surf2);border:1px solid var(--bdr);border-radius:6px;padding:8px 12px;font-size:11px;color:var(--txt2);margin-bottom:8px">
-        💡 Aggiungi tutte le date della stagione OpenAir usando il selettore date sotto. Le fasce orarie disponibili: 20:30 · 20:45 · 21:00 · 21:15
-      </div>
-    </div>
+
+        <!-- Film: archivio o titolo libero -->
+        <div class="fr"><label class="flb">🎬 Film</label>
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+            <label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer">
+              <input type="radio" name="bOAFilmMode" value="arch" onchange="onOAFilmMode()" checked> Dall'archivio
+            </label>
+            <label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer">
+              <input type="radio" name="bOAFilmMode" value="free" onchange="onOAFilmMode()"> Titolo libero
+            </label>
+          </div>
+          <select id="bOAFilm" style="width:100%"><option value="">— Seleziona film dall'archivio —</option></select>
+          <input type="text" id="bOAFilmFree" placeholder="Inserisci titolo del film..." style="width:100%;display:none;margin-top:5px">
+        </div>
+
+        <!-- Distributore (solo titolo libero) -->
+        <div class="fr" id="bOADistRow" style="display:none">
+          <label class="flb">Distributore</label>
+          <select id="bOADistSel" style="width:100%;margin-bottom:5px"><option value="">— Seleziona distributore —</option></select>
+          <input type="text" id="bOADistFree" placeholder="o inserisci distributore manualmente...">
+        </div>
+
+        <!-- Nome Cliente -->
+        <div class="fr"><label class="flb">👤 Nome Cliente *</label>
+          <input type="text" id="bOACliente" placeholder="Es. Mario Rossi, Comune di Mendrisio...">
+        </div>
+
+        <!-- Nome Evento -->
+        <div class="fr"><label class="flb">🎪 Nome Evento *</label>
+          <input type="text" id="bName" placeholder="Es. CineTour Estate 2026, Notte del Cinema...">
+        </div>
+
+        <!-- Contatto -->
+        <div class="fr"><label class="flb">📞 Contatto (tel / email)</label>
+          <input type="text" id="bContact" placeholder="Tel o email del referente">
+        </div>
+
+        <!-- Film prenotato e scaricato -->
+        <div class="fgr" style="margin-top:6px">
+          <div class="fr">
+            <label class="flb">📋 Film già prenotato</label>
+            <div style="display:flex;gap:12px;margin-top:4px">
+              <label style="font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer">
+                <input type="radio" name="bOAPrenotato" value="si" id="bOAPrenSi" style="accent-color:#4ae87a"> Sì
+              </label>
+              <label style="font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer">
+                <input type="radio" name="bOAPrenotato" value="no" id="bOAPrenNo" checked style="accent-color:#e84a4a"> No
+              </label>
+            </div>
+          </div>
+          <div class="fr">
+            <label class="flb">💾 Film scaricato in library</label>
+            <div style="display:flex;gap:12px;margin-top:4px">
+              <label style="font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer">
+                <input type="radio" name="bOAScaricato" value="si" id="bOAScarSi" style="accent-color:#4ae87a"> Sì
+              </label>
+              <label style="font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer">
+                <input type="radio" name="bOAScaricato" value="no" id="bOAScarNo" checked style="accent-color:#e84a4a"> No
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Note -->
+        <div class="fr"><label class="flb">📝 Note</label>
+          <textarea id="bNote" placeholder="Richieste tecniche, allestimento, note organizzative..."></textarea>
+        </div>
+
+      </div><!-- fine box OA -->
+    </div><!-- fine oaFields -->
     <!-- Nome e contatto cliente -->
     <div class="fgr">
       <div class="fr"><label class="flb">Nome cliente / evento *</label>
@@ -1473,8 +1544,62 @@ function toLocalDate(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padS
 function wdays(){return Array.from({length:7},(_,i)=>{const d=new Date(S.ws);d.setDate(d.getDate()+i);return d;});}
 function wdates(){return wdays().map(d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);}
 function uwl(){const ds=wdays();document.getElementById('wlbl').textContent=`${fd(ds[0])} — ${fd(ds[6])}`;}
-function cw(n){S.ws=new Date(S.ws);S.ws.setDate(S.ws.getDate()+n*7);uwl();rs();
-  if(document.getElementById('page-staff')&&document.getElementById('page-staff').classList.contains('on')){_shiftStart=null;_hoverSlot=null;renderAllDays();}}
+// Ritorna l'id della pagina correntemente visibile
+function currentPage(){
+  const pages=['prog','lista','arch','prnt','mail','book','staff','users','playlist'];
+  return pages.find(function(id){
+    const el=document.getElementById('page-'+id);
+    return el&&el.classList.contains('on');
+  })||'prog';
+}
+
+// Aggiorna la pagina attiva in base alla settimana corrente
+function refreshCurrentPage(){
+  uwl(); // aggiorna sempre il label settimana nell'header
+  const cur=currentPage();
+  switch(cur){
+    case 'prog':
+      rs();
+      break;
+    case 'lista':
+      rs(); rl(); // rs() aggiorna i filtri, rl() la lista
+      break;
+    case 'arch':
+      rs(); rf(); // rf() usa wdates() per badge "questa settimana"
+      break;
+    case 'prnt':
+      rs(); // aggiorna i dati per i PDF
+      break;
+    case 'mail':
+      rs();
+      // Aggiorna date distributori se presenti
+      const df=document.getElementById('dist-week-from');
+      const dt=document.getElementById('dist-week-to');
+      if(df&&dt){const wd=wdates();df.value=wd[0];dt.value=wd[6];}
+      break;
+    case 'book':
+      rs(); renderBookings();
+      break;
+    case 'staff':
+      _shiftStart=null;_hoverSlot=null;
+      renderAllDays();
+      if(document.getElementById('stab-week')&&document.getElementById('stab-week').classList.contains('on'))renderWeekCompact();
+      if(document.getElementById('stab-hours')&&document.getElementById('stab-hours').classList.contains('on'))renderStaffHours();
+      break;
+    case 'playlist':
+      rs(); renderPlaylist();
+      break;
+    default:
+      rs();
+  }
+}
+window.refreshCurrentPage=refreshCurrentPage;
+
+function cw(n){
+  S.ws=new Date(S.ws);
+  S.ws.setDate(S.ws.getDate()+n*7);
+  refreshCurrentPage();
+}
 window.cw=cw;
 
 // ── SYNC ──────────────────────────────────────────────────
@@ -2842,22 +2967,29 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:8.5px;color:#111;backgroun
 
 
 /* ══ PLAYLIST ══════════════════════════════════════════ */
-.pl-film-card{display:flex;flex-direction:column;}
-.pl-poster-wrap{width:100%;height:160px;overflow:hidden;background:var(--surf2);border-bottom:1px solid var(--bdr);}
-.pl-times{display:flex;flex-wrap:wrap;gap:4px;}
-.pl-time{font-size:10px;font-weight:700;font-family:monospace;background:rgba(232,200,74,.12);border:1px solid rgba(232,200,74,.3);color:var(--acc);border-radius:4px;padding:2px 6px;}
-.pl-trailers-section{padding:10px 14px 14px;border-top:1px solid var(--bdr);}
+.pl-trailers-section{padding:10px 14px;border-top:1px solid var(--bdr);border-bottom:1px solid var(--bdr);}
 .pl-trailers-label{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--txt2);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
 .pl-trailers-label::after{content:'';flex:1;height:1px;background:var(--bdr);}
-.pl-4slots{display:flex;flex-direction:column;gap:6px;}
-.pl-slot-wrap{display:grid;grid-template-columns:60px 1fr 24px;gap:6px;align-items:center;}
-.pl-thumb{width:60px;height:34px;border-radius:4px;overflow:hidden;background:var(--surf2);border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0;text-decoration:none;}
-.pl-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
-.pl-thumb-ph{font-size:14px;color:var(--txt2);}
-.pl-thumb-play{position:absolute;width:16px;height:16px;background:rgba(0,0,0,.65);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:7px;color:#fff;pointer-events:none;}
-.pl-trailer-sel{font-size:11px;padding:4px 6px;width:100%;background:var(--surf);border:1px solid var(--bdr);color:var(--txt);border-radius:5px;cursor:pointer;}
+.pl-4slots{display:flex;flex-direction:column;gap:5px;}
+/* Ogni riga slot: thumb 48px + select + clear */
+.pl-slot-row{display:grid;grid-template-columns:48px 1fr 22px;gap:5px;align-items:center;}
+.pl-slot-thumb{
+  width:48px;height:28px;border-radius:3px;overflow:hidden;
+  background:var(--surf2);border:1px solid var(--bdr);
+  display:flex;align-items:center;justify-content:center;
+  position:relative;text-decoration:none;flex-shrink:0;
+}
+.pl-slot-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.pl-slot-empty{font-size:11px;color:var(--txt2);}
+.pl-thumb-play{
+  position:absolute;width:14px;height:14px;
+  background:rgba(0,0,0,.65);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:6px;color:#fff;pointer-events:none;
+}
+.pl-trailer-sel{font-size:11px;padding:3px 5px;width:100%;background:var(--surf);border:1px solid var(--bdr);color:var(--txt);border-radius:4px;cursor:pointer;}
 .pl-trailer-sel:focus{outline:2px solid var(--acc);}
-.pl-trailer-clear{background:none;border:none;color:var(--txt2);cursor:pointer;font-size:14px;padding:0;line-height:1;}
+.pl-trailer-clear{background:none;border:none;color:var(--txt2);cursor:pointer;font-size:13px;padding:0;line-height:1;}
 .pl-trailer-clear:hover{color:var(--red);}
 .pl-empty{text-align:center;padding:40px 20px;color:var(--txt2);font-size:13px;}
 
@@ -3054,22 +3186,29 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:8.5px;color:#111;backgroun
 
 
 /* ══ PLAYLIST ══════════════════════════════════════════ */
-.pl-film-card{display:flex;flex-direction:column;}
-.pl-poster-wrap{width:100%;height:160px;overflow:hidden;background:var(--surf2);border-bottom:1px solid var(--bdr);}
-.pl-times{display:flex;flex-wrap:wrap;gap:4px;}
-.pl-time{font-size:10px;font-weight:700;font-family:monospace;background:rgba(232,200,74,.12);border:1px solid rgba(232,200,74,.3);color:var(--acc);border-radius:4px;padding:2px 6px;}
-.pl-trailers-section{padding:10px 14px 14px;border-top:1px solid var(--bdr);}
+.pl-trailers-section{padding:10px 14px;border-top:1px solid var(--bdr);border-bottom:1px solid var(--bdr);}
 .pl-trailers-label{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--txt2);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
 .pl-trailers-label::after{content:'';flex:1;height:1px;background:var(--bdr);}
-.pl-4slots{display:flex;flex-direction:column;gap:6px;}
-.pl-slot-wrap{display:grid;grid-template-columns:60px 1fr 24px;gap:6px;align-items:center;}
-.pl-thumb{width:60px;height:34px;border-radius:4px;overflow:hidden;background:var(--surf2);border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0;text-decoration:none;}
-.pl-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
-.pl-thumb-ph{font-size:14px;color:var(--txt2);}
-.pl-thumb-play{position:absolute;width:16px;height:16px;background:rgba(0,0,0,.65);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:7px;color:#fff;pointer-events:none;}
-.pl-trailer-sel{font-size:11px;padding:4px 6px;width:100%;background:var(--surf);border:1px solid var(--bdr);color:var(--txt);border-radius:5px;cursor:pointer;}
+.pl-4slots{display:flex;flex-direction:column;gap:5px;}
+/* Ogni riga slot: thumb 48px + select + clear */
+.pl-slot-row{display:grid;grid-template-columns:48px 1fr 22px;gap:5px;align-items:center;}
+.pl-slot-thumb{
+  width:48px;height:28px;border-radius:3px;overflow:hidden;
+  background:var(--surf2);border:1px solid var(--bdr);
+  display:flex;align-items:center;justify-content:center;
+  position:relative;text-decoration:none;flex-shrink:0;
+}
+.pl-slot-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.pl-slot-empty{font-size:11px;color:var(--txt2);}
+.pl-thumb-play{
+  position:absolute;width:14px;height:14px;
+  background:rgba(0,0,0,.65);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:6px;color:#fff;pointer-events:none;
+}
+.pl-trailer-sel{font-size:11px;padding:3px 5px;width:100%;background:var(--surf);border:1px solid var(--bdr);color:var(--txt);border-radius:4px;cursor:pointer;}
 .pl-trailer-sel:focus{outline:2px solid var(--acc);}
-.pl-trailer-clear{background:none;border:none;color:var(--txt2);cursor:pointer;font-size:14px;padding:0;line-height:1;}
+.pl-trailer-clear{background:none;border:none;color:var(--txt2);cursor:pointer;font-size:13px;padding:0;line-height:1;}
 .pl-trailer-clear:hover{color:var(--red);}
 .pl-empty{text-align:center;padding:40px 20px;color:var(--txt2);font-size:13px;}
 
@@ -3197,7 +3336,7 @@ async function pPDF(type){
         const isPrev=di<2;
         const dn=allCartDAB[di]+' '+String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+(isPrev?' ▸':' ');
         const rows=dS.length
-          ? dS.map(function(s){return '<div class="cart-show-row"><span class="cart-show-time">'+s.start+'</span><span class="cart-show-sala">'+sn(s.sala)+'</span></div>';}).join('')
+          ? dS.slice().sort(function(a,b){return a.start.localeCompare(b.start);}).map(function(s){return '<div class="cart-show-row"><span class="cart-show-time">'+s.start+'</span><span class="cart-show-sala">'+sn(s.sala)+'</span></div>';}).join('')
           : '<div class="cart-no-show">—</div>';
         return '<div class="cart-day-card'+(isPrev?' cart-prev-day':'')+'">'
           +'<div class="cart-day-head"><div class="cart-day-name">'+dn+'</div></div>'
@@ -3762,8 +3901,13 @@ function onBTypeChange(){
   const t=document.getElementById('bType').value;
   const isOA=t==='openair';
   document.getElementById('oaFields').style.display=isOA?'block':'none';
+  // Nascondi sezioni generiche per OA (gestite dentro oaFields)
+  const nonOaFields=['bNameRow','bContactRow','bFilmRow','bNoteRow'];
+  nonOaFields.forEach(function(id){const el=document.getElementById(id);if(el)el.style.display=isOA?'none':'';});
   if(isOA){
-    document.getElementById('bStart').value='21:00';
+    // Resetta radios
+    const pno=document.getElementById('bOAPrenNo');if(pno)pno.checked=true;
+    const sno=document.getElementById('bOAScarNo');if(sno)sno.checked=true;
     fillOAFilmDropdown();
     fillOADistDropdown();
   }
@@ -3883,7 +4027,17 @@ function editBook(id){
   if(b.type==='openair'){
     if(document.getElementById('bOAPost')&&b.sala)document.getElementById('bOAPost').value=b.sala;
     if(document.getElementById('bLocation'))document.getElementById('bLocation').value=b.location||'';
+    if(document.getElementById('bOACliente'))document.getElementById('bOACliente').value=b.oaCliente||'';
     if(document.getElementById('bOAFilm')&&b.filmId)document.getElementById('bOAFilm').value=b.filmId;
+    if(document.getElementById('bOAFilmFree'))document.getElementById('bOAFilmFree').value=b.oaFilmTitle||'';
+    // Radios
+    const pVal=b.oaPrenotato||'no';
+    const pEl=document.querySelector('input[name="bOAPrenotato"][value="'+pVal+'"]');
+    if(pEl)pEl.checked=true;
+    const sVal=b.oaScaricato||'no';
+    const sEl=document.querySelector('input[name="bOAScaricato"][value="'+sVal+'"]');
+    if(sEl)sEl.checked=true;
+    if(document.getElementById('bNote'))document.getElementById('bNote').value=b.note||'';
     setBMode('manual');
     return;
   }
@@ -4031,7 +4185,7 @@ function renderBookings(){
     const accent=isOA?'#0d5c8a':'#e84a4a';
     const sid=salaId(b.sala);
     const salaNome=sid&&SALE[sid]?SALE[sid].n:(b.postazione||b.sala||'');
-    const meta=[typeLabel,salaNome?'🎭 '+salaNome:'',b.contact?'📞 '+b.contact:'',isOA&&b.location?'📍 '+b.location:'',b.seats?'💺 '+b.seats+' posti':''].filter(Boolean).join(' · ');
+    const meta=[typeLabel,salaNome?'🎭 '+salaNome:'',b.contact?'📞 '+b.contact:'',isOA&&b.location?'📍 '+b.location:'',isOA&&b.oaCliente?'👤 '+b.oaCliente:'',b.seats?'💺 '+b.seats+' posti':''].filter(Boolean).join(' · ');
     const showDates=(upDates.length?upDates:allDates).slice(0,8);
     const byDay={};
     showDates.forEach(function(d){if(!byDay[d.date])byDay[d.date]=[];byDay[d.date].push(d);});
@@ -4081,7 +4235,8 @@ function renderPlaylist(){
   if(weekEl) weekEl.innerHTML =
     '<span style="color:'+sl.col+'">■</span> <strong>'+sl.n+'</strong> · Settimana '+fd(days[0])+' — '+fd(days[6]);
 
-  // Films in this sala this week, ordered by first show
+  // Tutti i film in programma questa settimana nella sala selezionata
+  // ordinati per prima apparizione (giorno+ora)
   const salaShows = S.shows
     .filter(function(s){return s.sala==sid && wd.includes(s.day);})
     .sort(function(a,b){return a.day.localeCompare(b.day)||a.start.localeCompare(b.start);});
@@ -4098,11 +4253,14 @@ function renderPlaylist(){
     return;
   }
 
-  // Trailer candidates: films with release >= today or no release
+  // Trailer candidates: films with release >= today OR no release
   const trailerCandidates = S.films
     .filter(function(f){return !f.release||f.release>=today;})
-    .sort(function(a,b){return (a.release||'9999').localeCompare(b.release||'9999')||a.title.localeCompare(b.title,'it');});
+    .sort(function(a,b){
+      return (a.release||'9999').localeCompare(b.release||'9999')||a.title.localeCompare(b.title,'it');
+    });
 
+  // ── Griglia stile "Card per Film" ──
   let html = '<div class="lfc-grid">';
 
   filmOrder.forEach(function(fid){
@@ -4111,61 +4269,70 @@ function renderPlaylist(){
 
     if(!_plTrailers[fid]) _plTrailers[fid]=[film.trailer||'','','',''];
 
-    // Orari: badge compatti
-    const byDay={};
-    filmShows[fid].forEach(function(s){if(!byDay[s.day])byDay[s.day]=[];byDay[s.day].push(s);});
-    const timeChips=Object.keys(byDay).sort().flatMap(function(ds){
-      const di=wd.indexOf(ds);
-      const ab=['Gio','Ven','Sab','Dom','Lun','Mar','Mer'];
-      return byDay[ds].map(function(s){return '<span class="pl-time">'+ab[di]+' '+s.start+'</span>';});
-    }).join('');
+    // ── Orari raggruppati per giorno ──
+    const byDay={};const dayOrder=[];
+    filmShows[fid].forEach(function(s){
+      if(!byDay[s.day]){byDay[s.day]=[];dayOrder.push(s.day);}
+      byDay[s.day].push(s);
+    });
 
-    const dur=film.duration?Math.floor(film.duration/60)+'h'+String(film.duration%60).padStart(2,'0'):'';
-    const meta=[film.distributor,dur,film.rating,film.genre].filter(Boolean).join(' · ');
-
-    // Poster
-    const posterHTML=film.poster
-      ?'<img src="'+film.poster+'" alt="" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:8px 8px 0 0">'
-      :'<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:40px;opacity:.3">🎬</div>';
-
-    // 4 trailer slots — build select dropdown per slot
+    // ── 4 slot trailer ──
     let trailerSlots='';
     for(let i=0;i<4;i++){
       const ytId=(_plTrailers[fid]||[])[i]||'';
-      const thumbURL=ytId?'https://img.youtube.com/vi/'+ytId+'/mqdefault.jpg':'';
-      const thumbHTML=ytId
-        ?'<a class="pl-thumb" href="https://www.youtube.com/watch?v='+ytId+'" target="_blank"><img src="'+thumbURL+'" alt=""><span class="pl-thumb-play">&#9658;</span></a>'
-        :'<div class="pl-thumb"><span class="pl-thumb-ph">&#9658;</span></div>';
       let opts='<option value="">— Film per trailer —</option>';
       trailerCandidates.forEach(function(tf){
         if(!tf.trailer)return;
-        const rel=tf.release?' ('+tf.release.split('-').slice(1).reverse().join('/')+')'  :'';
-        const sel2=(tf.trailer===ytId&&ytId)?' selected':'';
-        opts+='<option value="'+tf.trailer+'"'+sel2+'>'+tf.title+rel+'</option>';
+        const rel=tf.release?' ('+tf.release.split('-').slice(1).reverse().join('/')+')':'';
+        const isSel=(tf.trailer===ytId&&ytId)?' selected':'';
+        opts+='<option value="'+tf.trailer+'"'+isSel+'>'+tf.title+rel+'</option>';
       });
-      trailerSlots+='<div class="pl-slot-wrap" id="pltr'+i+'_'+fid.replace(/[^a-z0-9]/gi,'_')+'" data-fid="'+fid+'" data-slot="'+i+'">'
-        +thumbHTML
+      trailerSlots+=
+        '<div class="pl-slot-row" data-fid="'+fid+'" data-slot="'+i+'">'
+        +(ytId
+          ?'<a class="pl-slot-thumb" href="https://www.youtube.com/watch?v='+ytId+'" target="_blank">'
+            +'<img src="https://img.youtube.com/vi/'+ytId+'/default.jpg" alt="">'
+            +'<span class="pl-thumb-play">&#9658;</span></a>'
+          :'<div class="pl-slot-thumb pl-slot-empty"><span>&#9658;</span></div>')
         +'<select class="pl-trailer-sel" data-fid="'+fid+'" data-slot="'+i+'" onchange="plPickTrailer(this)">'+opts+'</select>'
         +(ytId?'<button class="pl-trailer-clear" data-fid="'+fid+'" data-slot="'+i+'" onclick="plClearSlot(this)">&#215;</button>'
               :'<button class="pl-trailer-clear" style="opacity:.2" disabled>&#215;</button>')
         +'</div>';
     }
 
-    html+='<div class="lfc pl-film-card" id="pl-card-'+fid+'" style="border-top-color:'+sl.col+'">'
-      // Poster area full width
-      +'<div class="pl-poster-wrap">'+posterHTML+'</div>'
-      // Info section
-      +'<div class="lfc-head">'
-        +'<div class="lfc-title">'+film.title+'</div>'
-        +'<div class="lfc-meta">'+meta+'</div>'
-        +'<div class="pl-times" style="margin-top:6px">'+timeChips+'</div>'
-      +'</div>'
-      // Trailer slots
-      +'<div class="pl-trailers-section">'
-        +'<div class="pl-trailers-label">Trailer da proiettare</div>'
-        +'<div class="pl-4slots">'+trailerSlots+'</div>'
-      +'</div>'
-      +'</div>';
+    // ── Card struttura = lfc ──
+    html+='<div class="lfc" style="border-top:3px solid '+sl.col+'">';
+
+    // Header: solo titolo + meta compatta
+    html+='<div class="lfc-head">';
+    html+='<div class="lfc-title">'+film.title+'</div>';
+    const dur=film.duration?Math.floor(film.duration/60)+'h'+String(film.duration%60).padStart(2,'0'):'';
+    const meta=[film.distributor,dur,film.rating,film.genre].filter(Boolean).join(' · ');
+    if(meta) html+='<div class="lfc-meta">'+meta+'</div>';
+    html+='</div>';
+
+    // Sezione trailer
+    html+='<div class="pl-trailers-section">';
+    html+='<div class="pl-trailers-label">Trailer da proiettare</div>';
+    html+='<div class="pl-4slots">'+trailerSlots+'</div>';
+    html+='</div>';
+
+    // Sezione orari per giorno (stile lfc-days)
+    html+='<div class="lfc-days">';
+    dayOrder.forEach(function(ds){
+      const di=wd.indexOf(ds);
+      const dayLabel=di>=0?DIT[di].toUpperCase()+' '+fs(days[di]):ds;
+      html+='<div>';
+      html+='<div class="lfc-day-name">'+dayLabel+'</div>';
+      html+='<div class="lfc-slots">';
+      byDay[ds].forEach(function(s){
+        html+='<span class="lfc-slot"><span class="lfc-slot-time">'+s.start+'</span></span>';
+      });
+      html+='</div></div>';
+    });
+    html+='</div>';
+
+    html+='</div>'; // fine lfc
   });
 
   html+='</div>';
