@@ -927,6 +927,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
   <div class="sh">
     <div class="st">▶ Playlist Sale</div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button class="btn ba" onclick="plSuggestAll()" title="Suggerisce i trailer migliori per ogni film in base a genere, rating e data uscita">💡 Suggerisci trailer</button>
       <button class="btn bg bs" onclick="copyPlaylist()">📋 Copia lista</button>
       <button class="btn bg bs" onclick="printPlaylist()">🖨 Stampa</button>
     </div>
@@ -4763,8 +4764,13 @@ function renderPlaylist(){
         +'</div></div>';
     }
     html+='<div class="lfc" style="border-top:3px solid var(--acc)">'
-      +'<div class="lfc-head"><div class="lfc-title" style="color:var(--acc)">'+film.title+'</div>'
-      +(meta?'<div class="lfc-meta">'+meta+'</div>':'')+'</div>'
+      +'<div class="lfc-head" style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px">'
+        +'<div style="flex:1;min-width:0">'
+          +'<div class="lfc-title" style="color:var(--acc)">'+film.title+'</div>'
+          +(meta?'<div class="lfc-meta">'+meta+'</div>':'')
+        +'</div>'
+        +'<button class="pl-suggest-btn" data-fid="'+fid+'" onclick="plSuggestForFilm(this.dataset.fid)" title="Suggerisci trailer per questo film">💡</button>'
+      +'</div>'
       +'<div class="pl-trailers-section"><div class="pl-4slots">'+slots+'</div></div>'
       +'</div>';
   });
@@ -4829,6 +4835,146 @@ function renderPlaylistSala(){
   w.innerHTML=html||'<div class="pl-empty">Nessun film</div>';
 }
 window.renderPlaylistSala=renderPlaylistSala;
+
+// ── SUGGERIMENTO TRAILER ─────────────────────────────
+// Score: genere (40) + rating compatibile (25) + uscita imminente (25) + stesso distributore (10)
+var GENRE_AFFINITY = {
+  'Animazione':    ['Animazione','Commedia','Avventura','Fantasy'],
+  'Commedia':      ['Commedia','Romantico','Drammatico'],
+  'Drammatico':    ['Drammatico','Romantico','Thriller','Biografico'],
+  'Thriller':      ['Thriller','Horror','Azione','Drammatico'],
+  'Horror':        ['Horror','Thriller'],
+  'Azione':        ['Azione','Avventura','Sci-Fi','Thriller'],
+  'Avventura':     ['Avventura','Azione','Fantasy','Animazione'],
+  'Sci-Fi':        ['Sci-Fi','Azione','Avventura','Thriller'],
+  'Fantasy':       ['Fantasy','Avventura','Animazione','Azione'],
+  'Romantico':     ['Romantico','Commedia','Drammatico'],
+  'Documentario':  ['Documentario','Biografico','Drammatico'],
+  'Biografico':    ['Biografico','Drammatico','Documentario'],
+  'Musical':       ['Musical','Commedia','Romantico'],
+  'Western':       ['Western','Azione','Avventura'],
+  'Altro':         []
+};
+
+var RATING_ORDER = ['Per tutti','6+','12+','14+','16+','18+'];
+
+function ratingLevel(r){
+  var idx = RATING_ORDER.indexOf(r);
+  return idx >= 0 ? idx : 3; // default 12+
+}
+
+function trailerScore(mainFilm, trailerFilm, today){
+  if(!trailerFilm || !trailerFilm.trailer) return -1;
+  // Non suggerire il proprio trailer come trailer di un altro film
+  if(trailerFilm.id === mainFilm.id) return -1;
+
+  var score = 0;
+
+  // 1. Genere (0-40 punti)
+  var mainGenre = mainFilm.genre || 'Altro';
+  var trailerGenre = trailerFilm.genre || 'Altro';
+  var affinities = GENRE_AFFINITY[mainGenre] || [];
+  if(trailerGenre === mainGenre) score += 40;
+  else if(affinities.indexOf(trailerGenre) >= 0) score += 20 + (affinities.length - affinities.indexOf(trailerGenre)) * 2;
+
+  // 2. Rating compatibile (0-25 punti)
+  // Il trailer non deve avere rating più alto del film principale
+  var mainLevel = ratingLevel(mainFilm.rating);
+  var trailerLevel = ratingLevel(trailerFilm.rating);
+  if(trailerLevel <= mainLevel) score += 25;
+  else if(trailerLevel === mainLevel + 1) score += 10; // 1 livello sopra: accettabile
+  else return -1; // rating troppo alto: escludi
+
+  // 3. Uscita imminente (0-25 punti)
+  if(trailerFilm.release){
+    var daysUntil = Math.round((new Date(trailerFilm.release) - new Date(today)) / 86400000);
+    if(daysUntil >= 0 && daysUntil <= 14) score += 25;       // uscita entro 2 settimane
+    else if(daysUntil > 14 && daysUntil <= 30) score += 18;  // entro 1 mese
+    else if(daysUntil > 30 && daysUntil <= 60) score += 10;  // entro 2 mesi
+    else if(daysUntil < 0 && daysUntil >= -7) score += 8;    // uscito da meno di 1 settimana
+    else if(daysUntil > 60) score += 3;                       // futuro remoto
+  } else {
+    score += 5; // nessuna data = film evergreen
+  }
+
+  // 4. Stesso distributore (0-10 punti)
+  if(mainFilm.distributor && trailerFilm.distributor &&
+     mainFilm.distributor.toLowerCase() === trailerFilm.distributor.toLowerCase()){
+    score += 10;
+  }
+
+  return score;
+}
+
+function plSuggestTrailersForFilm(mainFilm){
+  var today = new Date().toISOString().slice(0,10);
+
+  // Candidati: film con trailer, con data uscita >= oggi o usciti da meno di 7 giorni
+  var candidates = S.films.filter(function(f){
+    if(!f.trailer) return false;
+    if(f.id === mainFilm.id) return false;
+    if(f.release){
+      var daysUntil = Math.round((new Date(f.release) - new Date(today)) / 86400000);
+      return daysUntil >= -7; // escludi film usciti da più di una settimana
+    }
+    return true; // nessuna data: includi sempre
+  });
+
+  // Calcola score per ogni candidato
+  var scored = candidates.map(function(f){
+    return { film: f, score: trailerScore(mainFilm, f, today) };
+  }).filter(function(x){ return x.score > 0; })
+    .sort(function(a,b){ return b.score - a.score; });
+
+  return scored.slice(0, 4); // top 4
+}
+
+function plSuggestAll(){
+  var wd = wdates();
+  var allShows = S.shows.filter(function(s){ return wd.includes(s.day); });
+  var filmIds = [...new Set(allShows.map(function(s){ return s.filmId; }))];
+  var weekFilms = filmIds.map(function(id){
+    return S.films.find(function(f){ return f.id === id; });
+  }).filter(Boolean);
+
+  if(!weekFilms.length){ toast('Nessun film in programmazione','err'); return; }
+
+  var assigned = 0;
+  weekFilms.forEach(function(film){
+    var suggestions = plSuggestTrailersForFilm(film);
+    if(!suggestions.length) return;
+
+    // Assegna i trailer suggeriti agli slot (max 4)
+    if(!_plTrailers[film.id]) _plTrailers[film.id] = ['','','',''];
+    suggestions.forEach(function(s, i){
+      if(i < 4) _plTrailers[film.id][i] = s.film.trailer;
+    });
+    assigned++;
+  });
+
+  // Aggiorna la UI
+  renderPlaylist();
+  toast(assigned + ' film aggiornati con trailer suggeriti', 'ok');
+}
+window.plSuggestAll = plSuggestAll;
+
+// Suggerisci per un singolo film (dal pulsante nella card)
+function plSuggestForFilm(fid){
+  var film = S.films.find(function(f){ return f.id === fid; });
+  if(!film){ toast('Film non trovato','err'); return; }
+
+  var suggestions = plSuggestTrailersForFilm(film);
+  if(!suggestions.length){ toast('Nessun trailer compatibile trovato','err'); return; }
+
+  if(!_plTrailers[fid]) _plTrailers[fid] = ['','','',''];
+  suggestions.forEach(function(s, i){
+    if(i < 4) _plTrailers[fid][i] = s.film.trailer;
+  });
+
+  renderPlaylist();
+  toast('Trailer suggeriti per ' + film.title, 'ok');
+}
+window.plSuggestForFilm = plSuggestForFilm;
 
 function plPickTrailer(sel){
   const fid=sel.dataset.fid, slot=parseInt(sel.dataset.slot), ytId=sel.value;
