@@ -535,7 +535,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="wlbl" id="wlbl">—</div>
     <button onclick="cw(1)">›</button>
   </div>
-  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v29/03 18:22</small>
+  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v30/03 10:00</small>
   <div class="hact">
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
     <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
@@ -1422,8 +1422,9 @@ function t2m(t){const[h,m]=t.split(':').map(Number);return h*60+m;}
 function r5(t){const[h,m]=t.split(':').map(Number),rm=Math.floor(m/5)*5;return`${String(h).padStart(2,'0')}:${String(rm).padStart(2,'0')}`;}
 function r5m(mins){const rm=Math.floor(mins/5)*5;return`${String(Math.floor(rm/60)%24).padStart(2,'0')}:${String(rm%60).padStart(2,'0')}`;}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
+function toLocalDate(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
 function wdays(){return Array.from({length:7},(_,i)=>{const d=new Date(S.ws);d.setDate(d.getDate()+i);return d;});}
-function wdates(){return wdays().map(d=>d.toISOString().slice(0,10));}
+function wdates(){return wdays().map(d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);}
 function uwl(){const ds=wdays();document.getElementById('wlbl').textContent=`${fd(ds[0])} — ${fd(ds[6])}`;}
 function cw(n){S.ws=new Date(S.ws);S.ws.setDate(S.ws.getDate()+n*7);uwl();rs();
   if(document.getElementById('page-staff')&&document.getElementById('page-staff').classList.contains('on')){_shiftStart=null;_hoverSlot=null;renderAllDays();}}
@@ -1479,13 +1480,26 @@ window.gt=gt;
 
 // ── FILM STATUS ───────────────────────────────────────────
 function filmStatus(f){
-  const t=new Date().toISOString().slice(0,10);
+  const t=toLocalDate(new Date());
   if(f.endDate&&f.endDate<t)return'exp';
   if(f.release&&f.release>t)return'nd';
   return'ok';
 }
 
 // ── RENDER SCHEDULE (Vista A) ─────────────────────────────
+
+// ── SALA ID HELPER ────────────────────────────────────
+// Normalizza la sala a ID numerico ('1'-'4') indipendentemente dal formato salvato
+function salaId(val){
+  if(!val)return null;
+  // Già numerico
+  if(/^[1-4]$/.test(String(val)))return String(val);
+  // Nome → numero
+  const byName={'teatro':'1','ciak':'2','1908':'3','mignon':'4'};
+  return byName[(val+'').toLowerCase()]||String(val);
+}
+window.salaId=salaId;
+
 function rs(){
   const fSala=document.getElementById('fS').value;
   const wrap=document.getElementById('sw');
@@ -1493,7 +1507,7 @@ function rs(){
 
   const fd2=document.getElementById('fD'),cv=fd2.value;
   fd2.innerHTML='<option value="all">Tutti</option>';
-  days.forEach((d,i)=>{const o=document.createElement('option');o.value=d.toISOString().slice(0,10);o.textContent=`${DSH[i]} ${fs(d)}`;fd2.appendChild(o);});
+  days.forEach((d,i)=>{const o=document.createElement('option');o.value=toLocalDate(d);o.textContent=`${DSH[i]} ${fs(d)}`;fd2.appendChild(o);});
   fd2.value=cv;const fDay=fd2.value;
 
   const ff=document.getElementById('fF'),cf=ff.value;
@@ -1511,13 +1525,13 @@ function rs(){
   });
 
   let dArr=days.map((d,i)=>({d,i}));
-  if(fDay!=='all')dArr=dArr.filter(x=>x.d.toISOString().slice(0,10)===fDay);
+  if(fDay!=='all')dArr=dArr.filter(x=>x.toLocalDate(d)===fDay);
 
   const sale=fSala==='all'?['1','2','3','4']:[String(fSala)];
   const html=[];
 
   dArr.forEach(({d,i})=>{
-    const ds=d.toISOString().slice(0,10);
+    const ds=toLocalDate(d);
     const dayShows=shows.filter(s=>s.day===ds);
     const count=dayShows.length;
 
@@ -1713,17 +1727,17 @@ window.rl=rl;
 // ── ARCHIVIO SEZIONI: Prossima uscita + In programma ──
 function renderArchSections(){
   var today=new Date();today.setHours(0,0,0,0);
-  var todayStr=today.toISOString().slice(0,10);
+  var todayStr=toLocalDate(today);
 
   // +7 days: new releases window
   var in7=new Date(today);in7.setDate(in7.getDate()+7);
-  var in7Str=in7.toISOString().slice(0,10);
+  var in7Str=toLocalDate(in7);
 
   // +10 days: prossimamente window (from tomorrow to +10)
   var tomorrow=new Date(today);tomorrow.setDate(tomorrow.getDate()+1);
-  var tomorrowStr=tomorrow.toISOString().slice(0,10);
+  var tomorrowStr=toLocalDate(tomorrow);
   var in10=new Date(today);in10.setDate(in10.getDate()+10);
-  var in10Str=in10.toISOString().slice(0,10);
+  var in10Str=toLocalDate(in10);
 
   // Week range (Thu-Wed)
   var wd=wdates();
@@ -1956,11 +1970,11 @@ function fillF(sel){
   if(!el){console.error('fillF: mFilm element not found');return;}
   el.innerHTML='<option value="">— Seleziona —</option>';
   const today=new Date();today.setHours(0,0,0,0);
-  const todayStr=today.toISOString().slice(0,10);
+  const todayStr=toLocalDate(today);
   const d12=new Date(today);d12.setDate(d12.getDate()+12);
-  const d12Str=d12.toISOString().slice(0,10);
+  const d12Str=toLocalDate(d12);
   const d60=new Date(today);d60.setDate(d60.getDate()+60);
-  const d60Str=d60.toISOString().slice(0,10);
+  const d60Str=toLocalDate(d60);
 
   S.films
     .filter(f=>{
@@ -1991,7 +2005,7 @@ function fillD(sel){
   const el=document.getElementById('mDay');
   if(!el){console.error('fillD: mDay not found');return;}
   el.innerHTML='';
-  wdays().forEach((d,i)=>{const o=document.createElement('option');o.value=d.toISOString().slice(0,10);o.textContent=`${DIT[i]} ${fs(d)}`;if(o.value===sel)o.selected=true;el.appendChild(o);});
+  wdays().forEach((d,i)=>{const o=document.createElement('option');o.value=toLocalDate(d);o.textContent=`${DIT[i]} ${fs(d)}`;if(o.value===sel)o.selected=true;el.appendChild(o);});
 }
 function ce(){
   const fid=document.getElementById('mFilm').value,st=document.getElementById('mStart').value;
@@ -2033,7 +2047,7 @@ function openCopyModal(day,sala){
   document.getElementById('copyFromDayName').textContent=dayIdx>=0?`${DIT[dayIdx]} ${fd(wdays()[dayIdx])}`:day;
   const grid=document.getElementById('copyDayGrid');
   grid.innerHTML=wdays().map((d,i)=>{
-    const ds=d.toISOString().slice(0,10);
+    const ds=toLocalDate(d);
     if(ds===day)return'';
     return`<button class="copy-day-btn" onclick="execCopy('${ds}')">${DIT[i]}<br><span style="font-size:11px;color:var(--txt2)">${fs(d)}</span></button>`;
   }).join('');
@@ -2077,7 +2091,7 @@ function openDupDayModal(day){
   // Day buttons
   document.getElementById('dupDayGrid').innerHTML=
     wdays().map((d,i)=>{
-      const ds=d.toISOString().slice(0,10);
+      const ds=toLocalDate(d);
       if(ds===day)return'';
       return`<button class="copy-day-btn" onclick="execDupDay('${ds}')">${DIT[i]}<br><span style="font-size:11px;color:var(--txt2)">${fs(d)}</span></button>`;
     }).join('');
@@ -2468,20 +2482,37 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:8.5px;color:#111;backgroun
 /* ── BOOKING SLOTS IN PROGRAMMAZIONE GRID ── */
 .book-slot{
   border:2px dashed currentColor;
-  border-radius:6px;
-  padding:4px 7px;
+  border-radius:5px;
+  padding:5px 8px 5px 10px;
   margin-bottom:3px;
   cursor:pointer;
   position:relative;
-  background:rgba(0,0,0,.25);
-  transition:opacity .15s;
+  background:rgba(0,0,0,.35);
+  transition:transform .12s,opacity .12s;
+  border-left-width:4px;
+  border-left-style:solid;
 }
-.book-slot:hover{opacity:.8;}
-.book-slot-type{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;opacity:.8;line-height:1.2;}
-.book-slot-name{font-size:11px;font-weight:700;line-height:1.3;margin-top:1px;}
-.book-slot-time{font-size:10px;font-family:monospace;opacity:.75;margin-top:2px;}
-.book-slot-del{position:absolute;top:2px;right:3px;background:none;border:none;color:inherit;cursor:pointer;font-size:12px;opacity:0;padding:0;line-height:1;}
-.book-slot:hover .book-slot-del{opacity:.7;}
+.book-slot:hover{transform:translateX(2px);opacity:.9;}
+.book-slot-type{
+  font-size:9px;font-weight:800;text-transform:uppercase;
+  letter-spacing:.5px;opacity:.9;line-height:1.3;
+  display:flex;align-items:center;gap:3px;
+}
+.book-slot-name{
+  font-size:12px;font-weight:700;line-height:1.3;
+  margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.book-slot-time{
+  font-size:10px;font-family:monospace;
+  opacity:.7;margin-top:1px;
+}
+.book-slot-del{
+  position:absolute;top:3px;right:4px;
+  background:none;border:none;color:inherit;
+  cursor:pointer;font-size:13px;opacity:0;padding:0;line-height:1;
+}
+.book-slot:hover .book-slot-del{opacity:.6;}
+.book-slot-del:hover{opacity:1!important;}
 
 /* ── PRENOTAZIONI ── */
 .book-pill{border-radius:5px;padding:5px 7px;margin-bottom:3px;border-left:3px solid #e84a4a;background:rgba(232,74,74,.12);position:relative;cursor:pointer;transition:transform .1s;}
@@ -2618,20 +2649,37 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:8.5px;color:#111;backgroun
 /* ── BOOKING SLOTS IN PROGRAMMAZIONE GRID ── */
 .book-slot{
   border:2px dashed currentColor;
-  border-radius:6px;
-  padding:4px 7px;
+  border-radius:5px;
+  padding:5px 8px 5px 10px;
   margin-bottom:3px;
   cursor:pointer;
   position:relative;
-  background:rgba(0,0,0,.25);
-  transition:opacity .15s;
+  background:rgba(0,0,0,.35);
+  transition:transform .12s,opacity .12s;
+  border-left-width:4px;
+  border-left-style:solid;
 }
-.book-slot:hover{opacity:.8;}
-.book-slot-type{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;opacity:.8;line-height:1.2;}
-.book-slot-name{font-size:11px;font-weight:700;line-height:1.3;margin-top:1px;}
-.book-slot-time{font-size:10px;font-family:monospace;opacity:.75;margin-top:2px;}
-.book-slot-del{position:absolute;top:2px;right:3px;background:none;border:none;color:inherit;cursor:pointer;font-size:12px;opacity:0;padding:0;line-height:1;}
-.book-slot:hover .book-slot-del{opacity:.7;}
+.book-slot:hover{transform:translateX(2px);opacity:.9;}
+.book-slot-type{
+  font-size:9px;font-weight:800;text-transform:uppercase;
+  letter-spacing:.5px;opacity:.9;line-height:1.3;
+  display:flex;align-items:center;gap:3px;
+}
+.book-slot-name{
+  font-size:12px;font-weight:700;line-height:1.3;
+  margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.book-slot-time{
+  font-size:10px;font-family:monospace;
+  opacity:.7;margin-top:1px;
+}
+.book-slot-del{
+  position:absolute;top:3px;right:4px;
+  background:none;border:none;color:inherit;
+  cursor:pointer;font-size:13px;opacity:0;padding:0;line-height:1;
+}
+.book-slot:hover .book-slot-del{opacity:.6;}
+.book-slot-del:hover{opacity:1!important;}
 
 /* ── PRENOTAZIONI ── */
 .book-pill{border-radius:5px;padding:5px 7px;margin-bottom:3px;border-left:3px solid #e84a4a;background:rgba(232,74,74,.12);position:relative;cursor:pointer;transition:transform .1s;}
@@ -2704,7 +2752,7 @@ async function pPDF(type){
     html=hdr('Programmazione Giornaliera — Cinema Multisala Teatro Mendrisio');
     html+='<div class="cols">';
     days.forEach(function(d,di){
-      const ds=d.toISOString().slice(0,10);
+      const ds=toLocalDate(d);
       const dS=allShows.filter(s=>s.day===ds);if(!dS.length)return;
       html+='<div class="G-block">';
       html+='<div class="G-chapter"><span class="G-day">'+DIT[di]+' '+String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'</span><span class="G-line"></span></div>';
@@ -2725,7 +2773,7 @@ async function pPDF(type){
     html=hdr('Programma Settimanale — Cinema Multisala Teatro Mendrisio');
     html+='<div class="cols">';
     days.forEach(function(d,di){
-      const ds=d.toISOString().slice(0,10);
+      const ds=toLocalDate(d);
       const dS=allShows.filter(s=>s.day===ds);if(!dS.length)return;
       html+='<div class="D-chapter"><span class="D-day">'+DIT[di]+' '+String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'</span><span class="D-line"></span></div>';
       dS.forEach(function(s){
@@ -2752,7 +2800,7 @@ async function pPDF(type){
       const allCartDays=[prevTue,prevWed].concat(days);
       const allCartDAB=['Mar','Mer'].concat(DAB);
       const dayCells=allCartDays.map(function(d,di){
-        const ds=d.toISOString().slice(0,10);
+        const ds=toLocalDate(d);
         const dS=byDay[ds]||[];
         const isPrev=di<2;
         const dn=allCartDAB[di]+' '+String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+(isPrev?' ▸':' ');
@@ -2860,7 +2908,7 @@ function buildBookCard(b,type,today){
 }
 function pPDFBook(type){
   var days=wdays();var wd=wdates();
-  var today=new Date().toISOString().slice(0,10);
+  var today=toLocalDate(new Date());
   var curMonth=today.slice(0,7);
   var CN='Cinema Multisala Teatro Mendrisio';
   var books=S.bookings||[];
@@ -2907,7 +2955,7 @@ function pPDFBook(type){
   var u=URL.createObjectURL(blob);
   var a=document.createElement('a');
   a.href=u;
-  a.download='prenotazioni-'+type+'-'+new Date().toISOString().slice(0,10)+'.html';
+  a.download='prenotazioni-'+type+'-'+toLocalDate(new Date())+'.html';
   document.body.appendChild(a);a.click();document.body.removeChild(a);
   setTimeout(function(){URL.revokeObjectURL(u);},10000);
   toast('PDF in download — apri il file e usa Cmd+P per stampare','ok');
@@ -3062,7 +3110,7 @@ function distGetRange(){
   const days=[];
   let cur=new Date(from+'T12:00:00');
   const end=new Date(to+'T12:00:00');
-  while(cur<=end){days.push(cur.toISOString().slice(0,10));cur.setDate(cur.getDate()+1);}
+  while(cur<=end){days.push(toLocalDate(cur));cur.setDate(cur.getDate()+1);}
   return{from,to,days};
 }
 function distSetWeek(){
@@ -3276,7 +3324,7 @@ function renderOA(){
     const grid=document.createElement('div');
     grid.style.cssText='display:grid;grid-template-columns:repeat(7,1fr);gap:6px';
     days.forEach(function(d,di){
-      const ds=d.toISOString().slice(0,10);
+      const ds=toLocalDate(d);
       const dayShow=S.oaShows.find(function(s){return s.sala===oaId&&s.day===ds;});
       const cell=document.createElement('div');
       cell.style.cssText='background:var(--surf2);border:1px solid var(--bdr);border-radius:6px;padding:6px;min-height:70px';
@@ -3365,7 +3413,7 @@ function setBMode(mode){
 function fillBShows(){
   const sel=document.getElementById('bWeekSel').value;
   const days=sel==='next'?wdays().map(function(d){const nd=new Date(d);nd.setDate(nd.getDate()+7);return nd;}):wdays();
-  const wd=days.map(function(d){return d.toISOString().slice(0,10);});
+  const wd=days.map(function(d){return toLocalDate(d);});
   const shows=S.shows.filter(function(s){return wd.includes(s.day);});
   const films=[...new Set(shows.map(function(s){return s.filmId;}))];
   const fsel=document.getElementById('bFilmSel');
@@ -3382,7 +3430,7 @@ function fillBShowTimes(){
   const fid=document.getElementById('bFilmSel').value;
   const sel=document.getElementById('bWeekSel').value;
   const days=sel==='next'?wdays().map(function(d){const nd=new Date(d);nd.setDate(nd.getDate()+7);return nd;}):wdays();
-  const wd=days.map(function(d){return d.toISOString().slice(0,10);});
+  const wd=days.map(function(d){return toLocalDate(d);});
   const shows=S.shows.filter(function(s){return wd.includes(s.day)&&s.filmId===fid;}).sort(function(a,b){return a.day.localeCompare(b.day)||a.start.localeCompare(b.start);});
   const ssel=document.getElementById('bShowSel');
   ssel.innerHTML='<option value="">— Seleziona spettacolo —</option>';
@@ -3566,7 +3614,7 @@ function renderBookings(){
   const w=document.getElementById('book-list');
   if(!w)return;
   const filter=document.getElementById('book-filter')?document.getElementById('book-filter').value:'upcoming';
-  const today=new Date().toISOString().slice(0,10);
+  const today=toLocalDate(new Date());
   let books=S.bookings||[];
   if(filter==='upcoming') books=books.filter(function(b){return(b.dates||[]).some(function(d){return d.date>=today;});});
   else if(filter!=='all') books=books.filter(function(b){return b.type===filter;});
@@ -4498,7 +4546,7 @@ function pPDFStaff(){
   var blob=new Blob([html],{type:'text/html;charset=utf-8'});
   var u=URL.createObjectURL(blob);
   var a=document.createElement('a');a.href=u;
-  a.download='turni-'+new Date().toISOString().slice(0,10)+'.html';
+  a.download='turni-'+toLocalDate(new Date())+'.html';
   document.body.appendChild(a);a.click();document.body.removeChild(a);
   setTimeout(function(){URL.revokeObjectURL(u);},10000);
   toast('PDF in download — apri il file e usa Cmd+P per stampare','ok');
@@ -4847,8 +4895,8 @@ function openStaffReport(){
   monday.setDate(today.getDate()-today.getDay()+1);
   var sunday=new Date(monday);
   sunday.setDate(monday.getDate()+6);
-  document.getElementById('repFrom').value=monday.toISOString().slice(0,10);
-  document.getElementById('repTo').value=sunday.toISOString().slice(0,10);
+  document.getElementById('repFrom').value=toLocalDate(monday);
+  document.getElementById('repTo').value=toLocalDate(sunday);
   var sel=document.getElementById('repStaff');
   sel.innerHTML='<option value="all">Tutti i dipendenti</option>';
   S.staff.forEach(function(s){
@@ -4865,7 +4913,7 @@ function genStaffReport(){
   // Build list of days in range
   var rangeDays=[];
   var cur=new Date(from);
-  while(cur<=to){rangeDays.push(cur.toISOString().slice(0,10));cur.setDate(cur.getDate()+1);}
+  while(cur<=to){rangeDays.push(toLocalDate(cur));cur.setDate(cur.getDate()+1);}
   var staffList=staffFilter==='all'?S.staff:S.staff.filter(function(s){return s.id===staffFilter;});
   var fromLabel=from.toLocaleDateString('it-IT');
   var toLabel=to.toLocaleDateString('it-IT');
@@ -4960,7 +5008,7 @@ function impGetDailyCount(){
   }catch(e){return{count:0,date:''};}
 }
 function impIncrDailyCount(){
-  var today=new Date().toISOString().slice(0,10);
+  var today=toLocalDate(new Date());
   var rec=impGetDailyCount();
   if(rec.date!==today)rec={count:0,date:today};
   rec.count++;
@@ -4979,7 +5027,7 @@ function openImport(){
   // Default to API tab
   gImpTab('api');
 
-  var today=new Date().toISOString().slice(0,10);
+  var today=toLocalDate(new Date());
   var rec=impGetDailyCount();
   var todayCount=rec.date===today?rec.count:0;
   var remaining=IMP_MAX_DAILY-todayCount;
@@ -5091,7 +5139,7 @@ function renderImportList(films,filtered){
     var realIdx=_importedFilms.indexOf(film);
     var alreadyExists=existingTitles.some(function(t){return t===film.title.toLowerCase().trim();});
     var startD=film.start_date?film.start_date.split('-').reverse().join('/'):'';
-    var isPast=film.start_date&&film.start_date<new Date().toISOString().slice(0,10);
+    var isPast=film.start_date&&film.start_date<toLocalDate(new Date());
 
     var row=document.createElement('div');
     row.style.cssText='display:flex;align-items:flex-start;gap:10px;padding:7px 10px;background:var(--surf2);border:1px solid var(--bdr);border-radius:6px;'+(alreadyExists?'opacity:.45':'');
@@ -5448,7 +5496,7 @@ async function doPDFImport(){
     if(cache&&cacheAge<IMP_CACHE_TTL){
       apiFilms=cache.data;
     } else {
-      var today=new Date().toISOString().slice(0,10);
+      var today=toLocalDate(new Date());
       var rec=impGetDailyCount();
       var todayCount=rec.date===today?rec.count:0;
       if(todayCount<IMP_MAX_DAILY){
@@ -5909,17 +5957,6 @@ window.cleanNoPosterUrls=cleanNoPosterUrls;
 
 
 
-// ── SALA ID HELPER ────────────────────────────────────
-// Normalizza la sala a ID numerico ('1'-'4') indipendentemente dal formato salvato
-function salaId(val){
-  if(!val)return null;
-  // Già numerico
-  if(/^[1-4]$/.test(String(val)))return String(val);
-  // Nome → numero
-  const byName={'teatro':'1','ciak':'2','1908':'3','mignon':'4'};
-  return byName[(val+'').toLowerCase()]||String(val);
-}
-window.salaId=salaId;
 
 // ── CANCELLA GIORNATA ─────────────────────────────────
 async function clearDay(day){
