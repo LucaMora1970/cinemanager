@@ -414,6 +414,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
   /* Hide the + button in header on mobile (FAB handles it) */
   #btnAddShow{display:none;}
   #btnTheme{display:none;}
+  #zoom-ctrl{display:none!important;}
 
   /* Tabs: smaller, scrollable */
   .tabs{padding:0 8px;gap:0;}
@@ -544,6 +545,15 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
     <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
     <button id="btnTheme" class="btn bg" onclick="toggleTheme()" title="Cambia tema" style="font-size:16px;padding:5px 10px;">☀</button>
+    <div id="zoom-ctrl" style="display:flex;align-items:center;gap:5px;background:var(--surf2);border:1px solid var(--bdr);border-radius:7px;padding:3px 8px;height:34px;">
+      <button onclick="setZoom(-0.1)" style="background:none;border:none;color:var(--txt2);font-size:16px;cursor:pointer;padding:0 2px;line-height:1;" title="Riduci">−</button>
+      <input type="range" id="zoom-slider" min="0.7" max="1.4" step="0.05" value="1"
+        oninput="applyZoom(this.value)"
+        style="width:72px;height:4px;accent-color:var(--acc);cursor:pointer;margin:0;"
+        title="Zoom interfaccia">
+      <button onclick="setZoom(0.1)" style="background:none;border:none;color:var(--txt2);font-size:16px;cursor:pointer;padding:0 2px;line-height:1;" title="Ingrandisci">＋</button>
+      <span id="zoom-label" style="font-size:10px;font-weight:700;color:var(--txt2);min-width:28px;text-align:right;">100%</span>
+    </div>
     <button id="btnGlobalOpt" class="btn bg" onclick="openGlobalOpt()" style="color:var(--acc);border-color:rgba(232,200,74,.4)">⚡ <span class="btn-label">Ottimizza Orari</span></button>
     <button id="btnVerifica" class="btn bg" onclick="openVerifica()" style="color:#4ae87a;border-color:rgba(74,232,122,.4)">🔍 <span class="btn-label">Verifica</span></button>
     <button id="btnAddShow" class="btn ba" onclick="try{openShow();}catch(e){alert('Errore: '+e.message);}">＋ Aggiungi Spettacolo</button>
@@ -1006,7 +1016,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
 
 
 <!-- PAGE SOCIAL -->
-<div id="page-social" class="page" style="display:none">
+<div id="page-social" class="page">
   <div class="sh">
     <div class="st">📱 Genera Post Social</div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
@@ -1820,7 +1830,7 @@ function gt(id){
   document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('on',TABS[i]===id));
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
   document.getElementById('page-'+id).classList.add('on');
-  if(id==='lista')rl();if(id==='arch')rf();if(id==='mail')rem();if(id==='staff'){renderAllDays();}if(id==='playlist')renderPlaylist();
+  if(id==='lista')rl();if(id==='arch')rf();if(id==='mail')rem();if(id==='staff'){renderAllDays();}if(id==='playlist')renderPlaylist();if(id==='social'&&typeof socialGenerate==='function')socialGenerate();
 }
 window.gt=gt;
 
@@ -3092,7 +3102,8 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:8.5px;color:#111;backgroun
 
 
 /* ── ARCHIVIO SECTIONS ── */
-.arch-section-hdr{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:8px;border-bottom:2px solid var(--bdr);}
+#page-arch>div>.arch-section-hdr:first-child{margin-top:0!important;}
+.arch-section-hdr{margin-top:32px;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid var(--bdr);display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:8px;border-bottom:2px solid var(--bdr);}
 .arch-section-title{font-size:13px;font-weight:700;color:var(--txt);}
 .arch-section-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;}
 
@@ -7807,6 +7818,34 @@ async function clearDay(day){
 window.clearDay=clearDay;
 
 // ── THEME ───────────────────────────────────────────────
+
+// ── ZOOM INTERFACCIA ─────────────────────────────────
+function applyZoom(val){
+  val=parseFloat(val);
+  val=Math.max(0.7,Math.min(1.4,val));
+  document.documentElement.style.fontSize=val+'rem';
+  var sl=document.getElementById('zoom-slider');
+  var lb=document.getElementById('zoom-label');
+  if(sl)sl.value=val;
+  if(lb)lb.textContent=Math.round(val*100)+'%';
+  try{localStorage.setItem('cm_zoom',val);}catch(e){}
+}
+function setZoom(delta){
+  var sl=document.getElementById('zoom-slider');
+  var cur=sl?parseFloat(sl.value):1;
+  applyZoom(Math.round((cur+delta)*20)/20);
+}
+window.applyZoom=applyZoom;
+window.setZoom=setZoom;
+
+// Ripristina zoom salvato all'avvio
+(function(){
+  try{
+    var saved=localStorage.getItem('cm_zoom');
+    if(saved){applyZoom(parseFloat(saved));}
+  }catch(e){}
+})();
+
 function toggleTheme(){
   const isLight=document.body.classList.toggle('light');
   document.getElementById('btnTheme').textContent=isLight?'☽':'☀';
