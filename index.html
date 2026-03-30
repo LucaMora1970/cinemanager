@@ -5514,11 +5514,11 @@ function socialRenderCarousel(){
         var sx=(W-sw)/2,sy=(H-sh)/2;
         ctx.drawImage(img,sx,sy,sw,sh);
         ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
-        drawSlideText(ctx,film,fShows,wd,days,W,H,fmt);
+        ctx.letterSpacing="0px";drawSlideText(ctx,film,fShows,wd,days,W,H,fmt);
       };
       img.onerror=function(){
         ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
-        drawSlideText(ctx,film,fShows,wd,days,W,H,fmt);
+        ctx.letterSpacing="0px";drawSlideText(ctx,film,fShows,wd,days,W,H,fmt);
       };
       img.src=film.poster;
     } else {
@@ -5527,7 +5527,7 @@ function socialRenderCarousel(){
       bgGrad.addColorStop(0,'#1a1a2e');bgGrad.addColorStop(1,'#16213e');
       ctx.fillStyle=bgGrad;ctx.fillRect(0,0,W,H);
       ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
-      drawSlideText(ctx,film,fShows,wd,days,W,H,fmt);
+      ctx.letterSpacing="0px";drawSlideText(ctx,film,fShows,wd,days,W,H,fmt);
     }
 
     wrap.appendChild(canvas);
@@ -5556,150 +5556,209 @@ function drawSlideText(ctx,film,fShows,wd,days,W,H,fmt){
   var isStory=fmt==='story';
   var isLand=fmt==='landscape';
   var DIT2=['Gio','Ven','Sab','Dom','Lun','Mar','Mer'];
-  var px=function(v){return Math.round(v);};
+  var ORA='#f0801a';
+  var ORA2='rgba(240,128,26,';
 
-  // Barra brand in cima
-  ctx.fillStyle='#f0801a';
-  ctx.fillRect(0,0,W,isStory?6:4);
-
-  // Label cinema in alto
-  ctx.fillStyle='rgba(240,128,26,0.85)';
-  ctx.font='bold '+(isStory?11:9)+'px Arial,sans-serif';
-  ctx.textAlign='left';
-  ctx.letterSpacing='1px';
-  ctx.fillText('CINEMA MULTISALA \u00b7 TEATRO MENDRISIO',14,isStory?24:19);
-
-  // ── Calcola zona orari in basso ──────────────────────
-  // Raggruppa per giorno con orari e sala
+  // ── Raggruppa orari per giorno ──────────────────────
   var byDay={};var dayOrd=[];
   fShows.forEach(function(s){
     var di=wd.indexOf(s.day);if(di<0)return;
-    if(!byDay[di]){byDay[di]={times:[],sala:s.sala};dayOrd.push(di);}
+    if(!byDay[di]){byDay[di]={times:[],date:s.day};dayOrd.push(di);}
     if(byDay[di].times.indexOf(s.start)<0)byDay[di].times.push(s.start);
   });
   dayOrd.sort(function(a,b){return a-b;});
-
   var nDays=dayOrd.length;
-  if(!nDays){
-    // Nessun orario — solo titolo
-    ctx.fillStyle='#ffffff';
-    ctx.font='bold '+(isStory?30:22)+'px Arial,sans-serif';
-    ctx.fillText(film.title.toUpperCase().slice(0,20),14,H*0.65);
-    return;
-  }
 
-  // ── Zona orari: altezza fissa in basso ──
-  // Story: 180px, Quadrato: 140px, Landscape: 100px
-  var schedH=isStory?180:isLand?100:140;
-  var schedY=H-schedH;
+  // ── Altezze zone ─────────────────────────────────────
+  var HEADER_H=isStory?42:isLand?30:36;      // banda superiore
+  var FOOTER_H=isStory?14:isLand?10:12;      // banda inferiore
+  var INFO_H=isStory?70:isLand?46:58;        // titolo+meta
+  var SCHED_ROWS=nDays>4?2:1;
+  var BLOCK_H=isStory?38:isLand?28:32;       // altezza singolo blocco orario
+  var SCHED_GAP=4;
+  var SCHED_H=(BLOCK_H*SCHED_ROWS)+(SCHED_GAP*(SCHED_ROWS-1))+(isStory?28:22); // label+blocchi
+  var OVERLAY_H=INFO_H+SCHED_H+FOOTER_H+8;
 
-  // Gradient overlay scuro sulla locandina
-  var grad=ctx.createLinearGradient(0,schedY-60,0,H);
+  // ── Poster: copre tutta la slide ────────────────────
+  // (già disegnato fuori da questa funzione)
+
+  // ── Gradient overlay scuro in basso ─────────────────
+  var gradStart=H-OVERLAY_H-40;
+  var grad=ctx.createLinearGradient(0,gradStart,0,H);
   grad.addColorStop(0,'rgba(0,0,0,0)');
-  grad.addColorStop(0.3,'rgba(0,0,0,0.75)');
-  grad.addColorStop(1,'rgba(0,0,0,0.95)');
+  grad.addColorStop(0.35,'rgba(0,0,0,0.82)');
+  grad.addColorStop(1,'rgba(0,0,0,0.97)');
   ctx.fillStyle=grad;
-  ctx.fillRect(0,schedY-60,W,H-(schedY-60));
+  ctx.fillRect(0,gradStart,W,H-gradStart);
 
-  // ── Titolo film ──
-  var titleSize=isStory?26:isLand?16:20;
-  ctx.fillStyle='#ffffff';
-  ctx.font='bold '+titleSize+'px Arial,sans-serif';
+  // ── BANDA SUPERIORE: nera opaca ─────────────────────
+  ctx.fillStyle='rgba(0,0,0,0.9)';
+  ctx.fillRect(0,0,W,HEADER_H);
+
+  // Accento arancio a sinistra
+  ctx.fillStyle=ORA;
+  ctx.fillRect(0,0,isStory?5:4,HEADER_H);
+
+  // Testo Cinema Multisala
+  var hl=isStory?17:isLand?11:14;
+  ctx.fillStyle=ORA;
+  ctx.font='bold '+hl+'px Arial,sans-serif';
   ctx.textAlign='left';
+  ctx.fillText('CINEMA MULTISALA',isStory?14:11,isStory?18:14);
+
+  ctx.fillStyle='rgba(255,255,255,0.52)';
+  ctx.font=(isStory?11:isLand?8:10)+'px Arial,sans-serif';
+  ctx.fillText('TEATRO MENDRISIO',isStory?14:11,isStory?32:24);
+
+  // Punto decorativo in alto a destra
+  ctx.fillStyle=ORA;
+  ctx.globalAlpha=0.75;
+  ctx.beginPath();
+  ctx.arc(W-(isStory?16:12),HEADER_H/2,isStory?6:4,0,Math.PI*2);
+  ctx.fill();
+  ctx.globalAlpha=1;
+
+  // ── AREA INFO (titolo+meta) ──────────────────────────
+  var infoY=H-FOOTER_H-SCHED_H-INFO_H;
+
+  // Linea arancio separatrice
+  ctx.fillStyle=ORA;
+  ctx.globalAlpha=0.65;
+  ctx.fillRect(0,infoY,W,isStory?3:2);
+  ctx.globalAlpha=1;
+
+  // Titolo film
+  var titleSize=isStory?26:isLand?15:20;
   var title=film.title.toUpperCase();
-  var maxW=W-28;
-  while(ctx.measureText(title).width>maxW&&title.length>6){title=title.slice(0,-1);}
+  ctx.font='bold '+titleSize+'px Arial,sans-serif';
+  var maxTW=W-(isStory?30:22);
+  while(ctx.measureText(title).width>maxTW&&title.length>5){title=title.slice(0,-1);}
   if(title!==film.title.toUpperCase())title=title.trim()+'\u2026';
-  var titleY=schedY-(isStory?58:isLand?30:42);
-  ctx.fillText(title,14,titleY);
+  ctx.fillStyle='#ffffff';
+  var titleY=infoY+(isStory?32:isLand?20:26);
+  ctx.fillText(title,isStory?14:10,titleY);
+
+  // Badge genere (se disponibile)
+  if(film.genre){
+    var genreX=isStory?14:10;
+    var genreY=titleY+(isStory?8:6);
+    var genreW=ctx.measureText(film.genre).width;
+    ctx.font=(isStory?10:8)+'px Arial,sans-serif';
+    genreW=ctx.measureText(film.genre).width+16;
+    ctx.fillStyle=ORA2+'0.22)';
+    ctx.strokeStyle=ORA2+'0.45)';
+    ctx.lineWidth=0.5;
+    roundRect(ctx,genreX,genreY,genreW,isStory?16:13,3);
+    ctx.fill();ctx.stroke();
+    ctx.fillStyle=ORA;
+    ctx.textAlign='left';
+    ctx.fillText(film.genre,genreX+8,genreY+(isStory?11:9));
+  }
 
   // Meta: durata · rating
   var dur=film.duration?Math.floor(film.duration/60)+'h'+String(film.duration%60).padStart(2,'0'):'';
-  var meta=[dur,film.rating,film.genre].filter(Boolean).join(' \u00b7 ');
-  if(meta){
-    ctx.fillStyle='rgba(255,255,255,0.6)';
-    ctx.font=(isStory?12:10)+'px Arial,sans-serif';
-    ctx.fillText(meta,14,titleY+(isStory?20:16));
+  var metaParts=[dur,film.rating,film.distributor].filter(Boolean);
+  if(metaParts.length){
+    ctx.fillStyle='rgba(255,255,255,0.42)';
+    ctx.font=(isStory?11:isLand?8:9)+'px Arial,sans-serif';
+    ctx.textAlign='left';
+    var metaY=infoY+(isStory?66:isLand?36:48);
+    ctx.fillText(metaParts.join('  \u00b7  '),isStory?14:10,metaY);
   }
 
-  // Linea separatrice oro
-  var lineY=schedY-(isStory?22:isLand?14:16);
-  ctx.strokeStyle='rgba(240,128,26,0.4)';
-  ctx.lineWidth=0.5;
-  ctx.beginPath();ctx.moveTo(14,lineY);ctx.lineTo(W-14,lineY);ctx.stroke();
+  // ── AREA ORARI ────────────────────────────────────────
+  var schedY=H-FOOTER_H-SCHED_H;
 
-  // Label ORARI
-  var labelY=schedY-(isStory?8:isLand?5:6);
-  ctx.fillStyle='rgba(240,128,26,0.6)';
+  // Separatore tratteggiato
+  var sepY=schedY+(isStory?5:3);
+  ctx.strokeStyle=ORA2+'0.28)';
+  ctx.lineWidth=0.5;
+  ctx.setLineDash([2,4]);
+  ctx.beginPath();ctx.moveTo(isStory?14:10,sepY);ctx.lineTo(W-(isStory?14:10),sepY);ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Label "IN PROGRAMMAZIONE"
+  var lblY=sepY+(isStory?14:11);
+  ctx.fillStyle=ORA2+'0.55)';
   ctx.font='bold '+(isStory?8:7)+'px Arial,sans-serif';
   ctx.textAlign='center';
-  ctx.fillText('ORARI IN PROGRAMMAZIONE',W/2,labelY);
+  ctx.letterSpacing='1.5px';
+  ctx.fillText('IN PROGRAMMAZIONE',W/2,lblY);
+  ctx.letterSpacing='0px';
 
-  // ── GRIGLIA BLOCCHI GIORNO ──
-  // 4 blocchi per riga, 2 righe max
+  // Griglia blocchi
   var COLS=Math.min(4,nDays);
+  if(nDays===1)COLS=1;
+  if(nDays===2)COLS=2;
+  if(nDays===3)COLS=3;
   var ROWS=Math.ceil(nDays/COLS);
-  var padX=14;
-  var blockW=Math.floor((W-padX*2-3*(COLS-1))/COLS);
-  var blockH=isStory?38:isLand?30:34;
-  var gapY=4;
-  var gridStartY=schedY+4;
+  var padX=isStory?14:10;
+  var bGap=3;
+  var bW=Math.floor((W-padX*2-bGap*(COLS-1))/COLS);
+  var bStartY=lblY+(isStory?6:4);
 
   dayOrd.forEach(function(di,i){
     var col=i%COLS;
     var row=Math.floor(i/COLS);
-    var bx=padX+col*(blockW+3);
-    var by=gridStartY+row*(blockH+gapY);
-    var isNear=i<4; // prime 4 date = più luminose
+    var bx=padX+col*(bW+bGap);
+    var by=bStartY+row*(BLOCK_H+SCHED_GAP);
+    var isNear=i<4;
+    var alpha=isNear?0.22:0.09;
+    var borderAlpha=isNear?0.50:0.25;
 
-    // Sfondo blocco
-    ctx.fillStyle=isNear?'rgba(240,128,26,0.2)':'rgba(240,128,26,0.08)';
-    ctx.strokeStyle=isNear?'rgba(240,128,26,0.6)':'rgba(240,128,26,0.2)';
+    ctx.fillStyle=ORA2+alpha+')';
+    ctx.strokeStyle=ORA2+borderAlpha+')';
     ctx.lineWidth=0.5;
-    ctx.beginPath();
-    var r=3;
-    ctx.moveTo(bx+r,by);ctx.lineTo(bx+blockW-r,by);ctx.arcTo(bx+blockW,by,bx+blockW,by+r,r);
-    ctx.lineTo(bx+blockW,by+blockH-r);ctx.arcTo(bx+blockW,by+blockH,bx+blockW-r,by+blockH,r);
-    ctx.lineTo(bx+r,by+blockH);ctx.arcTo(bx,by+blockH,bx,by+blockH-r,r);
-    ctx.lineTo(bx,by+r);ctx.arcTo(bx,by,bx+r,by,r);ctx.closePath();
+    roundRect(ctx,bx,by,bW,BLOCK_H,4);
     ctx.fill();ctx.stroke();
 
     // Giorno + data
-    var dayStr=DIT2[di]||'?';
     var dateStr='';
     if(wd[di]){var dp=wd[di].split('-');dateStr=' '+dp[2]+'/'+dp[1];}
-    ctx.fillStyle=isNear?'#f0801a':'rgba(240,128,26,0.7)';
-    ctx.font='bold '+(isStory?9:8)+'px Arial,sans-serif';
+    var dayLabel=(DIT2[di]||'?').toUpperCase()+dateStr;
+    ctx.fillStyle=isNear?ORA:ORA2+'0.65)';
+    ctx.font='bold '+(isStory?8:7)+'px Arial,sans-serif';
     ctx.textAlign='center';
-    var cx=bx+blockW/2;
-    ctx.fillText((dayStr+dateStr).toUpperCase(),cx,by+(isStory?13:11));
+    var cx=bx+bW/2;
+    ctx.fillText(dayLabel,cx,by+(isStory?13:10));
 
-    // Orari (possono essere più di uno)
-    var times=byDay[di].times.sort();
+    // Orari
+    var times=byDay[di].times.slice().sort();
     var timeStr=times.join(' ');
-    var timeSize=isStory?13:isLand?10:11;
-    ctx.fillStyle=isNear?'#ffffff':'rgba(255,255,255,0.65)';
-    ctx.font='bold '+timeSize+'px Arial,sans-serif';
-    // Scala se troppo largo
-    while(ctx.measureText(timeStr).width>blockW-6&&timeSize>8){
-      timeSize--;ctx.font='bold '+timeSize+'px Arial,sans-serif';
-    }
-    ctx.fillText(timeStr,cx,by+blockH-(isStory?8:6));
+    var tSize=isStory?14:12;
+    ctx.font='bold '+tSize+'px Arial,sans-serif';
+    while(ctx.measureText(timeStr).width>bW-6&&tSize>9){tSize--;ctx.font='bold '+tSize+'px Arial,sans-serif';}
+    ctx.fillStyle=isNear?'#ffffff':'rgba(255,255,255,0.62)';
+    ctx.fillText(timeStr,cx,by+BLOCK_H-(isStory?7:5));
   });
 
-  // Link biglietteria + sito
-  var footY=gridStartY+ROWS*(blockH+gapY)+4;
-  if(film.ticketUrl&&footY<H-8){
-    ctx.fillStyle='rgba(255,255,255,0.4)';
-    ctx.font=(isStory?9:8)+'px Arial,sans-serif';
-    ctx.textAlign='left';
-    var shortUrl=film.ticketUrl.replace(/^https?:\/\/(www\.)?/,'').slice(0,45);
-    ctx.fillText('\uD83C\uDFAB '+shortUrl,14,footY+10);
-  }
-  ctx.fillStyle='rgba(255,255,255,0.35)';
+  // ── BANDA FOOTER ─────────────────────────────────────
+  ctx.fillStyle='rgba(0,0,0,0.85)';
+  ctx.fillRect(0,H-FOOTER_H,W,FOOTER_H);
+
+  // Barra arancio in fondo
+  ctx.fillStyle=ORA2+'0.45)';
+  ctx.fillRect(0,H-3,W,3);
+
+  // Sito web
+  ctx.fillStyle='rgba(255,255,255,0.38)';
   ctx.font=(isStory?9:8)+'px Arial,sans-serif';
+  ctx.textAlign='left';
+  ctx.fillText('mendrisiocinema.ch',isStory?14:10,H-(isStory?4:3));
+
+  // Indirizzo a destra
   ctx.textAlign='right';
-  ctx.fillText('mendrisiocinema.ch',W-14,H-6);
+  ctx.fillStyle='rgba(255,255,255,0.25)';
+  ctx.fillText('Via Vincenzo Vela 2, Mendrisio',W-(isStory?14:10),H-(isStory?4:3));
+}
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.arcTo(x+w,y,x+w,y+r,r);
+  ctx.lineTo(x+w,y+h-r);ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
+  ctx.lineTo(x+r,y+h);ctx.arcTo(x,y+h,x,y+h-r,r);
+  ctx.lineTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);
+  ctx.closePath();
 }
 
 function socialDownloadAll(){
