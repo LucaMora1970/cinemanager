@@ -1816,6 +1816,15 @@ function startListeners(){
   onSnapshot(collection(db,'shifts'),snap=>{S.shifts=snap.docs.map(d=>({id:d.id,...d.data()}));var sp=document.getElementById('page-staff');if(sp&&sp.classList.contains('on')){var at=document.getElementById('stab-days');if(at&&at.classList.contains('on'))renderAllDays();else renderWeekCompact();}renderStaffHours();});
   onSnapshot(doc(db,'settings','distributors'),snap=>{S.distributors=snap.exists()?snap.data().list||[]:[]; if(document.getElementById('dist-list'))renderDist(); fillFilmDistDropdown();});
   onSnapshot(doc(db,'settings','media'),snap=>{S.media=snap.exists()?snap.data().list||[]:[];if(document.getElementById('media-list'))renderMedia();});
+  // Carica trailer playlist salvati
+  onSnapshot(doc(db,'settings','playlists'),snap=>{
+    if(snap.exists()){
+      var data=snap.data().trailers||{};
+      Object.keys(data).forEach(function(fid){_plTrailers[fid]=data[fid];});
+      var pp=document.getElementById('page-playlist');
+      if(pp&&pp.classList.contains('on'))renderPlaylist();
+    }
+  });
 }
 async function fbSF(film){syncSet('busy','Salvataggio…');await setDoc(doc(db,'films',film.id),film);}
 async function fbDF(id){syncSet('busy','Salvataggio…');await deleteDoc(doc(db,'films',id));}
@@ -4963,7 +4972,8 @@ function plSuggestAll(){
     assigned++;
   });
 
-  // Aggiorna la UI
+  // Salva su Firestore e aggiorna UI
+  fbSetDoc(db,'settings','playlists',{trailers:_plTrailers}).catch(function(){});
   renderPlaylist();
   toast(assigned + ' film aggiornati con trailer suggeriti', 'ok');
 }
@@ -4982,6 +4992,7 @@ function plSuggestForFilm(fid){
     if(i < 4) _plTrailers[fid][i] = s.film.trailer;
   });
 
+  fbSetDoc(db,'settings','playlists',{trailers:_plTrailers}).catch(function(){});
   renderPlaylist();
   toast('Trailer suggeriti per ' + film.title, 'ok');
 }
@@ -4991,6 +5002,8 @@ function plPickTrailer(sel){
   const fid=sel.dataset.fid, slot=parseInt(sel.dataset.slot), ytId=sel.value;
   if(!_plTrailers[fid])_plTrailers[fid]=['','','',''];
   _plTrailers[fid][slot]=ytId;
+  // Salva su Firestore
+  fbSetDoc(db,'settings','playlists',{trailers:_plTrailers}).catch(function(){});
   const row=sel.parentElement;
   if(!row)return;
   const old=row.querySelector('.pl-thumb,a.pl-thumb');
@@ -5012,6 +5025,8 @@ function plClearSlot(btn){
   const old=row.querySelector('.pl-thumb,a.pl-thumb');
   if(old)old.outerHTML='<div class="pl-thumb"><span class="pl-thumb-ph">&#9658;</span></div>';
   btn.disabled=true;btn.style.opacity='.25';
+  // Salva su Firestore
+  fbSetDoc(db,'settings','playlists',{trailers:_plTrailers}).catch(function(){});
 }
 window.plClearSlot=plClearSlot;
 
@@ -7822,8 +7837,8 @@ window.clearDay=clearDay;
 // ── ZOOM INTERFACCIA ─────────────────────────────────
 function applyZoom(val){
   val=parseFloat(val);
-  val=Math.max(0.7,Math.min(1.4,val));
-  document.documentElement.style.fontSize=val+'rem';
+  val=Math.max(0.7,Math.min(1.4,Math.round(val*20)/20));
+  document.body.style.zoom=val;
   var sl=document.getElementById('zoom-slider');
   var lb=document.getElementById('zoom-label');
   if(sl)sl.value=val;
