@@ -762,36 +762,24 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
       </div>
     </div>
 
-    <!-- ── INVIO CIRCOLARE CCN ── -->
     <div class="ps" style="margin-top:16px;border-top:2px solid var(--bdr);padding-top:18px">
       <h3>📢 Circolare a Tutti i Distributori (CCN)</h3>
-      <p style="font-size:11px;color:var(--txt2);margin-bottom:12px">
-        Programma completo inviato a tutti i distributori con contatti email.<br>
-        I destinatari vengono aggiunti in <strong>CCN</strong> — nessuno vede gli altri indirizzi.
-      </p>
+      <p style="font-size:11px;color:var(--txt2);margin-bottom:12px">Programma completo a tutti i distributori in <strong>CCN</strong> — nessuno vede gli altri.</p>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
         <div>
-          <div class="fr"><label class="flb">Da (mittente visibile)</label>
-            <input type="email" id="circ-from" placeholder="es. cinema@mendrisio.ch">
-          </div>
-          <div class="fr"><label class="flb">Oggetto</label>
-            <input type="text" id="circ-subj" value="Programmazione Settimanale — Cinema Multisala Teatro Mendrisio">
-          </div>
-          <div class="fr"><label class="flb">Note aggiuntive</label>
-            <textarea id="circ-note" placeholder="Testo introduttivo opzionale..." style="min-height:60px"></textarea>
-          </div>
-          <button class="btn bg bs" onclick="distSetWeek();circSetWeek()" style="font-size:11px;margin-top:4px">📅 Usa settimana corrente</button>
+          <div class="fr"><label class="flb">Da (mittente)</label><input type="email" id="circ-from" placeholder="cinema@mendrisio.ch"></div>
+          <div class="fr"><label class="flb">Oggetto</label><input type="text" id="circ-subj" value="Programmazione Settimanale — Cinema Multisala Teatro Mendrisio"></div>
+          <div class="fr"><label class="flb">Note</label><textarea id="circ-note" placeholder="Testo introduttivo..." style="min-height:60px"></textarea></div>
+          <button class="btn bg bs" onclick="distSetWeek();circSetWeek()" style="font-size:11px;margin-top:4px">📅 Settimana corrente</button>
         </div>
         <div>
           <div class="fr" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
             <div><label class="flb">Dal</label><input type="date" id="circ-from-date" style="width:100%"></div>
             <div><label class="flb">Al</label><input type="date" id="circ-to-date" style="width:100%"></div>
           </div>
-          <div id="circ-preview" style="background:var(--surf2);border:1px solid var(--bdr);border-radius:6px;padding:9px 12px;font-size:11px;color:var(--txt2);min-height:54px;margin-bottom:10px">
-            Clicca Anteprima per vedere i destinatari CCN
-          </div>
+          <div id="circ-preview" style="background:var(--surf2);border:1px solid var(--bdr);border-radius:6px;padding:9px 12px;font-size:11px;color:var(--txt2);min-height:54px;margin-bottom:10px">Clicca Anteprima</div>
           <button class="btn bg" style="width:100%;margin-bottom:7px" onclick="previewCircolare()">👁 Anteprima CCN</button>
-          <button class="btn ba" style="width:100%" onclick="sendCircolare()">📧 Invia Circolare in CCN</button>
+          <button class="btn ba" style="width:100%" onclick="sendCircolare()">📧 Invia Circolare CCN</button>
         </div>
       </div>
     </div>
@@ -923,7 +911,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
 <!-- ══════════════ PLAYLIST PAGE ══════════════ -->
 <div id="page-playlist" class="page">
 
-  <!-- ── HEADER ── -->
+  <!-- header con pulsanti -->
   <div class="sh">
     <div class="st">▶ Playlist Sale</div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
@@ -932,33 +920,41 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     </div>
   </div>
 
-  <!-- ── SEZIONE 1: Tutti i film + Trailer ── -->
-  <div class="pl-section">
-    <div class="pl-section-head">
-      <span class="pl-section-title">Film in programmazione — Seleziona i Trailer</span>
-      <span class="pl-section-sub" id="pl-week-all"></span>
+  <!-- SEZIONE 1: Film in programmazione + trailer -->
+  <div class="pl-sect">
+    <div class="pl-sect-hdr">
+      <span class="pl-sect-title">Film in programmazione</span>
+      <span class="pl-sect-sub" id="pl-week-all"></span>
     </div>
     <div id="pl-list-all"></div>
   </div>
 
-  <!-- ── SEZIONE 2: Filtro per Sala ── -->
-  <div class="pl-section" style="margin-top:28px">
-    <div class="pl-section-head">
-      <span class="pl-section-title">Programmazione per Sala</span>
-      <div style="display:flex;gap:8px;align-items:center">
-        <select id="pl-sala" onchange="renderPlaylistSala()" style="min-width:150px">
-          <option value="all">Tutte le sale</option>
-          <option value="1">Teatro</option>
-          <option value="2">Ciak</option>
-          <option value="3">1908</option>
-          <option value="4">Mignon</option>
-        </select>
-        <span class="pl-section-sub" id="pl-week-sala"></span>
+  <!-- SEZIONE 2: Programmazione per Sala -->
+  <div class="pl-sect" style="margin-top:32px">
+    <div class="pl-sect-hdr">
+      <span class="pl-sect-title">Programmazione per Sala</span>
+    </div>
+    <div class="pl-sala-sel-wrap">
+      <label class="flb" style="margin-bottom:6px;display:block">Seleziona Sala</label>
+      <div class="pl-sala-btns" id="pl-sala-btns">
+        <button class="pl-sala-btn active" data-sid="all" onclick="plSetSala(this,'all')">Tutte</button>
+        <button class="pl-sala-btn" data-sid="1" onclick="plSetSala(this,'1')" style="--sc:#4a9ee8">Teatro</button>
+        <button class="pl-sala-btn" data-sid="2" onclick="plSetSala(this,'2')" style="--sc:#e89a3a">Ciak</button>
+        <button class="pl-sala-btn" data-sid="3" onclick="plSetSala(this,'3')" style="--sc:#3ae8aa">1908</button>
+        <button class="pl-sala-btn" data-sid="4" onclick="plSetSala(this,'4')" style="--sc:#c84ae8">Mignon</button>
       </div>
     </div>
-    <div id="pl-list-sala"></div>
+    <div id="pl-list-sala" style="margin-top:16px"></div>
   </div>
 
+  <!-- hidden select per compatibilità con renderPlaylistSala -->
+  <select id="pl-sala" style="display:none">
+    <option value="all">Tutte</option>
+    <option value="1">Teatro</option>
+    <option value="2">Ciak</option>
+    <option value="3">1908</option>
+    <option value="4">Mignon</option>
+  </select>
 </div>
 
 </main>
@@ -1874,7 +1870,34 @@ function rs(){
       });
     });
 
-    html.push(`</div></div>`); // close slot-grid + day-block
+    html.push(`</div>`); // close slot-grid
+    // ── Open Air ──────────────────────────────────────
+    var oaToday=(S.bookings||[]).filter(function(b){
+      return b.type==='openair'&&(b.dates||[]).some(function(bd){return bd.date===ds;});
+    });
+    if(oaToday.length){
+      html.push('<div class="oa-day-banner">');
+      oaToday.forEach(function(b){
+        var bDate=(b.dates||[]).find(function(bd){return bd.date===ds;});if(!bDate)return;
+        var film=b.filmId?S.films.find(function(f){return f.id===b.filmId;}):null;
+        var filmTitle=film?film.title:(b.oaFilmTitle||'');
+        var loc=b.location?' · '+b.location:'';
+        var timeStr=bDate.start+(bDate.end?' → '+bDate.end:'');
+        html.push(
+          '<div class="oa-banner-row" data-bid="'+b.id+'" onclick="editBook(this.dataset.bid)" title="Clicca per modificare">'
+          +'<span class="oa-banner-star">☀︎</span>'
+          +'<span class="oa-banner-label">CineTour Open Air</span>'
+          +(b.location?'<span class="oa-banner-sep">·</span><span class="oa-banner-loc">'+b.location+'</span>':'')
+          +(filmTitle?'<span class="oa-banner-sep">·</span><span class="oa-banner-film">'+filmTitle+'</span>':'')
+          +'<span class="oa-banner-time">'+timeStr+'</span>'
+          +(b.name?'<span class="oa-banner-sep">·</span><span class="oa-banner-name">'+b.name+'</span>':'')
+          +'<span class="oa-banner-edit">✏</span>'
+          +'</div>'
+        );
+      });
+      html.push('</div>');
+    }
+    html.push('</div>'); // close day-block
   });
 
   wrap.innerHTML=html.length?html.join(''):`<div class="empty"><div class="ei2">📅</div><div class="et">Nessun dato da visualizzare</div></div>`;
@@ -3019,17 +3042,65 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:8.5px;color:#111;backgroun
 
 
 /* ══ PLAYLIST ══════════════════════════════════════════ */
+.pl-trailers-section{padding:10px 14px;border-top:1px solid var(--bdr);border-bottom:1px solid var(--bdr);}
+.pl-trailers-label{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--txt2);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.pl-trailers-label::after{content:'';flex:1;height:1px;background:var(--bdr);}
+.pl-4slots{display:flex;flex-direction:column;gap:5px;}
+/* Ogni riga slot: thumb 48px + select + clear */
+.pl-slot-row{display:grid;grid-template-columns:48px 1fr 22px;gap:5px;align-items:center;}
+.pl-slot-thumb{
+  width:48px;height:28px;border-radius:3px;overflow:hidden;
+  background:var(--surf2);border:1px solid var(--bdr);
+  display:flex;align-items:center;justify-content:center;
+  position:relative;text-decoration:none;flex-shrink:0;
+}
+.pl-slot-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.pl-slot-empty{font-size:11px;color:var(--txt2);}
+.pl-thumb-play{
+  position:absolute;width:14px;height:14px;
+  background:rgba(0,0,0,.65);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:6px;color:#fff;pointer-events:none;
+}
+.pl-trailer-sel{font-size:11px;padding:3px 5px;width:100%;background:var(--surf);border:1px solid var(--bdr);color:var(--txt);border-radius:4px;cursor:pointer;}
+.pl-trailer-sel:focus{outline:2px solid var(--acc);}
+.pl-trailer-clear{background:none;border:none;color:var(--txt2);cursor:pointer;font-size:13px;padding:0;line-height:1;}
+.pl-trailer-clear:hover{color:var(--red);}
+.pl-empty{text-align:center;padding:40px 20px;color:var(--txt2);font-size:13px;}
+
+
+/* ══ PLAYLIST ══════════════════════════════════════════ */
 /* Sezioni */
-.pl-section{margin-bottom:8px;}
-.pl-section-head{
-  display:flex;align-items:center;justify-content:space-between;
+.pl-sect{margin-bottom:8px;}
+.pl-sect-hdr{
+  display:flex;align-items:baseline;justify-content:space-between;
   flex-wrap:wrap;gap:8px;
-  margin-bottom:14px;padding-bottom:10px;
+  margin-bottom:16px;
+  padding-bottom:10px;
   border-bottom:2px solid var(--bdr);
 }
-.pl-section-title{font-size:14px;font-weight:700;color:var(--txt);}
-.pl-section-sub{font-size:11px;color:var(--txt2);}
-/* Trailer slots */
+.pl-sect-title{
+  font-family:'Playfair Display',serif;
+  font-size:17px;font-weight:700;color:var(--txt);
+}
+.pl-sect-sub{font-size:11px;color:var(--txt2);}
+
+/* Bottoni sala */
+.pl-sala-sel-wrap{margin-bottom:4px;}
+.pl-sala-btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;}
+.pl-sala-btn{
+  padding:6px 16px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;
+  border:2px solid var(--bdr);background:var(--surf2);color:var(--txt2);
+  transition:all .15s;
+}
+.pl-sala-btn:hover{border-color:var(--sc,var(--acc));color:var(--sc,var(--acc));}
+.pl-sala-btn.active{
+  background:rgba(var(--sc-rgb,232,200,74),.15);
+  border-color:var(--sc,var(--acc));
+  color:var(--sc,var(--acc));
+}
+
+/* Trailer slots nella sezione 1 */
 .pl-trailers-section{
   padding:10px 14px 12px;
   border-top:1px solid var(--bdr);
@@ -3042,9 +3113,9 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:8.5px;color:#111;backgroun
   letter-spacing:.5px;color:var(--txt2);
 }
 .pl-trailer-sel{
-  flex:1;font-size:11px;padding:4px 7px;
+  font-size:11px;padding:4px 7px;width:100%;
   background:var(--surf2);border:1px solid var(--bdr);
-  color:var(--txt);border-radius:5px;cursor:pointer;width:100%;
+  color:var(--txt);border-radius:5px;cursor:pointer;
 }
 .pl-trailer-sel:focus{outline:2px solid var(--acc);}
 .pl-trailer-clear{
@@ -3052,7 +3123,8 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:8.5px;color:#111;backgroun
   cursor:pointer;font-size:14px;padding:0 0 0 4px;line-height:1;flex-shrink:0;
 }
 .pl-trailer-clear:hover{color:var(--red);}
-/* Card sala (sezione 2) */
+
+/* Card sala sezione 2 — usa lfc-grid */
 .pl-sala-card{
   background:var(--surf);border:1px solid var(--bdr);
   border-radius:10px;overflow:hidden;
@@ -3064,22 +3136,26 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:8.5px;color:#111;backgroun
   border-bottom:1px solid var(--bdr);
   font-size:13px;font-weight:700;
 }
-.pl-sala-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:0;}
-.pl-sala-film{
-  padding:10px 14px;border-right:1px solid var(--bdr);
-  border-bottom:1px solid var(--bdr);
-}
-.pl-sala-film:last-child{border-right:none;}
-.pl-sala-film-title{font-size:12px;font-weight:700;color:var(--txt);margin-bottom:4px;}
-.pl-sala-film-meta{font-size:10px;color:var(--txt2);margin-bottom:6px;}
-.pl-sala-trailers{font-size:10px;color:var(--txt2);margin-bottom:4px;}
-.pl-sala-trailer-item{
-  font-size:10px;color:var(--acc);
-  padding:1px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-}
+.pl-sala-film-title{font-size:13px;font-weight:700;line-height:1.3;margin-bottom:3px;}
+.pl-sala-film-meta{font-size:10px;color:var(--txt2);margin-bottom:5px;}
+.pl-sala-trailer-item{font-size:10px;color:var(--acc);padding:1px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .pl-sala-trailer-empty{font-size:10px;color:var(--txt2);font-style:italic;}
 .pl-empty{text-align:center;padding:40px 20px;color:var(--txt2);font-size:13px;}
 
+
+/* ── OPEN AIR BANNER ── */
+.oa-day-banner{padding:6px 10px 8px;border-top:2px dashed rgba(13,92,138,.4);background:linear-gradient(135deg,rgba(13,92,138,.08),rgba(13,92,138,.03));display:flex;flex-direction:column;gap:4px;}
+.oa-banner-row{display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding:5px 10px;background:rgba(13,92,138,.1);border:1px solid rgba(13,92,138,.25);border-left:3px solid #0d5c8a;border-radius:5px;cursor:pointer;transition:background .12s;font-size:11px;}
+.oa-banner-row:hover{background:rgba(13,92,138,.18);}
+.oa-banner-star{font-size:13px;flex-shrink:0;}
+.oa-banner-label{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#4ab4e8;flex-shrink:0;}
+.oa-banner-sep{color:rgba(74,180,232,.5);font-size:11px;flex-shrink:0;}
+.oa-banner-loc{color:#4ab4e8;font-weight:600;font-size:11px;}
+.oa-banner-film{color:var(--txt);font-weight:700;font-size:11px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.oa-banner-time{font-family:monospace;font-weight:700;font-size:11px;color:#e8c84a;background:rgba(232,200,74,.1);border:1px solid rgba(232,200,74,.25);border-radius:3px;padding:1px 6px;flex-shrink:0;}
+.oa-banner-name{font-size:10px;color:var(--txt2);flex-shrink:0;}
+.oa-banner-edit{font-size:11px;color:var(--txt2);opacity:0;margin-left:auto;flex-shrink:0;transition:opacity .12s;}
+.oa-banner-row:hover .oa-banner-edit{opacity:.7;}
 /* ── PRENOTAZIONI ── */
 .book-pill{border-radius:5px;padding:5px 7px;margin-bottom:3px;border-left:3px solid #e84a4a;background:rgba(232,74,74,.12);position:relative;cursor:pointer;transition:transform .1s;}
 .book-pill:hover{transform:translateX(2px);}
@@ -3299,6 +3375,94 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:8.5px;color:#111;backgroun
 .pl-trailer-clear:hover{color:var(--red);}
 .pl-empty{text-align:center;padding:40px 20px;color:var(--txt2);font-size:13px;}
 
+
+/* ══ PLAYLIST ══════════════════════════════════════════ */
+/* Sezioni */
+.pl-sect{margin-bottom:8px;}
+.pl-sect-hdr{
+  display:flex;align-items:baseline;justify-content:space-between;
+  flex-wrap:wrap;gap:8px;
+  margin-bottom:16px;
+  padding-bottom:10px;
+  border-bottom:2px solid var(--bdr);
+}
+.pl-sect-title{
+  font-family:'Playfair Display',serif;
+  font-size:17px;font-weight:700;color:var(--txt);
+}
+.pl-sect-sub{font-size:11px;color:var(--txt2);}
+
+/* Bottoni sala */
+.pl-sala-sel-wrap{margin-bottom:4px;}
+.pl-sala-btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;}
+.pl-sala-btn{
+  padding:6px 16px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;
+  border:2px solid var(--bdr);background:var(--surf2);color:var(--txt2);
+  transition:all .15s;
+}
+.pl-sala-btn:hover{border-color:var(--sc,var(--acc));color:var(--sc,var(--acc));}
+.pl-sala-btn.active{
+  background:rgba(var(--sc-rgb,232,200,74),.15);
+  border-color:var(--sc,var(--acc));
+  color:var(--sc,var(--acc));
+}
+
+/* Trailer slots nella sezione 1 */
+.pl-trailers-section{
+  padding:10px 14px 12px;
+  border-top:1px solid var(--bdr);
+  border-bottom:1px solid var(--bdr);
+}
+.pl-4slots{display:flex;flex-direction:column;gap:5px;}
+.pl-slot-box{display:flex;flex-direction:column;gap:2px;}
+.pl-slot-num{
+  font-size:9px;font-weight:800;text-transform:uppercase;
+  letter-spacing:.5px;color:var(--txt2);
+}
+.pl-trailer-sel{
+  font-size:11px;padding:4px 7px;width:100%;
+  background:var(--surf2);border:1px solid var(--bdr);
+  color:var(--txt);border-radius:5px;cursor:pointer;
+}
+.pl-trailer-sel:focus{outline:2px solid var(--acc);}
+.pl-trailer-clear{
+  background:none;border:none;color:var(--txt2);
+  cursor:pointer;font-size:14px;padding:0 0 0 4px;line-height:1;flex-shrink:0;
+}
+.pl-trailer-clear:hover{color:var(--red);}
+
+/* Card sala sezione 2 — usa lfc-grid */
+.pl-sala-card{
+  background:var(--surf);border:1px solid var(--bdr);
+  border-radius:10px;overflow:hidden;
+  border-top:3px solid;
+}
+.pl-sala-head{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 14px;background:var(--surf2);
+  border-bottom:1px solid var(--bdr);
+  font-size:13px;font-weight:700;
+}
+.pl-sala-film-title{font-size:13px;font-weight:700;line-height:1.3;margin-bottom:3px;}
+.pl-sala-film-meta{font-size:10px;color:var(--txt2);margin-bottom:5px;}
+.pl-sala-trailer-item{font-size:10px;color:var(--acc);padding:1px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pl-sala-trailer-empty{font-size:10px;color:var(--txt2);font-style:italic;}
+.pl-empty{text-align:center;padding:40px 20px;color:var(--txt2);font-size:13px;}
+
+
+/* ── OPEN AIR BANNER ── */
+.oa-day-banner{padding:6px 10px 8px;border-top:2px dashed rgba(13,92,138,.4);background:linear-gradient(135deg,rgba(13,92,138,.08),rgba(13,92,138,.03));display:flex;flex-direction:column;gap:4px;}
+.oa-banner-row{display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding:5px 10px;background:rgba(13,92,138,.1);border:1px solid rgba(13,92,138,.25);border-left:3px solid #0d5c8a;border-radius:5px;cursor:pointer;transition:background .12s;font-size:11px;}
+.oa-banner-row:hover{background:rgba(13,92,138,.18);}
+.oa-banner-star{font-size:13px;flex-shrink:0;}
+.oa-banner-label{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#4ab4e8;flex-shrink:0;}
+.oa-banner-sep{color:rgba(74,180,232,.5);font-size:11px;flex-shrink:0;}
+.oa-banner-loc{color:#4ab4e8;font-weight:600;font-size:11px;}
+.oa-banner-film{color:var(--txt);font-weight:700;font-size:11px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.oa-banner-time{font-family:monospace;font-weight:700;font-size:11px;color:#e8c84a;background:rgba(232,200,74,.1);border:1px solid rgba(232,200,74,.25);border-radius:3px;padding:1px 6px;flex-shrink:0;}
+.oa-banner-name{font-size:10px;color:var(--txt2);flex-shrink:0;}
+.oa-banner-edit{font-size:11px;color:var(--txt2);opacity:0;margin-left:auto;flex-shrink:0;transition:opacity .12s;}
+.oa-banner-row:hover .oa-banner-edit{opacity:.7;}
 /* ── PRENOTAZIONI ── */
 .book-pill{border-radius:5px;padding:5px 7px;margin-bottom:3px;border-left:3px solid #e84a4a;background:rgba(232,74,74,.12);position:relative;cursor:pointer;transition:transform .1s;}
 .book-pill:hover{transform:translateX(2px);}
@@ -3812,84 +3976,59 @@ async function sendDistMails(){
   toast(sent?sent+' email preparate':'Nessun film in programmazione per i distributori con contatti nel periodo selezionato','ok');
 }
 
-// ── INVIO CIRCOLARE CCN ──────────────────────────────────
-function circSetWeek(){
-  const wd=wdates();
-  const f=document.getElementById('circ-from-date');
-  const t=document.getElementById('circ-to-date');
-  if(f)f.value=wd[0];
-  if(t)t.value=wd[6];
-}
+function circSetWeek(){var wd=wdates();var f=document.getElementById('circ-from-date');var t=document.getElementById('circ-to-date');if(f)f.value=wd[0];if(t)t.value=wd[6];}
 window.circSetWeek=circSetWeek;
-
 function previewCircolare(){
-  if(!S.distributors||!S.distributors.length){
-    document.getElementById('circ-preview').innerHTML='<span style="color:var(--red)">Nessun distributore presente</span>';return;
-  }
-  const allEmails=[];
-  S.distributors.forEach(function(dist){(dist.contacts||[]).forEach(function(ct){if(ct.email&&!allEmails.includes(ct.email))allEmails.push(ct.email);});});
-  const fromVal=document.getElementById('circ-from').value||'(non impostato)';
-  const fromDate=document.getElementById('circ-from-date').value;
-  const toDate=document.getElementById('circ-to-date').value;
-  const periodLabel=(fromDate&&toDate)?(fromDate.split('-').reverse().join('/')+' → '+toDate.split('-').reverse().join('/')):'settimana corrente';
-  let html='<div style="margin-bottom:5px"><strong style="color:var(--acc)">'+allEmails.length+'</strong> destinatari in CCN</div>';
-  html+='<div style="font-size:10px;color:var(--txt2);margin-bottom:4px">Da: <strong>'+fromVal+'</strong> · Periodo: '+periodLabel+'</div>';
-  if(allEmails.length){html+='<div style="font-size:10px;color:var(--txt2);word-break:break-all;max-height:70px;overflow-y:auto">'+allEmails.join(', ')+'</div>';}
-  else{html+='<div style="color:var(--red);font-size:11px">Nessun contatto email nei distributori</div>';}
-  document.getElementById('circ-preview').innerHTML=html;
+  var el=document.getElementById('circ-preview');if(!el)return;
+  if(!S.distributors||!S.distributors.length){el.innerHTML='<span style="color:var(--red)">Nessun distributore</span>';return;}
+  var emails=[];S.distributors.forEach(function(d){(d.contacts||[]).forEach(function(ct){if(ct.email&&emails.indexOf(ct.email)<0)emails.push(ct.email);});});
+  var from=(document.getElementById('circ-from')||{value:''}).value||'(non impostato)';
+  var fd2=(document.getElementById('circ-from-date')||{value:''}).value;
+  var td2=(document.getElementById('circ-to-date')||{value:''}).value;
+  var pl=(fd2&&td2)?(fd2.split('-').reverse().join('/')+' → '+td2.split('-').reverse().join('/')):'settimana corrente';
+  var h='<div style="margin-bottom:5px"><strong style="color:var(--acc)">'+emails.length+'</strong> destinatari CCN</div>';
+  h+='<div style="font-size:10px;color:var(--txt2);margin-bottom:4px">Da: <strong>'+from+'</strong> · '+pl+'</div>';
+  h+=emails.length?'<div style="font-size:10px;color:var(--txt2);word-break:break-all;max-height:70px;overflow-y:auto">'+emails.join(', ')+'</div>':'<div style="color:var(--red);font-size:11px">Nessun contatto email</div>';
+  el.innerHTML=h;
 }
 window.previewCircolare=previewCircolare;
-
 function sendCircolare(){
   if(!S.distributors||!S.distributors.length){toast('Aggiungi distributori prima','err');return;}
-  const allEmails=[];
-  S.distributors.forEach(function(dist){(dist.contacts||[]).forEach(function(ct){if(ct.email&&!allEmails.includes(ct.email))allEmails.push(ct.email);});});
-  if(!allEmails.length){toast('Nessun contatto email nei distributori','err');return;}
-  const fromEmail=document.getElementById('circ-from').value.trim();
-  const subjRaw=document.getElementById('circ-subj').value||'Programmazione Settimanale';
-  const note=document.getElementById('circ-note').value.trim();
-  const fromDate=document.getElementById('circ-from-date').value||wdates()[0];
-  const toDate=document.getElementById('circ-to-date').value||wdates()[6];
-  const rangeDays=[];
-  const cur=new Date(fromDate+'T12:00:00');const end=new Date(toDate+'T12:00:00');
-  while(cur<=end){rangeDays.push(cur.toISOString().slice(0,10));cur.setDate(cur.getDate()+1);}
-  const shows=S.shows.filter(function(s){return rangeDays.includes(s.day);});
-  const fromLabel=fromDate.split('-').reverse().join('/');
-  const toLabel=toDate.split('-').reverse().join('/');
-  const SEP='-'.repeat(40);
-  const lines=[];
-  lines.push('Gentili Distributori,');lines.push('');
+  var emails=[];S.distributors.forEach(function(d){(d.contacts||[]).forEach(function(ct){if(ct.email&&emails.indexOf(ct.email)<0)emails.push(ct.email);});});
+  if(!emails.length){toast('Nessun contatto email','err');return;}
+  var fromEmail=((document.getElementById('circ-from')||{value:''}).value).trim();
+  var subj=(document.getElementById('circ-subj')||{value:'Programmazione Settimanale'}).value||'Programmazione Settimanale';
+  var note=((document.getElementById('circ-note')||{value:''}).value).trim();
+  var fromDate=(document.getElementById('circ-from-date')||{value:wdates()[0]}).value||wdates()[0];
+  var toDate=(document.getElementById('circ-to-date')||{value:wdates()[6]}).value||wdates()[6];
+  var range=[];var cur=new Date(fromDate+'T12:00:00');var endD=new Date(toDate+'T12:00:00');
+  while(cur<=endD){range.push(cur.toISOString().slice(0,10));cur.setDate(cur.getDate()+1);}
+  var shows=S.shows.filter(function(s){return range.indexOf(s.day)>=0;});
+  var SEP='-'.repeat(40);var lines=['Gentili Distributori,',''];
   if(note){lines.push(note);lines.push('');}
-  lines.push('Di seguito la programmazione di tutti i film');
-  lines.push('dal '+fromLabel+' al '+toLabel+':');lines.push('');lines.push(SEP);
-  const filmIds=[...new Set(shows.map(function(s){return s.filmId;}))];
-  const sortedFilms=filmIds.map(function(id){return S.films.find(function(f){return f.id===id;});})
-    .filter(Boolean).sort(function(a,b){return a.title.localeCompare(b.title,'it');});
-  sortedFilms.forEach(function(film){
-    const fShows=shows.filter(function(s){return s.filmId===film.id;})
-      .sort(function(a,b){return a.day.localeCompare(b.day)||a.start.localeCompare(b.start);});
-    if(!fShows.length)return;
-    const dur=film.duration?(Math.floor(film.duration/60)+'h'+String(film.duration%60).padStart(2,'0')):'';
-    const meta=[dur,film.rating,film.genre,film.distributor].filter(Boolean).join(' - ');
-    lines.push('');lines.push(film.title.toUpperCase()+(meta?' ('+meta+')':''));
-    const byDay={};
-    fShows.forEach(function(s){if(!byDay[s.day])byDay[s.day]=[];byDay[s.day].push(s);});
-    Object.keys(byDay).sort().forEach(function(ds){
-      const d=new Date(ds+'T12:00:00');
-      const dl=d.toLocaleDateString('it-IT',{weekday:'long',day:'2-digit',month:'2-digit'});
-      const times=byDay[ds].map(function(s){return s.start+' ('+sn(s.sala)+')';}).join('   ');
-      lines.push('  '+dl.charAt(0).toUpperCase()+dl.slice(1)+': '+times);
+  lines.push('Programmazione dal '+fromDate.split('-').reverse().join('/')+' al '+toDate.split('-').reverse().join('/'));
+  lines.push('');lines.push(SEP);
+  var fids=[];shows.forEach(function(s){if(fids.indexOf(s.filmId)<0)fids.push(s.filmId);});
+  fids.map(function(id){return S.films.find(function(f){return f.id===id;});}).filter(Boolean)
+    .sort(function(a,b){return a.title.localeCompare(b.title,'it');})
+    .forEach(function(film){
+      var fs2=shows.filter(function(s){return s.filmId===film.id;}).sort(function(a,b){return a.day.localeCompare(b.day)||a.start.localeCompare(b.start);});
+      if(!fs2.length)return;
+      var dur=film.duration?(Math.floor(film.duration/60)+'h'+String(film.duration%60).padStart(2,'0')):'';
+      lines.push('');lines.push(film.title.toUpperCase()+([dur,film.rating,film.distributor].filter(Boolean).length?' ('+[dur,film.rating,film.distributor].filter(Boolean).join(' - ')+')':''));
+      var bd={};fs2.forEach(function(s){if(!bd[s.day])bd[s.day]=[];bd[s.day].push(s);});
+      Object.keys(bd).sort().forEach(function(ds){
+        var d=new Date(ds+'T12:00:00');var dl=d.toLocaleDateString('it-IT',{weekday:'long',day:'2-digit',month:'2-digit'});
+        lines.push('  '+dl.charAt(0).toUpperCase()+dl.slice(1)+': '+bd[ds].map(function(s){return s.start+' ('+sn(s.sala)+')';}).join('   '));
+      });
     });
-  });
   lines.push('');lines.push(SEP);lines.push('Cinema Multisala Teatro Mendrisio');
-  const body=lines.join('\n');
-  let mailto='mailto:';
-  if(fromEmail)mailto+=fromEmail;
-  mailto+='?bcc='+encodeURIComponent(allEmails.join(','));
-  mailto+='&subject='+encodeURIComponent(subjRaw);
+  var body=lines.join('\n');
+  var mailto='mailto:'+(fromEmail||'');
+  mailto+='?bcc='+encodeURIComponent(emails.join(','));
+  mailto+='&subject='+encodeURIComponent(subj);
   mailto+='&body='+encodeURIComponent(body);
-  window.location.href=mailto;
-  toast(allEmails.length+' destinatari CCN — client email aperto','ok');
+  window.location.href=mailto;toast(emails.length+' destinatari CCN','ok');
 }
 window.sendCircolare=sendCircolare;
 
@@ -4392,180 +4531,164 @@ function renderBookings(){
 // Stato locale: {filmId: [ytId1, ytId2, ...]} per sala corrente
 let _plTrailers = {};
 
-// Costruisce i 4 slot trailer per un film (condivisi tra sezione 1 e 2)
-function buildTrailerSlots(fid, trailerCandidates){
-  let html='';
-  for(var i=0;i<4;i++){
-    const ytId=(_plTrailers[fid]||[])[i]||'';
-    let opts='<option value="">— Seleziona trailer —</option>';
-    trailerCandidates.forEach(function(tf){
-      if(!tf.trailer)return;
-      const rel=tf.release?' ('+tf.release.split('-').slice(1).reverse().join('/')+')':'';
-      const isSel=(tf.trailer===ytId&&ytId)?' selected':'';
-      opts+='<option value="'+tf.trailer+'"'+isSel+'>'+tf.title+rel+'</option>';
-    });
-    html+=
-      '<div class="pl-slot-box">'
-      +'<div class="pl-slot-num">Trailer '+(i+1)+'</div>'
-      +'<div style="display:flex;gap:4px;align-items:center">'
-      +'<select class="pl-trailer-sel" data-fid="'+fid+'" data-slot="'+i+'" onchange="plPickTrailer(this)">'+opts+'</select>'
-      +(ytId
-        ?'<button class="pl-trailer-clear" data-fid="'+fid+'" data-slot="'+i+'" onclick="plClearSlot(this)" title="Rimuovi">&#215;</button>'
-        :'<button class="pl-trailer-clear" style="opacity:.2" disabled>&#215;</button>')
-      +'</div></div>';
-  }
-  return html;
-}
-
-// ── SEZIONE 1: tutti i film della settimana con slot trailer ──
 function renderPlaylist(){
-  const wd=wdates(); const days=wdays();
-  const today=new Date().toISOString().slice(0,10);
+  var wd=wdates(); var days=wdays();
+  var today=new Date().toISOString().slice(0,10);
 
-  // Week label
-  const weekEl=document.getElementById('pl-week-all');
-  if(weekEl) weekEl.textContent='Settimana '+fd(days[0])+' — '+fd(days[6]);
+  var weekEl=document.getElementById('pl-week-all');
+  if(weekEl)weekEl.textContent='Settimana '+fd(days[0])+' — '+fd(days[6]);
 
-  // Tutti gli show della settimana
-  const allShows=S.shows.filter(function(s){return wd.includes(s.day);})
-    .sort(function(a,b){return a.day.localeCompare(b.day)||a.start.localeCompare(b.start);});
-
-  // Film unici ordinati per titolo
-  const seen=new Set(); const filmOrder=[];
-  allShows.forEach(function(s){
-    if(!seen.has(s.filmId)){seen.add(s.filmId);filmOrder.push(s.filmId);}
-  });
-  const sortedFilmIds=filmOrder.slice().sort(function(a,b){
-    const fa=S.films.find(function(f){return f.id===a;})||{title:''};
-    const fb=S.films.find(function(f){return f.id===b;})||{title:''};
+  // Tutti i film della settimana (tutte le sale), alfabetico
+  var allShows=S.shows.filter(function(s){return wd.includes(s.day);});
+  var seenMap={};var filmOrder=[];
+  allShows.sort(function(a,b){return a.day.localeCompare(b.day)||a.start.localeCompare(b.start);})
+    .forEach(function(s){if(!seenMap[s.filmId]){seenMap[s.filmId]=true;filmOrder.push(s.filmId);}});
+  filmOrder.sort(function(a,b){
+    var fa=S.films.find(function(f){return f.id===a;})||{title:''};
+    var fb=S.films.find(function(f){return f.id===b;})||{title:''};
     return fa.title.localeCompare(fb.title,'it');
   });
 
-  const w=document.getElementById('pl-list-all');
-  if(!sortedFilmIds.length){
+  var w=document.getElementById('pl-list-all');
+  if(!w)return;
+
+  if(!filmOrder.length){
     w.innerHTML='<div class="pl-empty">Nessun film in programmazione questa settimana</div>';
-    renderPlaylistSala();
-    return;
+    renderPlaylistSala(); return;
   }
 
-  const trailerCandidates=S.films
+  var trailerCandidates=S.films
     .filter(function(f){return !f.release||f.release>=today;})
     .sort(function(a,b){return (a.release||'9999').localeCompare(b.release||'9999')||a.title.localeCompare(b.title,'it');});
 
-  let html='<div class="lfc-grid">';
-  sortedFilmIds.forEach(function(fid){
-    const film=S.films.find(function(f){return f.id===fid;});
+  var html='<div class="lfc-grid">';
+  filmOrder.forEach(function(fid){
+    var film=S.films.find(function(f){return f.id===fid;});
     if(!film)return;
     if(!_plTrailers[fid])_plTrailers[fid]=[film.trailer||'','','',''];
-    const dur=film.duration?Math.floor(film.duration/60)+'h'+String(film.duration%60).padStart(2,'0'):'';
-    const meta=[film.distributor,dur,film.rating,film.genre].filter(Boolean).join(' · ');
-    html+=
-      '<div class="lfc" style="border-top:3px solid var(--acc)">'
+
+    var dur=film.duration?Math.floor(film.duration/60)+'h'+String(film.duration%60).padStart(2,'0'):'';
+    var meta=[film.distributor,dur,film.rating,film.genre].filter(Boolean).join(' · ');
+
+    // 4 slot trailer
+    var slots='';
+    for(var i=0;i<4;i++){
+      var ytId=(_plTrailers[fid]||[])[i]||'';
+      var opts='<option value="">— Seleziona trailer —</option>';
+      trailerCandidates.forEach(function(tf){
+        if(!tf.trailer)return;
+        var rel=tf.release?' ('+tf.release.split('-').slice(1).reverse().join('/')+')':'';
+        var sel=(tf.trailer===ytId&&ytId)?' selected':'';
+        opts+='<option value="'+tf.trailer+'"'+sel+'>'+tf.title+rel+'</option>';
+      });
+      slots+='<div class="pl-slot-box">'
+        +'<div style="display:flex;gap:4px;align-items:center">'
+        +'<select class="pl-trailer-sel" data-fid="'+fid+'" data-slot="'+i+'" onchange="plPickTrailer(this)">'+opts+'</select>'
+        +(ytId
+          ?'<button class="pl-trailer-clear" data-fid="'+fid+'" data-slot="'+i+'" onclick="plClearSlot(this)" title="Rimuovi">×</button>'
+          :'<button class="pl-trailer-clear" style="opacity:.2" disabled>×</button>')
+        +'</div></div>';
+    }
+
+    html+='<div class="lfc" style="border-top:3px solid var(--acc)">'
       +'<div class="lfc-head">'
-        +'<div class="lfc-title">'+film.title+'</div>'
+        +'<div class="lfc-title" style="color:var(--acc)">'+film.title+'</div>'
         +(meta?'<div class="lfc-meta">'+meta+'</div>':'')
       +'</div>'
-      +'<div class="pl-trailers-section">'
-        +'<div class="pl-4slots">'+buildTrailerSlots(fid,trailerCandidates)+'</div>'
-      +'</div>'
+      +'<div class="pl-trailers-section"><div class="pl-4slots">'+slots+'</div></div>'
       +'</div>';
   });
   html+='</div>';
   w.innerHTML=html;
-
-  // Aggiorna anche la sezione sala
   renderPlaylistSala();
 }
 window.renderPlaylist=renderPlaylist;
 
-// ── SEZIONE 2: film + trailer + orari filtrati per sala ──
+// ── Pulsanti sala ──────────────────────────────────────
+function plSetSala(btn, sid){
+  document.querySelectorAll('.pl-sala-btn').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  var sel=document.getElementById('pl-sala');
+  if(sel)sel.value=sid;
+  renderPlaylistSala();
+}
+window.plSetSala=plSetSala;
+
+// ── Sezione 2: card per sala, stile lfc-grid ──────────
 function renderPlaylistSala(){
-  const wd=wdates(); const days=wdays();
-  const sid=document.getElementById('pl-sala').value; // 'all','1','2','3','4'
-  const today=new Date().toISOString().slice(0,10);
+  var wd=wdates();var days=wdays();
+  var sel=document.getElementById('pl-sala');
+  var sid=sel?sel.value:'all';
+  var w=document.getElementById('pl-list-sala');
+  if(!w)return;
 
-  const weekEl=document.getElementById('pl-week-sala');
-  if(weekEl) weekEl.textContent='';
-
-  const SALE_IDS=sid==='all'?['1','2','3','4']:[sid];
-  const w=document.getElementById('pl-list-sala');
-
-  const trailerCandidates=S.films
-    .filter(function(f){return !f.release||f.release>=today;})
-    .sort(function(a,b){return (a.release||'9999').localeCompare(b.release||'9999')||a.title.localeCompare(b.title,'it');});
-
-  let html='';
+  var SALE_IDS=sid==='all'?['1','2','3','4']:[sid];
+  var html='';
 
   SALE_IDS.forEach(function(salaId){
-    const sl=SALE[salaId];
-    const salaShows=S.shows
+    var sl=SALE[salaId];
+    var salaShows=S.shows
       .filter(function(s){return s.sala==salaId&&wd.includes(s.day);})
       .sort(function(a,b){return a.day.localeCompare(b.day)||a.start.localeCompare(b.start);});
     if(!salaShows.length)return;
 
     // Film unici in questa sala
-    const seenS=new Set(); const salaFilmOrder=[];
-    salaShows.forEach(function(s){if(!seenS.has(s.filmId)){seenS.add(s.filmId);salaFilmOrder.push(s.filmId);}});
+    var seenS={};var salaFilmOrder=[];
+    salaShows.forEach(function(s){if(!seenS[s.filmId]){seenS[s.filmId]=true;salaFilmOrder.push(s.filmId);}});
+    salaFilmOrder.sort(function(a,b){
+      var fa=S.films.find(function(f){return f.id===a;})||{title:''};
+      var fb=S.films.find(function(f){return f.id===b;})||{title:''};
+      return fa.title.localeCompare(fb.title,'it');
+    });
 
-    html+='<div class="pl-sala-card" style="border-top-color:'+sl.col+';margin-bottom:14px">';
-    // Header sala
-    html+='<div class="pl-sala-head" style="color:'+sl.col+'">'
-      +'<span class="sdot" style="background:'+sl.col+'"></span>'
-      +sl.n
-      +' <span style="font-size:11px;font-weight:400;color:var(--txt2);margin-left:6px">'+salaShows.length+' spettacol'+(salaShows.length===1?'o':'i')+'</span>'
+    // Header sala + griglia film (stessa lfc-grid)
+    html+='<div style="margin-bottom:24px">';
+    html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid '+sl.col+'">'
+      +'<span class="sdot" style="background:'+sl.col+';width:10px;height:10px;border-radius:50%;display:inline-block;flex-shrink:0"></span>'
+      +'<span style="font-size:14px;font-weight:700;color:'+sl.col+'">'+sl.n+'</span>'
+      +'<span style="font-size:11px;color:var(--txt2)">'+salaShows.length+' spettacol'+(salaShows.length===1?'o':'i')+'</span>'
       +'</div>';
-    // Griglia film
-    html+='<div class="pl-sala-grid">';
+
+    html+='<div class="lfc-grid">';
     salaFilmOrder.forEach(function(fid){
-      const film=S.films.find(function(f){return f.id===fid;});
+      var film=S.films.find(function(f){return f.id===fid;});
       if(!film)return;
       if(!_plTrailers[fid])_plTrailers[fid]=[film.trailer||'','','',''];
-      // Orari in questa sala
-      const filmSalaShows=salaShows.filter(function(s){return s.filmId===fid;});
-      // Raggruppa per giorno
-      const byDay={};const dayOrd=[];
-      filmSalaShows.forEach(function(s){
-        if(!byDay[s.day]){byDay[s.day]=[];dayOrd.push(s.day);}
-        byDay[s.day].push(s);
-      });
-      // Trailer scelti per questo film
-      const chosenTrailers=(_plTrailers[fid]||[]).filter(Boolean);
-      const dur=film.duration?Math.floor(film.duration/60)+'h'+String(film.duration%60).padStart(2,'0'):'';
+      var filmSalaShows=salaShows.filter(function(s){return s.filmId===fid;});
+      var byDay={};var dayOrd=[];
+      filmSalaShows.forEach(function(s){if(!byDay[s.day]){byDay[s.day]=[];dayOrd.push(s.day);}byDay[s.day].push(s);});
+      var chosen=(_plTrailers[fid]||[]).filter(Boolean);
+      var dur=film.duration?Math.floor(film.duration/60)+'h'+String(film.duration%60).padStart(2,'0'):'';
+      var meta=[film.distributor,dur].filter(Boolean).join(' · ');
 
-      html+='<div class="pl-sala-film">';
-      // Titolo + meta
-      html+='<div class="pl-sala-film-title">'+film.title+'</div>';
-      if(dur||film.distributor){
-        html+='<div class="pl-sala-film-meta">'+[film.distributor,dur].filter(Boolean).join(' · ')+'</div>';
-      }
-      // Trailer scelti (read-only qui, si modificano nella sezione 1)
-      if(chosenTrailers.length){
-        html+='<div class="pl-sala-trailers" style="margin-bottom:4px">';
-        chosenTrailers.forEach(function(ytId,ti){
-          const tf=S.films.find(function(f){return f.trailer===ytId;});
-          html+='<div class="pl-sala-trailer-item">T'+(ti+1)+' '+(tf?tf.title:ytId)+'</div>';
+      html+='<div class="lfc" style="border-top:3px solid '+sl.col+'">';
+      html+='<div class="lfc-head">';
+      html+='<div class="lfc-title" style="color:var(--acc)">'+film.title+'</div>';
+      if(meta)html+='<div class="lfc-meta">'+meta+'</div>';
+      html+='</div>';
+      // Trailer scelti
+      html+='<div class="pl-trailers-section">';
+      if(chosen.length){
+        chosen.forEach(function(ytId,ti){
+          var tf=S.films.find(function(f){return f.trailer===ytId;});
+          html+='<div class="pl-sala-trailer-item">T'+(ti+1)+'  '+(tf?tf.title:ytId)+'</div>';
         });
-        html+='</div>';
       } else {
-        html+='<div class="pl-sala-trailer-empty" style="margin-bottom:4px">Nessun trailer selezionato</div>';
+        html+='<div class="pl-sala-trailer-empty">Nessun trailer selezionato</div>';
       }
+      html+='</div>';
       // Orari per giorno
-      html+='<div class="lfc-days" style="padding:0">';
+      html+='<div class="lfc-days">';
       dayOrd.forEach(function(ds){
-        const di=wd.indexOf(ds);
-        const dl=di>=0?DIT[di].toUpperCase()+' '+fs(days[di]):ds;
-        html+='<div style="margin-bottom:3px">';
-        html+='<div class="lfc-day-name" style="font-size:9px">'+dl+'</div>';
-        html+='<div class="lfc-slots">';
-        byDay[ds].forEach(function(s){
-          html+='<span class="lfc-slot"><span class="lfc-slot-time">'+s.start+'</span></span>';
-        });
+        var di=wd.indexOf(ds);
+        var dl=di>=0?DIT[di].toUpperCase()+' '+fs(days[di]):ds;
+        html+='<div><div class="lfc-day-name">'+dl+'</div><div class="lfc-slots">';
+        byDay[ds].forEach(function(s){html+='<span class="lfc-slot"><span class="lfc-slot-time">'+s.start+'</span></span>';});
         html+='</div></div>';
       });
-      html+='</div>';
-      html+='</div>'; // fine pl-sala-film
+      html+='</div></div>';
     });
-    html+='</div></div>'; // fine grid + sala-card
+    html+='</div></div>';
   });
 
   w.innerHTML=html||'<div class="pl-empty">Nessun film in programmazione</div>';
