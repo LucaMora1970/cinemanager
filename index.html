@@ -209,7 +209,7 @@ select option{background:var(--surf2);}
 
 /* list */
 /* lista card per film */
-.lfc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px;}
+.lfc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;}
 .lfc{background:var(--surf);border:1px solid var(--bdr);border-radius:10px;overflow:hidden;border-top:3px solid var(--acc);transition:transform .15s;}
 .lfc:hover{transform:translateY(-2px);border-color:var(--acc);}
 .lfc-head{padding:12px 14px 8px;border-bottom:1px solid var(--bdr);}
@@ -1821,6 +1821,52 @@ function rl(){
       });
     });
     w.innerHTML=h||'<div class="empty"><div class="ei2">📅</div><div class="et">Nessuno spettacolo questa settimana</div></div>';
+    return;
+  }
+
+  // ── VISTA: Card per Sala ────────────────────────────────
+  // Una card lfc per ogni sala — spettacoli ordinati per giorno e orario di inizio
+  if(sort==='per-sala'){
+    const SALE_IDS=['1','2','3','4'];
+    let h='<div class="lfc-grid">';
+    SALE_IDS.forEach(function(sid){
+      const sl=SALE[sid];
+      const salaShows=shows.filter(function(s){return s.sala==sid;})
+        .sort(function(a,b){return a.day.localeCompare(b.day)||a.start.localeCompare(b.start);});
+      if(!salaShows.length)return;
+      // Raggruppa per giorno
+      const byDay={};const dayOrder=[];
+      salaShows.forEach(function(s){
+        if(!byDay[s.day]){byDay[s.day]=[];dayOrder.push(s.day);}
+        byDay[s.day].push(s);
+      });
+      h+='<div class="lfc" style="border-top-color:'+sl.col+'">';
+      // Header
+      h+='<div class="lfc-head">';
+      h+='<div class="lfc-title" style="color:'+sl.col+'">'+sl.n+'</div>';
+      h+='<div class="lfc-count">'+salaShows.length+' spettacol'+(salaShows.length===1?'o':'i')+'</div>';
+      h+='</div>';
+      // Corpo: un blocco per ogni giorno
+      h+='<div class="lfc-days">';
+      dayOrder.forEach(function(ds){
+        const di=wd.indexOf(ds);
+        const dayLabel=di>=0?DIT[di].toUpperCase()+' '+fs(days[di]):ds;
+        h+='<div>';
+        h+='<div class="lfc-day-name">'+dayLabel+'</div>';
+        h+='<div class="lfc-slots">';
+        byDay[ds].forEach(function(s){
+          const film=S.films.find(function(f){return f.id===s.filmId;});
+          h+='<div class="lfc-slot" style="flex-direction:column;align-items:flex-start;gap:1px;min-width:80px">'
+            +'<span class="lfc-slot-time">'+s.start+'</span>'
+            +'<span style="font-size:10px;color:var(--txt2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px">'+(film?film.title:'—')+'</span>'
+            +'</div>';
+        });
+        h+='</div></div>';
+      });
+      h+='</div></div>';
+    });
+    h+='</div>';
+    w.innerHTML=h;
     return;
   }
 
