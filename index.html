@@ -761,44 +761,6 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
         <button class="btn ba" style="width:100%" onclick="sendDistMails()">📧 Invia a tutti i distributori</button>
       </div>
     </div>
-
-    <!-- ── INVIO CIRCOLARE CCN ── -->
-    <div class="ps" style="margin-top:16px;border-top:2px solid var(--bdr);padding-top:18px">
-      <h3>📢 Circolare a Tutti i Distributori (CCN)</h3>
-      <p style="font-size:11px;color:var(--txt2);margin-bottom:12px">
-        Programma completo di tutti i film inviato a tutti i distributori con contatti email.<br>
-        I destinatari vengono aggiunti in <strong>CCN</strong> — nessuno vede gli altri indirizzi.
-      </p>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-        <div>
-          <div class="fr"><label class="flb">Da (mittente visibile)</label>
-            <input type="email" id="circ-from" placeholder="es. cinema@mendrisio.ch">
-          </div>
-          <div class="fr"><label class="flb">Oggetto</label>
-            <input type="text" id="circ-subj" value="Programmazione Settimanale — Cinema Multisala Teatro Mendrisio">
-          </div>
-          <div class="fr"><label class="flb">Note aggiuntive</label>
-            <textarea id="circ-note" placeholder="Testo introduttivo opzionale..." style="min-height:60px"></textarea>
-          </div>
-          <button class="btn bg bs" onclick="distSetWeek();circSetWeek()" style="font-size:11px;margin-top:4px">📅 Usa settimana corrente</button>
-        </div>
-        <div>
-          <div class="fr" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-            <div><label class="flb">Dal</label>
-              <input type="date" id="circ-from-date" style="width:100%">
-            </div>
-            <div><label class="flb">Al</label>
-              <input type="date" id="circ-to-date" style="width:100%">
-            </div>
-          </div>
-          <div id="circ-preview" style="background:var(--surf2);border:1px solid var(--bdr);border-radius:6px;padding:9px 12px;font-size:11px;color:var(--txt2);min-height:54px;margin-bottom:10px">
-            Clicca Anteprima per vedere i destinatari CCN
-          </div>
-          <button class="btn bg" style="width:100%;margin-bottom:7px" onclick="previewCircolare()">👁 Anteprima CCN</button>
-          <button class="btn ba" style="width:100%" onclick="sendCircolare()">📧 Invia Circolare in CCN</button>
-        </div>
-      </div>
-    </div>
   </div>
 
   <!-- TAB: MEDIA -->
@@ -3005,29 +2967,25 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:8.5px;color:#111;backgroun
 
 
 /* ══ PLAYLIST ══════════════════════════════════════════ */
-.pl-trailers-section{padding:10px 14px;border-top:1px solid var(--bdr);border-bottom:1px solid var(--bdr);}
-.pl-trailers-label{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--txt2);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
-.pl-trailers-label::after{content:'';flex:1;height:1px;background:var(--bdr);}
-.pl-4slots{display:flex;flex-direction:column;gap:5px;}
-/* Ogni riga slot: thumb 48px + select + clear */
-.pl-slot-row{display:grid;grid-template-columns:48px 1fr 22px;gap:5px;align-items:center;}
-.pl-slot-thumb{
-  width:48px;height:28px;border-radius:3px;overflow:hidden;
+.pl-trailers-section{padding:10px 14px 12px;border-top:1px solid var(--bdr);border-bottom:1px solid var(--bdr);}
+.pl-4slots{display:flex;flex-direction:column;gap:6px;}
+/* Ogni slot: etichetta numerata + dropdown */
+.pl-slot-box{display:flex;flex-direction:column;gap:3px;}
+.pl-slot-num{
+  font-size:9px;font-weight:800;text-transform:uppercase;
+  letter-spacing:.5px;color:var(--txt2);
+}
+.pl-trailer-sel{
+  flex:1;font-size:11px;padding:4px 7px;
   background:var(--surf2);border:1px solid var(--bdr);
-  display:flex;align-items:center;justify-content:center;
-  position:relative;text-decoration:none;flex-shrink:0;
+  color:var(--txt);border-radius:5px;cursor:pointer;
+  width:100%;
 }
-.pl-slot-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
-.pl-slot-empty{font-size:11px;color:var(--txt2);}
-.pl-thumb-play{
-  position:absolute;width:14px;height:14px;
-  background:rgba(0,0,0,.65);border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  font-size:6px;color:#fff;pointer-events:none;
-}
-.pl-trailer-sel{font-size:11px;padding:3px 5px;width:100%;background:var(--surf);border:1px solid var(--bdr);color:var(--txt);border-radius:4px;cursor:pointer;}
 .pl-trailer-sel:focus{outline:2px solid var(--acc);}
-.pl-trailer-clear{background:none;border:none;color:var(--txt2);cursor:pointer;font-size:13px;padding:0;line-height:1;}
+.pl-trailer-clear{
+  background:none;border:none;color:var(--txt2);
+  cursor:pointer;font-size:14px;padding:0 0 0 4px;line-height:1;flex-shrink:0;
+}
 .pl-trailer-clear:hover{color:var(--red);}
 .pl-empty{text-align:center;padding:40px 20px;color:var(--txt2);font-size:13px;}
 
@@ -3762,113 +3720,6 @@ async function sendDistMails(){
   }
   toast(sent?sent+' email preparate':'Nessun film in programmazione per i distributori con contatti nel periodo selezionato','ok');
 }
-
-// ── INVIO CIRCOLARE CCN ──────────────────────────────────
-function circSetWeek(){
-  const wd=wdates();
-  const f=document.getElementById('circ-from-date');
-  const t=document.getElementById('circ-to-date');
-  if(f)f.value=wd[0];
-  if(t)t.value=wd[6];
-}
-window.circSetWeek=circSetWeek;
-
-function previewCircolare(){
-  if(!S.distributors||!S.distributors.length){
-    document.getElementById('circ-preview').innerHTML='<span style="color:var(--red)">Nessun distributore presente</span>';
-    return;
-  }
-  const allEmails=[];
-  S.distributors.forEach(function(dist){
-    (dist.contacts||[]).forEach(function(ct){
-      if(ct.email&&!allEmails.includes(ct.email))allEmails.push(ct.email);
-    });
-  });
-  const fromVal=document.getElementById('circ-from').value||'(non impostato)';
-  const fromDate=document.getElementById('circ-from-date').value;
-  const toDate=document.getElementById('circ-to-date').value;
-  const periodLabel=(fromDate&&toDate)
-    ?(fromDate.split('-').reverse().join('/')+' → '+toDate.split('-').reverse().join('/'))
-    :'settimana corrente';
-  let html='<div style="margin-bottom:5px"><strong style="color:var(--acc)">'+allEmails.length+'</strong> destinatari in CCN</div>';
-  html+='<div style="font-size:10px;color:var(--txt2);margin-bottom:4px">Da: <strong>'+fromVal+'</strong> · Periodo: '+periodLabel+'</div>';
-  if(allEmails.length){
-    html+='<div style="font-size:10px;color:var(--txt2);word-break:break-all;max-height:70px;overflow-y:auto">'+allEmails.join(', ')+'</div>';
-  } else {
-    html+='<div style="color:var(--red);font-size:11px">Nessun contatto email nei distributori</div>';
-  }
-  document.getElementById('circ-preview').innerHTML=html;
-}
-window.previewCircolare=previewCircolare;
-
-function sendCircolare(){
-  if(!S.distributors||!S.distributors.length){toast('Aggiungi distributori prima','err');return;}
-  const allEmails=[];
-  S.distributors.forEach(function(dist){
-    (dist.contacts||[]).forEach(function(ct){
-      if(ct.email&&!allEmails.includes(ct.email))allEmails.push(ct.email);
-    });
-  });
-  if(!allEmails.length){toast('Nessun contatto email nei distributori','err');return;}
-  const fromEmail=document.getElementById('circ-from').value.trim();
-  const subjRaw=document.getElementById('circ-subj').value||'Programmazione Settimanale';
-  const note=document.getElementById('circ-note').value.trim();
-  const fromDate=document.getElementById('circ-from-date').value||wdates()[0];
-  const toDate=document.getElementById('circ-to-date').value||wdates()[6];
-  // Build range of days
-  const rangeDays=[];
-  const cur=new Date(fromDate+'T12:00:00');
-  const end=new Date(toDate+'T12:00:00');
-  while(cur<=end){rangeDays.push(cur.toISOString().slice(0,10));cur.setDate(cur.getDate()+1);}
-  const shows=S.shows.filter(function(s){return rangeDays.includes(s.day);});
-  const fromLabel=fromDate.split('-').reverse().join('/');
-  const toLabel=toDate.split('-').reverse().join('/');
-  const SEP='-'.repeat(40);
-  // Build body text
-  const lines=[];
-  lines.push('Gentili Distributori,');
-  lines.push('');
-  if(note){lines.push(note);lines.push('');}
-  lines.push('Di seguito la programmazione di tutti i film');
-  lines.push('dal '+fromLabel+' al '+toLabel+':');
-  lines.push('');
-  lines.push(SEP);
-  // Group by film
-  const filmIds=[...new Set(shows.map(function(s){return s.filmId;}))];
-  const sortedFilms=filmIds.map(function(id){return S.films.find(function(f){return f.id===id;});})
-    .filter(Boolean).sort(function(a,b){return a.title.localeCompare(b.title,'it');});
-  sortedFilms.forEach(function(film){
-    const fShows=shows.filter(function(s){return s.filmId===film.id;})
-      .sort(function(a,b){return a.day.localeCompare(b.day)||a.start.localeCompare(b.start);});
-    if(!fShows.length)return;
-    const dur=film.duration?(Math.floor(film.duration/60)+'h'+String(film.duration%60).padStart(2,'0')):'';
-    const meta=[dur,film.rating,film.genre,film.distributor].filter(Boolean).join(' - ');
-    lines.push('');
-    lines.push(film.title.toUpperCase()+(meta?' ('+meta+')':''));
-    const byDay={};
-    fShows.forEach(function(s){if(!byDay[s.day])byDay[s.day]=[];byDay[s.day].push(s);});
-    Object.keys(byDay).sort().forEach(function(ds){
-      const d=new Date(ds+'T12:00:00');
-      const dl=d.toLocaleDateString('it-IT',{weekday:'long',day:'2-digit',month:'2-digit'});
-      const times=byDay[ds].map(function(s){return s.start+' ('+sn(s.sala)+')';}).join('   ');
-      lines.push('  '+dl.charAt(0).toUpperCase()+dl.slice(1)+': '+times);
-    });
-  });
-  lines.push('');
-  lines.push(SEP);
-  lines.push('Cinema Multisala Teatro Mendrisio');
-  const body=lines.join('\n');
-  // Build mailto with BCC
-  let mailto='mailto:';
-  if(fromEmail)mailto+=fromEmail;
-  mailto+='?bcc='+encodeURIComponent(allEmails.join(','));
-  mailto+='&subject='+encodeURIComponent(subjRaw);
-  mailto+='&body='+encodeURIComponent(body);
-  window.location.href=mailto;
-  toast(allEmails.length+' destinatari CCN — client email aperto','ok');
-}
-window.sendCircolare=sendCircolare;
-
 window.addDistributor=addDistributor;window.addDistContact=addDistContact;window.remDistContact=remDistContact;window.remDistributor=remDistributor;window.renderDist=renderDist;window.fillDistDropdown=fillDistDropdown;window.fillFilmDistDropdown=fillFilmDistDropdown;window.previewDist=previewDist;window.sendDistMails=sendDistMails;
 
 // ── Media ──
@@ -4375,13 +4226,10 @@ function renderPlaylist(){
   const days = wdays();
   const today = new Date().toISOString().slice(0,10);
 
-  // Week label
   const weekEl = document.getElementById('pl-week');
   if(weekEl) weekEl.innerHTML =
     '<span style="color:'+sl.col+'">■</span> <strong>'+sl.n+'</strong> · Settimana '+fd(days[0])+' — '+fd(days[6]);
 
-  // Tutti i film in programma questa settimana nella sala selezionata
-  // ordinati per prima apparizione (giorno+ora)
   const salaShows = S.shows
     .filter(function(s){return s.sala==sid && wd.includes(s.day);})
     .sort(function(a,b){return a.day.localeCompare(b.day)||a.start.localeCompare(b.start);});
@@ -4398,14 +4246,12 @@ function renderPlaylist(){
     return;
   }
 
-  // Trailer candidates: films with release >= today OR no release
   const trailerCandidates = S.films
     .filter(function(f){return !f.release||f.release>=today;})
     .sort(function(a,b){
       return (a.release||'9999').localeCompare(b.release||'9999')||a.title.localeCompare(b.title,'it');
     });
 
-  // ── Griglia stile "Card per Film" ──
   let html = '<div class="lfc-grid">';
 
   filmOrder.forEach(function(fid){
@@ -4414,18 +4260,18 @@ function renderPlaylist(){
 
     if(!_plTrailers[fid]) _plTrailers[fid]=[film.trailer||'','','',''];
 
-    // ── Orari raggruppati per giorno ──
+    // Orari per giorno
     const byDay={};const dayOrder=[];
     filmShows[fid].forEach(function(s){
       if(!byDay[s.day]){byDay[s.day]=[];dayOrder.push(s.day);}
       byDay[s.day].push(s);
     });
 
-    // ── 4 slot trailer ──
+    // 4 slot trailer — solo dropdown con etichetta numerata, niente thumbnail
     let trailerSlots='';
-    for(let i=0;i<4;i++){
+    for(var i=0;i<4;i++){
       const ytId=(_plTrailers[fid]||[])[i]||'';
-      let opts='<option value="">— Film per trailer —</option>';
+      let opts='<option value="">— Seleziona film —</option>';
       trailerCandidates.forEach(function(tf){
         if(!tf.trailer)return;
         const rel=tf.release?' ('+tf.release.split('-').slice(1).reverse().join('/')+')':'';
@@ -4433,37 +4279,33 @@ function renderPlaylist(){
         opts+='<option value="'+tf.trailer+'"'+isSel+'>'+tf.title+rel+'</option>';
       });
       trailerSlots+=
-        '<div class="pl-slot-row" data-fid="'+fid+'" data-slot="'+i+'">'
-        +(ytId
-          ?'<a class="pl-slot-thumb" href="https://www.youtube.com/watch?v='+ytId+'" target="_blank">'
-            +'<img src="https://img.youtube.com/vi/'+ytId+'/default.jpg" alt="">'
-            +'<span class="pl-thumb-play">&#9658;</span></a>'
-          :'<div class="pl-slot-thumb pl-slot-empty"><span>&#9658;</span></div>')
+        '<div class="pl-slot-box">'
+        +'<div class="pl-slot-num">Trailer '+(i+1)+'</div>'
+        +'<div style="display:flex;gap:4px;align-items:center">'
         +'<select class="pl-trailer-sel" data-fid="'+fid+'" data-slot="'+i+'" onchange="plPickTrailer(this)">'+opts+'</select>'
-        +(ytId?'<button class="pl-trailer-clear" data-fid="'+fid+'" data-slot="'+i+'" onclick="plClearSlot(this)">&#215;</button>'
+        +(ytId?'<button class="pl-trailer-clear" data-fid="'+fid+'" data-slot="'+i+'" onclick="plClearSlot(this)" title="Rimuovi">&#215;</button>'
               :'<button class="pl-trailer-clear" style="opacity:.2" disabled>&#215;</button>')
+        +'</div>'
         +'</div>';
     }
 
-    // ── Card struttura = lfc ──
-    html+='<div class="lfc" style="border-top:3px solid '+sl.col+'">';
-
-    // Header: solo titolo + meta compatta
-    html+='<div class="lfc-head">';
-    html+='<div class="lfc-title">'+film.title+'</div>';
     const dur=film.duration?Math.floor(film.duration/60)+'h'+String(film.duration%60).padStart(2,'0'):'';
     const meta=[film.distributor,dur,film.rating,film.genre].filter(Boolean).join(' · ');
-    if(meta) html+='<div class="lfc-meta">'+meta+'</div>';
-    html+='</div>';
 
-    // Sezione trailer
-    html+='<div class="pl-trailers-section">';
-    html+='<div class="pl-trailers-label">Trailer da proiettare</div>';
-    html+='<div class="pl-4slots">'+trailerSlots+'</div>';
-    html+='</div>';
+    html+=
+      '<div class="lfc" style="border-top:3px solid '+sl.col+'">'
+      // Header: titolo + meta
+      +'<div class="lfc-head">'
+        +'<div class="lfc-title">'+film.title+'</div>'
+        +(meta?'<div class="lfc-meta">'+meta+'</div>':'')
+      +'</div>'
+      // Sezione 4 trailer
+      +'<div class="pl-trailers-section">'
+        +'<div class="pl-4slots">'+trailerSlots+'</div>'
+      +'</div>'
+      // Orari per giorno (stile lfc-days)
+      +'<div class="lfc-days">';
 
-    // Sezione orari per giorno (stile lfc-days)
-    html+='<div class="lfc-days">';
     dayOrder.forEach(function(ds){
       const di=wd.indexOf(ds);
       const dayLabel=di>=0?DIT[di].toUpperCase()+' '+fs(days[di]):ds;
@@ -4475,9 +4317,8 @@ function renderPlaylist(){
       });
       html+='</div></div>';
     });
-    html+='</div>';
 
-    html+='</div>'; // fine lfc
+    html+='</div></div>';
   });
 
   html+='</div>';
