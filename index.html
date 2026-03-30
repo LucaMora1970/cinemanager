@@ -555,6 +555,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
   <div class="tab" id="tab-book" onclick="gt('book')">📋 Prenotazioni</div>
   <div class="tab" id="tab-staff" onclick="gt('staff')">👥 Turni</div>
   <div class="tab" id="tab-users" onclick="gt('users')" style="display:none">👥 Utenti</div>
+  <div class="tab" id="tab-playlist" onclick="gt('playlist');renderPlaylist();">▶ Playlist</div>
 </div>
 
 <main>
@@ -1495,12 +1496,12 @@ async function fbSE(list){await setDoc(doc(db,'settings','emails'),{list});}
 async function fbSetDoc(db2,col,docId,data){await setDoc(doc(db2,col,docId),data);}
 
 // ── TABS ──────────────────────────────────────────────────
-const TABS=['prog','lista','arch','prnt','mail','book','staff','users'];
+const TABS=['prog','lista','arch','prnt','mail','book','staff','users','playlist'];
 function gt(id){
   document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('on',TABS[i]===id));
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
   document.getElementById('page-'+id).classList.add('on');
-  if(id==='lista')rl();if(id==='arch')rf();if(id==='mail')rem();if(id==='staff'){renderAllDays();}
+  if(id==='lista')rl();if(id==='arch')rf();if(id==='mail')rem();if(id==='staff'){renderAllDays();}if(id==='playlist')renderPlaylist();
 }
 window.gt=gt;
 
