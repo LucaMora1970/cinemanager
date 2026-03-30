@@ -29,7 +29,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-
 
 header{background:var(--surf);border-bottom:1px solid var(--bdr);padding:0 20px;
   display:flex;align-items:center;justify-content:space-between;height:58px;position:sticky;top:0;z-index:100;}
-.logo{font-family:'Playfair Display',serif;font-size:22px;font-weight:900;}
+.logo{font-family:var(--serif,serif);font-size:22px;font-weight:900;}
 .logo span{color:var(--acc);}
 .wnav{display:flex;align-items:center;gap:10px;}
 .wnav button{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
@@ -64,7 +64,7 @@ header{background:var(--surf);border-bottom:1px solid var(--bdr);padding:0 20px;
 main{padding:20px;max-width:1500px;margin:0 auto;}
 .page{display:none;}.page.on{display:block;}
 .sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
-.st{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;}
+.st{font-family:var(--serif,serif);font-size:22px;font-weight:700;}
 
 .ctl{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center;}
 .fg{display:flex;align-items:center;gap:6px;}
@@ -89,7 +89,7 @@ select option{background:var(--surf2);}
   display:flex;align-items:center;gap:12px;
   border-bottom:1px solid var(--bdr);
 }
-.day-name{font-family:'Playfair Display',serif;font-size:16px;font-weight:700;}
+.day-name{font-family:var(--serif,serif);font-size:16px;font-weight:700;}
 .day-date{font-family:monospace;font-size:11px;color:var(--txt2);}
 .day-count{font-family:monospace;font-size:10px;background:rgba(232,200,74,.12);
   color:var(--acc);border:1px solid rgba(232,200,74,.3);border-radius:4px;padding:1px 7px;}
@@ -210,10 +210,13 @@ select option{background:var(--surf2);}
 /* list */
 /* lista card per film */
 .lfc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;}
+.lfc-grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+@media(max-width:900px){.lfc-grid-4{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:500px){.lfc-grid-4{grid-template-columns:1fr;}}
 .lfc{background:var(--surf);border:1px solid var(--bdr);border-radius:10px;overflow:hidden;border-top:3px solid var(--acc);transition:transform .15s;}
 .lfc:hover{transform:translateY(-2px);border-color:var(--acc);}
 .lfc-head{padding:12px 14px 8px;border-bottom:1px solid var(--bdr);}
-.lfc-title{font-family:'Playfair Display',serif;font-size:14px;font-weight:700;margin-bottom:3px;}
+.lfc-title{font-family:var(--serif,serif);font-size:14px;font-weight:700;margin-bottom:3px;}
 .lfc-meta{font-size:11px;color:var(--txt2);font-family:monospace;}
 .lfc-count{display:inline-block;background:rgba(232,200,74,.12);color:var(--acc);border:1px solid rgba(232,200,74,.3);border-radius:4px;padding:1px 8px;font-size:10px;font-family:monospace;margin-top:5px;}
 .lfc-days{padding:8px 14px 12px;display:flex;flex-direction:column;gap:6px;}
@@ -255,7 +258,7 @@ select option{background:var(--surf2);}
 .fc-poster{width:100%;height:130px;object-fit:cover;background:var(--surf2);}
 .fc-poster-ph{width:100%;height:130px;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:40px;opacity:.3;}
 .fc-body{padding:12px 14px;display:flex;flex-direction:column;gap:6px;flex:1;}
-.fn{font-family:'Playfair Display',serif;font-size:14px;font-weight:700;line-height:1.3;}
+.fn{font-family:var(--serif,serif);font-size:14px;font-weight:700;line-height:1.3;}
 .fi{font-size:11px;color:var(--txt2);font-family:monospace;line-height:1.7;}
 .fg3{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600;background:rgba(232,200,74,.15);color:var(--acc);}
 .fdur{position:absolute;top:8px;right:8px;background:rgba(10,10,15,.75);border:1px solid var(--bdr);
@@ -268,7 +271,7 @@ select option{background:var(--surf2);}
 
 /* print panel */
 .ps{background:var(--surf);border:1px solid var(--bdr);border-radius:10px;padding:18px;margin-bottom:14px;}
-.ps h3{font-family:'Playfair Display',serif;font-size:15px;margin-bottom:10px;color:var(--acc);}
+.ps h3{font-family:var(--serif,serif);font-size:15px;margin-bottom:10px;color:var(--acc);}
 .po{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
 .popt{display:flex;align-items:center;gap:7px;padding:8px 12px;background:var(--surf2);
   border:1px solid var(--bdr);border-radius:6px;cursor:pointer;font-size:12px;transition:border-color .15s;}
@@ -286,7 +289,7 @@ select option{background:var(--surf2);}
 .modal{background:var(--surf);border:1px solid var(--bdr);border-radius:12px;padding:26px;
   width:520px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:var(--shd);}
 .modal-wide{width:680px;}
-.mtitle{font-family:'Playfair Display',serif;font-size:19px;font-weight:700;margin-bottom:18px;}
+.mtitle{font-family:var(--serif,serif);font-size:19px;font-weight:700;margin-bottom:18px;}
 .fr{margin-bottom:13px;}
 .flb{display:block;font-size:11px;color:var(--txt2);margin-bottom:5px;font-family:monospace;text-transform:uppercase;}
 .fr input,.fr select,.fr textarea{width:100%;}
@@ -383,7 +386,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
 
 .empty{text-align:center;padding:48px 20px;color:var(--txt2);}
 .ei2{font-size:42px;margin-bottom:10px;opacity:.35;}
-.et{font-family:'Playfair Display',serif;font-size:17px;color:var(--txt);margin-bottom:5px;}
+.et{font-family:var(--serif,serif);font-size:17px;color:var(--txt);margin-bottom:5px;}
 
 /* PRINT */
 @media print{
@@ -406,7 +409,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
   .sync{padding:4px 7px;}
   .hact{gap:5px;}
   .hact .btn{padding:5px 10px;font-size:11px;}
-  /* On mobile: hide "Ottimizza Tutto" label, show only ⚡ icon */
+  /* On mobile: hide "Ottimizza Orari" label, show only ⚡ icon */
   #btnGlobalOpt .btn-label{display:none;}
   /* Hide the + button in header on mobile (FAB handles it) */
   #btnAddShow{display:none;}
@@ -512,7 +515,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <button id="load-retry-btn" onclick="location.reload()" style="display:none;margin-top:8px;padding:8px 20px;background:#e8c84a;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">🔄 Riprova</button>
   </div>
   <div id="load-login" style="display:none;flex-direction:column;align-items:center;gap:20px;text-align:center">
-    <div style="font-family:'Playfair Display',serif;font-size:28px;font-weight:900;">Cine<span style="color:#e8c84a">Manager</span></div>
+    <div style="font-family:var(--serif,serif);font-size:28px;font-weight:900;">Cine<span style="color:#e8c84a">Manager</span></div>
     <div style="font-size:14px;color:#7777aa;margin-bottom:8px;">Cinema Multisala Teatro Mendrisio</div>
     <button onclick="signInGoogle()" style="display:flex;align-items:center;gap:12px;background:#fff;color:#333;border:none;border-radius:8px;padding:12px 24px;font-size:15px;font-weight:600;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,.15);">
       <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.2l6.7-6.7C35.7 2.4 30.2 0 24 0 14.6 0 6.6 5.4 2.6 13.3l7.8 6C12.4 13 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.9 7.2l7.6 5.9c4.5-4.1 7.1-10.2 7.1-17.1z"/><path fill="#FBBC05" d="M10.4 28.7A14.6 14.6 0 0 1 9.5 24c0-1.6.3-3.2.9-4.7l-7.8-6A23.9 23.9 0 0 0 0 24c0 3.9.9 7.5 2.6 10.7l7.8-6z"/><path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.2-5.5l-7.6-5.9c-2 1.4-4.7 2.2-7.6 2.2-6.2 0-11.5-4.2-13.4-9.9l-7.8 6C6.6 42.6 14.6 48 24 48z"/></svg>
@@ -522,7 +525,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
   </div>
   <div id="load-denied" style="display:none;flex-direction:column;align-items:center;gap:16px;text-align:center">
     <div style="font-size:40px">🔒</div>
-    <div style="font-family:'Playfair Display',serif;font-size:20px;color:#e8e8f0;">Accesso non autorizzato</div>
+    <div style="font-family:var(--serif,serif);font-size:20px;color:#e8e8f0;">Accesso non autorizzato</div>
     <div style="font-size:13px;color:#7777aa;max-width:300px">Il tuo account non è nella lista degli utenti autorizzati. Contatta l'amministratore.</div>
     <div id="denied-email" style="font-size:12px;color:#555;font-family:monospace"></div>
     <button onclick="signOutGoogle()" style="background:transparent;border:1px solid #2a2a3a;color:#7777aa;border-radius:6px;padding:8px 16px;cursor:pointer;font-size:13px;">Esci e riprova con un altro account</button>
@@ -541,7 +544,8 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
     <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
     <button id="btnTheme" class="btn bg" onclick="toggleTheme()" title="Cambia tema" style="font-size:16px;padding:5px 10px;">☀</button>
-    <button id="btnGlobalOpt" class="btn bg" onclick="openGlobalOpt()" style="color:var(--acc);border-color:rgba(232,200,74,.4)">⚡ <span class="btn-label">Ottimizza Tutto</span></button>
+    <button id="btnGlobalOpt" class="btn bg" onclick="openGlobalOpt()" style="color:var(--acc);border-color:rgba(232,200,74,.4)">⚡ <span class="btn-label">Ottimizza Orari</span></button>
+    <button id="btnVerifica" class="btn bg" onclick="openVerifica()" style="color:#4ae87a;border-color:rgba(74,232,122,.4)">🔍 <span class="btn-label">Verifica</span></button>
     <button id="btnAddShow" class="btn ba" onclick="try{openShow();}catch(e){alert('Errore: '+e.message);}">＋ Aggiungi Spettacolo</button>
   </div>
 </header>
@@ -587,8 +591,9 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div style="display:flex;align-items:center;gap:10px"><span class="fl">Vista:</span>
       <select id="ls" onchange="rl()">
         <option value="cards">Card per Film</option>
-        <option value="giorno">📅 Card per Giorno</option>
-        <option value="giorno-sala">🎭 Card Giorno × Sala</option>
+        <option value="per-sala">Card per Sala</option>
+        <option value="giorno">Card per Giorno</option>
+        <option value="giorno-sala">Card Giorno × Sala</option>
         <option value="dt">Lista per Data/Ora</option>
         <option value="sala">Lista per Sala</option>
         <option value="day">Lista per Giorno</option>
@@ -1142,6 +1147,21 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
   </div>
 </div>
 
+
+<!-- MODAL VERIFICA PROGRAMMAZIONE -->
+<div class="ov" id="ovVerifica">
+  <div class="modal modal-wide">
+    <div class="mtitle">🔍 Verifica Programmazione</div>
+    <div style="font-size:12px;color:var(--txt2);margin-bottom:14px">
+      Analisi di sovrapposizioni orarie nella stessa sala e doppioni dello stesso film in più sale nella stessa fascia. <strong style="color:var(--txt)">Segnalazione informativa</strong> — nessuna modifica automatica.
+    </div>
+    <div id="verificaContent" style="max-height:60vh;overflow-y:auto"></div>
+    <div class="mft" style="border-top:1px solid var(--bdr);padding-top:14px;margin-top:14px">
+      <button class="btn bg" onclick="co('ovVerifica')">Chiudi</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL OTTIMIZZA TUTTO -->
 <div class="ov" id="ovGlobalOpt">
   <div class="modal modal-wide">
@@ -1153,7 +1173,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div id="goptContent" class="gopt-scroll"></div>
     <div id="goptEmpty" style="display:none;text-align:center;padding:30px;color:var(--txt2)">
       <div style="font-size:32px;margin-bottom:8px;opacity:.4">✓</div>
-      <div style="font-family:'Playfair Display',serif;font-size:16px;color:var(--txt)">Tutto in ordine!</div>
+      <div style="font-family:var(--serif,serif);font-size:16px;color:var(--txt)">Tutto in ordine!</div>
       <div style="font-size:12px;margin-top:4px">Nessuna incongruenza trovata nella programmazione.</div>
     </div>
     <div class="mft" style="border-top:1px solid var(--bdr);padding-top:14px;margin-top:14px">
@@ -1826,43 +1846,46 @@ function rl(){
   }
 
   // ── VISTA: Card per Sala ────────────────────────────────
-  // Una card lfc per ogni sala — spettacoli ordinati per giorno e orario di inizio
+  // 4 card affiancate (una per sala) con tutti gli spettacoli della settimana
+  // ordinati per giorno e orario di inizio
   if(sort==='per-sala'){
     const SALE_IDS=['1','2','3','4'];
-    let h='<div class="lfc-grid">';
+    let h='<div class="lfc-grid-4">';
     SALE_IDS.forEach(function(sid){
       const sl=SALE[sid];
       const salaShows=shows.filter(function(s){return s.sala==sid;})
         .sort(function(a,b){return a.day.localeCompare(b.day)||a.start.localeCompare(b.start);});
-      if(!salaShows.length)return;
       // Raggruppa per giorno
       const byDay={};const dayOrder=[];
       salaShows.forEach(function(s){
         if(!byDay[s.day]){byDay[s.day]=[];dayOrder.push(s.day);}
         byDay[s.day].push(s);
       });
-      h+='<div class="lfc" style="border-top-color:'+sl.col+'">';
-      // Header
-      h+='<div class="lfc-head">';
-      h+='<div class="lfc-title" style="color:'+sl.col+'">'+sl.n+'</div>';
+      h+='<div class="lfc" style="border-top:3px solid '+sl.col+'">';
+      // Header sala
+      h+='<div class="lfc-head" style="padding-bottom:10px">';
+      h+='<div class="lfc-title" style="color:'+sl.col+';font-size:16px">'+sl.n+'</div>';
       h+='<div class="lfc-count">'+salaShows.length+' spettacol'+(salaShows.length===1?'o':'i')+'</div>';
       h+='</div>';
-      // Corpo: un blocco per ogni giorno
+      // Corpo: per ogni giorno, elenco spettacoli
       h+='<div class="lfc-days">';
+      if(!dayOrder.length){
+        h+='<div style="font-size:12px;color:var(--txt2);padding:4px 0">Nessuno spettacolo questa settimana</div>';
+      }
       dayOrder.forEach(function(ds){
         const di=wd.indexOf(ds);
         const dayLabel=di>=0?DIT[di].toUpperCase()+' '+fs(days[di]):ds;
         h+='<div>';
         h+='<div class="lfc-day-name">'+dayLabel+'</div>';
-        h+='<div class="lfc-slots">';
+        // Ogni spettacolo su riga propria: orario bold + titolo film
         byDay[ds].forEach(function(s){
           const film=S.films.find(function(f){return f.id===s.filmId;});
-          h+='<div class="lfc-slot" style="flex-direction:column;align-items:flex-start;gap:1px;min-width:80px">'
-            +'<span class="lfc-slot-time">'+s.start+'</span>'
-            +'<span style="font-size:10px;color:var(--txt2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px">'+(film?film.title:'—')+'</span>'
+          h+='<div style="display:flex;align-items:baseline;gap:7px;padding:2px 0;border-bottom:1px solid var(--bdr)">'
+            +'<span style="font-family:monospace;font-size:12px;font-weight:700;color:var(--txt);flex-shrink:0">'+s.start+'</span>'
+            +'<span style="font-size:11px;color:var(--txt2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(film?film.title:'—')+'</span>'
             +'</div>';
         });
-        h+='</div></div>';
+        h+='</div>';
       });
       h+='</div></div>';
     });
@@ -2373,6 +2396,115 @@ function hasIncongruence(salaShows){
 
 let _goptPlan=[]; // [{salaDay, checked, plan:[]}]
 
+
+// ── VERIFICA PROGRAMMAZIONE ──────────────────────────────
+function openVerifica(){
+  const wd=wdates(); const days=wdays();
+  const DIT_IT=['Giovedì','Venerdì','Sabato','Domenica','Lunedì','Martedì','Mercoledì'];
+  let issues=[];
+
+  wd.forEach(function(ds,di){
+    const dayShows=S.shows.filter(function(s){return s.day===ds;});
+    const dayLabel=DIT_IT[di]+' '+fs(days[di]);
+
+    // ── TIPO 1: Sovrapposizioni nella stessa sala ──
+    ['1','2','3','4'].forEach(function(sid){
+      const salaShows=dayShows.filter(function(s){return s.sala==sid;})
+        .sort(function(a,b){return t2m(a.start)-t2m(b.start);});
+      const sl=SALE[sid];
+      for(let i=0;i<salaShows.length-1;i++){
+        const a=salaShows[i], b=salaShows[i+1];
+        const aEnd=t2m(a.end), bStart=t2m(b.start);
+        if(bStart<aEnd){
+          const filmA=S.films.find(function(f){return f.id===a.filmId;});
+          const filmB=S.films.find(function(f){return f.id===b.filmId;});
+          const overlap=aEnd-bStart;
+          issues.push({
+            type:'overlap', severity:'error',
+            day:dayLabel, sala:sl.n, col:sl.col,
+            msg:'<strong>'+(filmA?filmA.title:'?')+'</strong> (fine '+a.end+') si sovrappone di '+overlap+' min con <strong>'+(filmB?filmB.title:'?')+'</strong> (inizio '+b.start+')'
+          });
+        }
+      }
+    });
+
+    // ── TIPO 2: Stesso film in più sale nella stessa fascia oraria ──
+    const filmIds=[...new Set(dayShows.map(function(s){return s.filmId;}))];
+    filmIds.forEach(function(fid){
+      const filmShows=dayShows.filter(function(s){return s.filmId===fid;});
+      if(filmShows.length<2)return;
+      const film=S.films.find(function(f){return f.id===fid;});
+      // Cerca coppie con fascia sovrapposta (stesso orario ±90min)
+      for(let i=0;i<filmShows.length-1;i++){
+        for(let j=i+1;j<filmShows.length;j++){
+          const a=filmShows[i], b=filmShows[j];
+          if(a.sala===b.sala)continue; // stessa sala già gestita sopra
+          const fasciaA=nearestFasciaGlobal(a.start);
+          const fasciaB=nearestFasciaGlobal(b.start);
+          if(fasciaA===fasciaB){
+            const slA=SALE[a.sala], slB=SALE[b.sala];
+            issues.push({
+              type:'double', severity:'warn',
+              day:dayLabel, sala:slA.n+' + '+slB.n, col:'#f0c040',
+              msg:'<strong>'+(film?film.title:'?')+'</strong> programmato in fascia <strong>'+fasciaA+'</strong> sia in <span style="color:'+slA.col+'">'+slA.n+'</span> ('+a.start+') che in <span style="color:'+slB.col+'">'+slB.n+'</span> ('+b.start+')'
+            });
+          }
+        }
+      }
+    });
+  });
+
+  const content=document.getElementById('verificaContent');
+  if(!issues.length){
+    content.innerHTML='<div style="text-align:center;padding:30px"><div style="font-size:36px;margin-bottom:10px">✅</div><div style="font-family:var(--serif,serif);font-size:17px;color:var(--txt)">Nessun problema rilevato</div><div style="font-size:12px;color:var(--txt2);margin-top:6px">Programmazione pulita per tutta la settimana</div></div>';
+    document.getElementById('ovVerifica').classList.add('on');
+    return;
+  }
+
+  // Group by day
+  const byDay={};
+  issues.forEach(function(iss){
+    if(!byDay[iss.day])byDay[iss.day]=[];
+    byDay[iss.day].push(iss);
+  });
+
+  let html='<div style="margin-bottom:10px;font-size:12px;color:var(--txt2)">'+
+    '<span style="color:#e84a4a;font-weight:700">⚠ '+issues.filter(function(i){return i.type==="overlap";}).length+' sovrapposizioni</span>'+
+    (issues.filter(function(i){return i.type==="double";}).length?' · <span style="color:#f0c040;font-weight:700">ℹ '+issues.filter(function(i){return i.type==="double";}).length+' doppioni in fascia</span>':'')+'</div>';
+
+  Object.keys(byDay).sort().forEach(function(day){
+    html+='<div style="margin-bottom:12px">';
+    html+='<div style="font-size:12px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--bdr)">'+day+'</div>';
+    byDay[day].forEach(function(iss){
+      const isErr=iss.type==='overlap';
+      const bgCol=isErr?'rgba(232,74,74,.08)':'rgba(240,192,64,.06)';
+      const borderCol=isErr?'#e84a4a':'#f0c040';
+      const icon=isErr?'⚠':'ℹ';
+      html+='<div style="background:'+bgCol+';border:1px solid '+borderCol+';border-left:3px solid '+borderCol+';border-radius:6px;padding:9px 13px;margin-bottom:6px">';
+      html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">';
+      html+='<span style="font-size:14px">'+icon+'</span>';
+      html+='<span style="font-size:11px;font-weight:700;color:'+borderCol+'">'+iss.sala+'</span>';
+      html+='</div>';
+      html+='<div style="font-size:12px;color:var(--txt)">'+iss.msg+'</div>';
+      html+='</div>';
+    });
+    html+='</div>';
+  });
+
+  content.innerHTML=html;
+  document.getElementById('ovVerifica').classList.add('on');
+}
+
+function nearestFasciaGlobal(t){
+  const FASCE_G=['14:00','16:00','18:00','20:30','22:00'];
+  const tm=t2m(t);
+  let best=null,bestDiff=Infinity;
+  FASCE_G.forEach(function(f){const diff=Math.abs(t2m(f)-tm);if(diff<bestDiff&&diff<=90){bestDiff=diff;best=f;}});
+  return best||t;
+}
+window.openVerifica=openVerifica;
+window.nearestFasciaGlobal=nearestFasciaGlobal;
+
 function openGlobalOpt(){
   const wd=wdates();const days=wdays();
   _goptPlan=[];
@@ -2589,7 +2721,7 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:8.5px;color:#111;backgroun
 /* ── OPEN AIR ── */
 .oa-section{margin-top:16px;border:1px solid var(--bdr);border-radius:10px;overflow:hidden;}
 .oa-header{background:linear-gradient(135deg,#1a3a5c,#0d5c8a);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;}
-.oa-title{font-family:'Playfair Display',serif;font-size:15px;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px;}
+.oa-title{font-family:var(--serif,serif);font-size:15px;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px;}
 .oa-star{color:#f0c040;font-size:16px;}
 .oa-days{display:grid;gap:0;}
 .oa-day{border-bottom:1px solid var(--bdr);padding:8px 14px;display:grid;grid-template-columns:90px 1fr;gap:10px;align-items:start;}
@@ -2710,27 +2842,22 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:8.5px;color:#111;backgroun
 
 
 /* ══ PLAYLIST ══════════════════════════════════════════ */
-.pl-card{background:var(--surf);border:1px solid var(--bdr);border-radius:12px;margin-bottom:14px;overflow:hidden;}
-.pl-card-head{padding:12px 14px 10px;display:grid;grid-template-columns:54px 1fr;gap:10px;border-bottom:1px solid var(--bdr);background:var(--surf2);}
-.pl-poster{width:54px;height:76px;border-radius:5px;overflow:hidden;background:rgba(128,128,128,.15);border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;}
-.pl-poster img{width:54px;height:76px;object-fit:cover;display:block;}
-.pl-info{display:flex;flex-direction:column;justify-content:space-between;min-width:0;}
-.pl-title{font-size:14px;font-weight:700;color:var(--txt);line-height:1.3;margin-bottom:3px;}
-.pl-meta{font-size:10px;color:var(--txt2);margin-bottom:6px;line-height:1.5;}
+.pl-film-card{display:flex;flex-direction:column;}
+.pl-poster-wrap{width:100%;height:160px;overflow:hidden;background:var(--surf2);border-bottom:1px solid var(--bdr);}
 .pl-times{display:flex;flex-wrap:wrap;gap:4px;}
-.pl-time{font-size:11px;font-weight:700;font-family:monospace;background:rgba(232,200,74,.12);border:1px solid rgba(232,200,74,.3);color:var(--acc);border-radius:4px;padding:2px 7px;}
-.pl-trailers-section{padding:12px 14px;}
+.pl-time{font-size:10px;font-weight:700;font-family:monospace;background:rgba(232,200,74,.12);border:1px solid rgba(232,200,74,.3);color:var(--acc);border-radius:4px;padding:2px 6px;}
+.pl-trailers-section{padding:10px 14px 14px;border-top:1px solid var(--bdr);}
 .pl-trailers-label{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--txt2);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
 .pl-trailers-label::after{content:'';flex:1;height:1px;background:var(--bdr);}
-.pl-trailer-row{display:grid;grid-template-columns:70px 1fr 28px;gap:8px;align-items:center;margin-bottom:7px;}
-.pl-trailer-row:last-child{margin-bottom:0;}
-.pl-thumb{width:70px;height:40px;border-radius:4px;overflow:hidden;background:var(--surf2);border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;flex-shrink:0;text-decoration:none;}
+.pl-4slots{display:flex;flex-direction:column;gap:6px;}
+.pl-slot-wrap{display:grid;grid-template-columns:60px 1fr 24px;gap:6px;align-items:center;}
+.pl-thumb{width:60px;height:34px;border-radius:4px;overflow:hidden;background:var(--surf2);border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0;text-decoration:none;}
 .pl-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
-.pl-thumb-ph{font-size:16px;color:var(--txt2);}
-.pl-thumb-play{position:absolute;width:20px;height:20px;background:rgba(0,0,0,.65);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;color:#fff;pointer-events:none;}
-.pl-trailer-sel{font-size:12px;padding:5px 8px;width:100%;background:var(--surf);border:1px solid var(--bdr);color:var(--txt);border-radius:6px;cursor:pointer;}
+.pl-thumb-ph{font-size:14px;color:var(--txt2);}
+.pl-thumb-play{position:absolute;width:16px;height:16px;background:rgba(0,0,0,.65);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:7px;color:#fff;pointer-events:none;}
+.pl-trailer-sel{font-size:11px;padding:4px 6px;width:100%;background:var(--surf);border:1px solid var(--bdr);color:var(--txt);border-radius:5px;cursor:pointer;}
 .pl-trailer-sel:focus{outline:2px solid var(--acc);}
-.pl-trailer-clear{background:none;border:none;color:var(--txt2);cursor:pointer;font-size:16px;padding:0;line-height:1;}
+.pl-trailer-clear{background:none;border:none;color:var(--txt2);cursor:pointer;font-size:14px;padding:0;line-height:1;}
 .pl-trailer-clear:hover{color:var(--red);}
 .pl-empty{text-align:center;padding:40px 20px;color:var(--txt2);font-size:13px;}
 
@@ -2806,7 +2933,7 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:8.5px;color:#111;backgroun
 /* ── OPEN AIR ── */
 .oa-section{margin-top:16px;border:1px solid var(--bdr);border-radius:10px;overflow:hidden;}
 .oa-header{background:linear-gradient(135deg,#1a3a5c,#0d5c8a);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;}
-.oa-title{font-family:'Playfair Display',serif;font-size:15px;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px;}
+.oa-title{font-family:var(--serif,serif);font-size:15px;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px;}
 .oa-star{color:#f0c040;font-size:16px;}
 .oa-days{display:grid;gap:0;}
 .oa-day{border-bottom:1px solid var(--bdr);padding:8px 14px;display:grid;grid-template-columns:90px 1fr;gap:10px;align-items:start;}
@@ -2927,27 +3054,22 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:8.5px;color:#111;backgroun
 
 
 /* ══ PLAYLIST ══════════════════════════════════════════ */
-.pl-card{background:var(--surf);border:1px solid var(--bdr);border-radius:12px;margin-bottom:14px;overflow:hidden;}
-.pl-card-head{padding:12px 14px 10px;display:grid;grid-template-columns:54px 1fr;gap:10px;border-bottom:1px solid var(--bdr);background:var(--surf2);}
-.pl-poster{width:54px;height:76px;border-radius:5px;overflow:hidden;background:rgba(128,128,128,.15);border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;}
-.pl-poster img{width:54px;height:76px;object-fit:cover;display:block;}
-.pl-info{display:flex;flex-direction:column;justify-content:space-between;min-width:0;}
-.pl-title{font-size:14px;font-weight:700;color:var(--txt);line-height:1.3;margin-bottom:3px;}
-.pl-meta{font-size:10px;color:var(--txt2);margin-bottom:6px;line-height:1.5;}
+.pl-film-card{display:flex;flex-direction:column;}
+.pl-poster-wrap{width:100%;height:160px;overflow:hidden;background:var(--surf2);border-bottom:1px solid var(--bdr);}
 .pl-times{display:flex;flex-wrap:wrap;gap:4px;}
-.pl-time{font-size:11px;font-weight:700;font-family:monospace;background:rgba(232,200,74,.12);border:1px solid rgba(232,200,74,.3);color:var(--acc);border-radius:4px;padding:2px 7px;}
-.pl-trailers-section{padding:12px 14px;}
+.pl-time{font-size:10px;font-weight:700;font-family:monospace;background:rgba(232,200,74,.12);border:1px solid rgba(232,200,74,.3);color:var(--acc);border-radius:4px;padding:2px 6px;}
+.pl-trailers-section{padding:10px 14px 14px;border-top:1px solid var(--bdr);}
 .pl-trailers-label{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--txt2);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
 .pl-trailers-label::after{content:'';flex:1;height:1px;background:var(--bdr);}
-.pl-trailer-row{display:grid;grid-template-columns:70px 1fr 28px;gap:8px;align-items:center;margin-bottom:7px;}
-.pl-trailer-row:last-child{margin-bottom:0;}
-.pl-thumb{width:70px;height:40px;border-radius:4px;overflow:hidden;background:var(--surf2);border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;flex-shrink:0;text-decoration:none;}
+.pl-4slots{display:flex;flex-direction:column;gap:6px;}
+.pl-slot-wrap{display:grid;grid-template-columns:60px 1fr 24px;gap:6px;align-items:center;}
+.pl-thumb{width:60px;height:34px;border-radius:4px;overflow:hidden;background:var(--surf2);border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0;text-decoration:none;}
 .pl-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
-.pl-thumb-ph{font-size:16px;color:var(--txt2);}
-.pl-thumb-play{position:absolute;width:20px;height:20px;background:rgba(0,0,0,.65);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;color:#fff;pointer-events:none;}
-.pl-trailer-sel{font-size:12px;padding:5px 8px;width:100%;background:var(--surf);border:1px solid var(--bdr);color:var(--txt);border-radius:6px;cursor:pointer;}
+.pl-thumb-ph{font-size:14px;color:var(--txt2);}
+.pl-thumb-play{position:absolute;width:16px;height:16px;background:rgba(0,0,0,.65);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:7px;color:#fff;pointer-events:none;}
+.pl-trailer-sel{font-size:11px;padding:4px 6px;width:100%;background:var(--surf);border:1px solid var(--bdr);color:var(--txt);border-radius:5px;cursor:pointer;}
 .pl-trailer-sel:focus{outline:2px solid var(--acc);}
-.pl-trailer-clear{background:none;border:none;color:var(--txt2);cursor:pointer;font-size:16px;padding:0;line-height:1;}
+.pl-trailer-clear{background:none;border:none;color:var(--txt2);cursor:pointer;font-size:14px;padding:0;line-height:1;}
 .pl-trailer-clear:hover{color:var(--red);}
 .pl-empty{text-align:center;padding:40px 20px;color:var(--txt2);font-size:13px;}
 
@@ -3959,98 +4081,95 @@ function renderPlaylist(){
   if(weekEl) weekEl.innerHTML =
     '<span style="color:'+sl.col+'">■</span> <strong>'+sl.n+'</strong> · Settimana '+fd(days[0])+' — '+fd(days[6]);
 
-  // Films in this sala this week, ordered by first show start time
+  // Films in this sala this week, ordered by first show
   const salaShows = S.shows
-    .filter(s => s.sala == sid && wd.includes(s.day))
-    .sort((a,b) => a.day.localeCompare(b.day) || a.start.localeCompare(b.start));
+    .filter(function(s){return s.sala==sid && wd.includes(s.day);})
+    .sort(function(a,b){return a.day.localeCompare(b.day)||a.start.localeCompare(b.start);});
 
-  // Group by filmId keeping order of first appearance
-  const filmOrder = [];
-  const filmShows = {};
-  salaShows.forEach(s => {
-    if(!filmShows[s.filmId]){ filmOrder.push(s.filmId); filmShows[s.filmId]=[]; }
+  const filmOrder=[], filmShows={};
+  salaShows.forEach(function(s){
+    if(!filmShows[s.filmId]){filmOrder.push(s.filmId);filmShows[s.filmId]=[];}
     filmShows[s.filmId].push(s);
   });
 
   const w = document.getElementById('pl-list');
   if(!filmOrder.length){
-    w.innerHTML='<div class="pl-empty">📽 Nessun film in programmazione per '+sl.n+' questa settimana</div>';
+    w.innerHTML='<div class="pl-empty">Nessun film in programmazione per '+sl.n+' questa settimana</div>';
     return;
   }
 
-  // Films available as trailers: release >= today OR no release date set
+  // Trailer candidates: films with release >= today or no release
   const trailerCandidates = S.films
-    .filter(f => !f.release || f.release >= today)
-    .sort((a,b) => (a.release||'9999').localeCompare(b.release||'9999') || a.title.localeCompare(b.title,'it'));
+    .filter(function(f){return !f.release||f.release>=today;})
+    .sort(function(a,b){return (a.release||'9999').localeCompare(b.release||'9999')||a.title.localeCompare(b.title,'it');});
 
-  let html = '';
+  let html = '<div class="lfc-grid">';
 
-  filmOrder.forEach(fid => {
-    const film = S.films.find(f => f.id === fid);
+  filmOrder.forEach(function(fid){
+    const film = S.films.find(function(f){return f.id===fid;});
     if(!film) return;
 
-    // Init trailer slots for this film if not present (4 slots)
-    if(!_plTrailers[fid]){
-      // Pre-fill slot 0 with the film's own trailer if available
-      _plTrailers[fid] = [film.trailer||'','','',''];
-    }
+    if(!_plTrailers[fid]) _plTrailers[fid]=[film.trailer||'','','',''];
 
-    // Show times grouped by day
-    const byDay = {};
-    filmShows[fid].forEach(s => { if(!byDay[s.day]) byDay[s.day]=[]; byDay[s.day].push(s); });
-    const timeChips = Object.keys(byDay).sort().flatMap(ds => {
-      const di = wd.indexOf(ds);
-      const dayShort = di>=0 ? ['Gio','Ven','Sab','Dom','Lun','Mar','Mer'][di] : '';
-      return byDay[ds].map(s => '<span class="pl-time">'+dayShort+' '+s.start+'</span>');
+    // Orari: badge compatti
+    const byDay={};
+    filmShows[fid].forEach(function(s){if(!byDay[s.day])byDay[s.day]=[];byDay[s.day].push(s);});
+    const timeChips=Object.keys(byDay).sort().flatMap(function(ds){
+      const di=wd.indexOf(ds);
+      const ab=['Gio','Ven','Sab','Dom','Lun','Mar','Mer'];
+      return byDay[ds].map(function(s){return '<span class="pl-time">'+ab[di]+' '+s.start+'</span>';});
     }).join('');
 
-    const dur = film.duration ? Math.floor(film.duration/60)+'h'+String(film.duration%60).padStart(2,'0') : '';
-    const meta = [film.distributor, dur, film.rating, film.genre].filter(Boolean).join(' · ');
-        const posterHTML = film.poster ? '<img src="'+film.poster+'" alt="">' : '&#127916;';
+    const dur=film.duration?Math.floor(film.duration/60)+'h'+String(film.duration%60).padStart(2,'0'):'';
+    const meta=[film.distributor,dur,film.rating,film.genre].filter(Boolean).join(' · ');
 
-    // Build 4 trailer slot rows
-    let trailerRows = '';
+    // Poster
+    const posterHTML=film.poster
+      ?'<img src="'+film.poster+'" alt="" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:8px 8px 0 0">'
+      :'<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:40px;opacity:.3">🎬</div>';
+
+    // 4 trailer slots — build select dropdown per slot
+    let trailerSlots='';
     for(let i=0;i<4;i++){
-      const ytId = (_plTrailers[fid]||[])[i]||'';
-      const thumbPart = ytId
-        ? '<a class="pl-thumb" href="https://www.youtube.com/watch?v='+ytId+'" target="_blank"><img src="https://img.youtube.com/vi/'+ytId+'/mqdefault.jpg" alt=""><span class="pl-thumb-play">&#9658;</span></a>'
-        : '<div class="pl-thumb"><span class="pl-thumb-ph">&#9658;</span></div>';
-      let opts = '<option value="">— Film per trailer —</option>';
+      const ytId=(_plTrailers[fid]||[])[i]||'';
+      const thumbURL=ytId?'https://img.youtube.com/vi/'+ytId+'/mqdefault.jpg':'';
+      const thumbHTML=ytId
+        ?'<a class="pl-thumb" href="https://www.youtube.com/watch?v='+ytId+'" target="_blank"><img src="'+thumbURL+'" alt=""><span class="pl-thumb-play">&#9658;</span></a>'
+        :'<div class="pl-thumb"><span class="pl-thumb-ph">&#9658;</span></div>';
+      let opts='<option value="">— Film per trailer —</option>';
       trailerCandidates.forEach(function(tf){
-        if(!tf.trailer) return;
-        const rel = tf.release ? ' ('+tf.release.split('-').slice(1).reverse().join('/')+')' : '';
-        const isSel = (tf.trailer===ytId && ytId) ? ' selected' : '';
-        opts += '<option value="'+tf.trailer+'"'+isSel+'>'+tf.title+rel+'</option>';
+        if(!tf.trailer)return;
+        const rel=tf.release?' ('+tf.release.split('-').slice(1).reverse().join('/')+')'  :'';
+        const sel2=(tf.trailer===ytId&&ytId)?' selected':'';
+        opts+='<option value="'+tf.trailer+'"'+sel2+'>'+tf.title+rel+'</option>';
       });
-      const rowId = 'pltr'+i+'_'+fid.replace(/[^a-z0-9]/gi,'_');
-      trailerRows += '<div class="pl-trailer-row" id="'+rowId+'" data-fid="'+fid+'" data-slot="'+i+'">'
-        +thumbPart
-        +'<select class="pl-trailer-sel" data-fid="'+fid+'" data-slot="'+i+'" onchange="plPickTrailer(this)">'
-        +opts
-        +'</select>'
-        +(ytId
-          ? '<button class="pl-trailer-clear" data-fid="'+fid+'" data-slot="'+i+'" onclick="plClearSlot(this)">&#215;</button>'
-          : '<button class="pl-trailer-clear" style="opacity:.25" disabled>&#215;</button>')
+      trailerSlots+='<div class="pl-slot-wrap" id="pltr'+i+'_'+fid.replace(/[^a-z0-9]/gi,'_')+'" data-fid="'+fid+'" data-slot="'+i+'">'
+        +thumbHTML
+        +'<select class="pl-trailer-sel" data-fid="'+fid+'" data-slot="'+i+'" onchange="plPickTrailer(this)">'+opts+'</select>'
+        +(ytId?'<button class="pl-trailer-clear" data-fid="'+fid+'" data-slot="'+i+'" onclick="plClearSlot(this)">&#215;</button>'
+              :'<button class="pl-trailer-clear" style="opacity:.2" disabled>&#215;</button>')
         +'</div>';
     }
 
-    html += '<div class="pl-card" id="pl-card-'+fid+'">'
-      +'<div class="pl-card-head" style="border-left:3px solid '+sl.col+'">'
-        +'<div class="pl-poster">'+posterHTML+'</div>'
-        +'<div class="pl-info">'
-          +'<div class="pl-title">'+film.title+'</div>'
-          +'<div class="pl-meta">'+meta+'</div>'
-          +'<div class="pl-times">'+timeChips+'</div>'
-        +'</div>'
+    html+='<div class="lfc pl-film-card" id="pl-card-'+fid+'" style="border-top-color:'+sl.col+'">'
+      // Poster area full width
+      +'<div class="pl-poster-wrap">'+posterHTML+'</div>'
+      // Info section
+      +'<div class="lfc-head">'
+        +'<div class="lfc-title">'+film.title+'</div>'
+        +'<div class="lfc-meta">'+meta+'</div>'
+        +'<div class="pl-times" style="margin-top:6px">'+timeChips+'</div>'
       +'</div>'
+      // Trailer slots
       +'<div class="pl-trailers-section">'
         +'<div class="pl-trailers-label">Trailer da proiettare</div>'
-        +'<div class="pl-trailer-slots">'+trailerRows+'</div>'
+        +'<div class="pl-4slots">'+trailerSlots+'</div>'
       +'</div>'
-    +'</div>';
+      +'</div>';
   });
 
-  w.innerHTML = html;
+  html+='</div>';
+  w.innerHTML=html;
 }
 
 function plPickTrailer(sel){
