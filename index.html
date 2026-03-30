@@ -221,7 +221,8 @@ select option{background:var(--surf2);}
 .lfc-slots{display:flex;flex-wrap:wrap;gap:4px;}
 .lfc-slot{display:inline-flex;align-items:center;gap:4px;background:var(--surf2);border:1px solid var(--bdr);border-radius:5px;padding:3px 8px;}
 .lfc-slot-time{font-weight:700;color:var(--txt);font-family:monospace;font-size:12px;}
-.lfc-slot-sala{color:var(--txt2);font-size:10px;font-family:monospace;}
+.lfc-slot-sala{color:var(--txt2);font-size:10px;font-family:monospace;margin-left:2px;}
+.lfc-slot-sala.sb1{color:var(--c1);}.lfc-slot-sala.sb2{color:var(--c2);}.lfc-slot-sala.sb3{color:var(--c3);}.lfc-slot-sala.sb4{color:var(--c4);}
 .lv{display:flex;flex-direction:column;gap:3px;}
 .li{display:grid;grid-template-columns:110px 1fr 90px 115px 105px 85px;gap:10px;
   align-items:center;background:var(--surf);border:1px solid var(--bdr);border-radius:6px;padding:8px 14px;}
@@ -876,6 +877,29 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
       </div>
     </div>
   </div>
+</div>
+
+
+<!-- ══════════════ PLAYLIST PAGE ══════════════ -->
+<div id="page-playlist" class="page">
+  <div class="ph" style="flex-wrap:wrap;gap:10px">
+    <h2>▶ Playlist Sale</h2>
+    <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+      <div>
+        <label class="flb">Sala</label>
+        <select id="pl-sala" onchange="renderPlaylist()" style="min-width:140px">
+          <option value="1">🔵 Teatro</option>
+          <option value="2">🟠 Ciak</option>
+          <option value="3">🟢 1908</option>
+          <option value="4">🟣 Mignon</option>
+        </select>
+      </div>
+      <button class="btn bg bs" onclick="copyPlaylist()" style="height:36px">📋 Copia lista</button>
+      <button class="btn bg bs" onclick="printPlaylist()" style="height:36px">🖨 Stampa</button>
+    </div>
+  </div>
+  <div id="pl-week" style="font-size:12px;color:var(--txt2);margin-bottom:14px;padding:0 2px"></div>
+  <div id="pl-list"></div>
 </div>
 
 </main>
@@ -1706,26 +1730,40 @@ function rl(){
   }
 
   // ── VISTA: Card per Giorno ──────────────────────────────
+  // Una card per ogni giorno — dentro, ogni film con orario e sala come la Card Film
   if(sort==='giorno'){
-    let h='';
     const dayMap={};
     shows.forEach(function(s){if(!dayMap[s.day])dayMap[s.day]=[];dayMap[s.day].push(s);});
+    let h='';
     Object.keys(dayMap).sort().forEach(function(ds){
       const di=wd.indexOf(ds);
-      const dayLabel=di>=0?DIT[di]+' '+fs(days[di]):ds;
-      const dayShows=dayMap[ds].slice().sort((a,b)=>a.start.localeCompare(b.start));
-      h+='<div class="lday-card">';
-      h+='<div class="lday-head"><span class="lday-name">'+dayLabel+'</span><span class="lday-count">'+dayShows.length+' spettacol'+(dayShows.length===1?'o':'i')+'</span></div>';
-      h+='<div class="lday-shows">';
+      const dayLabel=di>=0?DIT[di].toUpperCase()+' '+fs(days[di]):ds;
+      const dayShows=dayMap[ds].slice().sort(function(a,b){return a.start.localeCompare(b.start);});
+      // Group by film for this day
+      const filmOrder=[];const byFilm={};
       dayShows.forEach(function(s){
-        const film=S.films.find(f=>f.id===s.filmId);
-        const sl=SALE[s.sala]||{n:'Sala '+s.sala,col:'#888',bc:'sb1'};
-        h+='<div class="lday-row">'
-          +'<span class="lday-time">'+s.start+'</span>'
-          +'<span class="lday-sala"><span class="sb '+sl.bc+'">'+sl.n+'</span></span>'
-          +'<span class="lday-film">'+(film?film.title:'—')+'</span>'
-          +'<span class="lday-dur">'+(film&&film.duration?Math.floor(film.duration/60)+'h'+String(film.duration%60).padStart(2,'0'):'')+'</span>'
-          +'</div>';
+        if(!byFilm[s.filmId]){filmOrder.push(s.filmId);byFilm[s.filmId]=[];}
+        byFilm[s.filmId].push(s);
+      });
+      h+='<div class="lfc" style="border-top-color:var(--acc)">';
+      h+='<div class="lfc-head">';
+      h+='<div class="lfc-title">'+dayLabel+'</div>';
+      h+='<div class="lfc-count">'+dayShows.length+' spettacol'+(dayShows.length===1?'o':'i')+'</div>';
+      h+='</div>';
+      h+='<div class="lfc-days">';
+      filmOrder.forEach(function(fid){
+        const film=S.films.find(function(f){return f.id===fid;});
+        const dur=film&&film.duration?Math.floor(film.duration/60)+'h'+String(film.duration%60).padStart(2,'0'):'';
+        const meta=[film&&film.distributor?film.distributor:'',dur,film&&film.rating?film.rating:'',film&&film.genre?film.genre:''].filter(Boolean).join(' · ');
+        h+='<div>';
+        h+='<div class="lfc-day-name">'+(film?film.title:'—')+'</div>';
+        if(meta) h+='<div style="font-size:10px;color:var(--txt2);margin-bottom:3px">'+meta+'</div>';
+        h+='<div class="lfc-slots">';
+        byFilm[fid].forEach(function(s){
+          const sl=SALE[s.sala]||{bc:'sb1',n:'Sala '+s.sala};
+          h+='<span class="lfc-slot"><span class="lfc-slot-time">'+s.start+'</span><span class="lfc-slot-sala '+sl.bc+'">'+sl.n+'</span></span>';
+        });
+        h+='</div></div>';
       });
       h+='</div></div>';
     });
@@ -1734,35 +1772,53 @@ function rl(){
   }
 
   // ── VISTA: Card Giorno × Sala ────────────────────────────
+  // Card lfc per ogni film — mostrando i giorni raggruppati per sala
+  // Stessa struttura Card Film ma la day-name è "SALA" e i slots sono gli orari
   if(sort==='giorno-sala'){
     const SALE_IDS=['1','2','3','4'];
-    let h='';
     const dayMap={};
     shows.forEach(function(s){if(!dayMap[s.day])dayMap[s.day]=[];dayMap[s.day].push(s);});
+    let h='';
+    // Per ogni giorno
     Object.keys(dayMap).sort().forEach(function(ds){
       const di=wd.indexOf(ds);
-      const dayLabel=di>=0?DIT[di]+' '+fs(days[di]):ds;
+      const dayLabel=di>=0?DIT[di].toUpperCase()+' '+fs(days[di]):ds;
       const dayShows=dayMap[ds];
-      h+='<div class="lgs-day">';
-      h+='<div class="lday-head"><span class="lday-name">'+dayLabel+'</span><span class="lday-count">'+dayShows.length+' spettacol'+(dayShows.length===1?'o':'i')+'</span></div>';
-      h+='<div class="lgs-grid">';
+      // Per ogni sala che ha spettacoli quel giorno
       SALE_IDS.forEach(function(sid){
         const sl=SALE[sid];
-        const salaShows=dayShows.filter(function(s){return s.sala==sid;}).sort((a,b)=>a.start.localeCompare(b.start));
+        const salaShows=dayShows.filter(function(s){return s.sala==sid;}).sort(function(a,b){return a.start.localeCompare(b.start);});
         if(!salaShows.length)return;
-        h+='<div class="lgs-sala-card" style="border-top-color:'+sl.col+'">';
-        h+='<div class="lgs-sala-head" style="color:'+sl.col+'"><span class="sdot" style="background:'+sl.col+'"></span>'+sl.n+'</div>';
+        // Raggruppa per film
+        const filmOrder=[];const byFilm={};
         salaShows.forEach(function(s){
-          const film=S.films.find(f=>f.id===s.filmId);
-          h+='<div class="lday-row">'
-            +'<span class="lday-time">'+s.start+'</span>'
-            +'<span class="lday-film">'+(film?film.title:'—')+'</span>'
-            +'<span class="lday-dur">'+(film&&film.duration?Math.floor(film.duration/60)+'h'+String(film.duration%60).padStart(2,'0'):'')+'</span>'
-            +'</div>';
+          if(!byFilm[s.filmId]){filmOrder.push(s.filmId);byFilm[s.filmId]=[];}
+          byFilm[s.filmId].push(s);
         });
+        h+='<div class="lfc" style="border-top-color:'+sl.col+'">';
+        h+='<div class="lfc-head">';
+        // Titolo = GIORNO · SALA
+        h+='<div class="lfc-title">'+dayLabel+'</div>';
+        h+='<div class="lfc-meta"><span class="sdot" style="background:'+sl.col+';display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px"></span>'
+          +'<span style="color:'+sl.col+';font-weight:600">'+sl.n+'</span></div>';
+        h+='<div class="lfc-count">'+salaShows.length+' spettacol'+(salaShows.length===1?'o':'i')+'</div>';
         h+='</div>';
+        h+='<div class="lfc-days">';
+        filmOrder.forEach(function(fid){
+          const film=S.films.find(function(f){return f.id===fid;});
+          const dur=film&&film.duration?Math.floor(film.duration/60)+'h'+String(film.duration%60).padStart(2,'0'):'';
+          const meta=[film&&film.distributor?film.distributor:'',dur,film&&film.rating?film.rating:'',film&&film.genre?film.genre:''].filter(Boolean).join(' · ');
+          h+='<div>';
+          h+='<div class="lfc-day-name" style="color:var(--txt)">'+(film?film.title:'—')+'</div>';
+          if(meta) h+='<div style="font-size:10px;color:var(--txt2);margin-bottom:3px">'+meta+'</div>';
+          h+='<div class="lfc-slots">';
+          byFilm[fid].forEach(function(s){
+            h+='<span class="lfc-slot"><span class="lfc-slot-time">'+s.start+'</span></span>';
+          });
+          h+='</div></div>';
+        });
+        h+='</div></div>';
       });
-      h+='</div></div>';
     });
     w.innerHTML=h||'<div class="empty"><div class="ei2">📅</div><div class="et">Nessuno spettacolo questa settimana</div></div>';
     return;
@@ -2605,6 +2661,32 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:8.5px;color:#111;backgroun
 .lgs-sala-head{display:flex;align-items:center;gap:6px;padding:7px 12px;font-size:12px;font-weight:700;background:var(--surf2);border-bottom:1px solid var(--bdr);}
 .lgs-sala-card .lday-row{grid-template-columns:50px 1fr 40px;padding:6px 12px;}
 
+
+/* ══ PLAYLIST ══════════════════════════════════════════ */
+.pl-card{background:var(--surf);border:1px solid var(--bdr);border-radius:12px;margin-bottom:14px;overflow:hidden;}
+.pl-card-head{padding:12px 14px 10px;display:grid;grid-template-columns:54px 1fr;gap:10px;border-bottom:1px solid var(--bdr);background:var(--surf2);}
+.pl-poster{width:54px;height:76px;border-radius:5px;overflow:hidden;background:rgba(128,128,128,.15);border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;}
+.pl-poster img{width:54px;height:76px;object-fit:cover;display:block;}
+.pl-info{display:flex;flex-direction:column;justify-content:space-between;min-width:0;}
+.pl-title{font-size:14px;font-weight:700;color:var(--txt);line-height:1.3;margin-bottom:3px;}
+.pl-meta{font-size:10px;color:var(--txt2);margin-bottom:6px;line-height:1.5;}
+.pl-times{display:flex;flex-wrap:wrap;gap:4px;}
+.pl-time{font-size:11px;font-weight:700;font-family:monospace;background:rgba(232,200,74,.12);border:1px solid rgba(232,200,74,.3);color:var(--acc);border-radius:4px;padding:2px 7px;}
+.pl-trailers-section{padding:12px 14px;}
+.pl-trailers-label{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--txt2);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.pl-trailers-label::after{content:'';flex:1;height:1px;background:var(--bdr);}
+.pl-trailer-row{display:grid;grid-template-columns:70px 1fr 28px;gap:8px;align-items:center;margin-bottom:7px;}
+.pl-trailer-row:last-child{margin-bottom:0;}
+.pl-thumb{width:70px;height:40px;border-radius:4px;overflow:hidden;background:var(--surf2);border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;flex-shrink:0;text-decoration:none;}
+.pl-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.pl-thumb-ph{font-size:16px;color:var(--txt2);}
+.pl-thumb-play{position:absolute;width:20px;height:20px;background:rgba(0,0,0,.65);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;color:#fff;pointer-events:none;}
+.pl-trailer-sel{font-size:12px;padding:5px 8px;width:100%;background:var(--surf);border:1px solid var(--bdr);color:var(--txt);border-radius:6px;cursor:pointer;}
+.pl-trailer-sel:focus{outline:2px solid var(--acc);}
+.pl-trailer-clear{background:none;border:none;color:var(--txt2);cursor:pointer;font-size:16px;padding:0;line-height:1;}
+.pl-trailer-clear:hover{color:var(--red);}
+.pl-empty{text-align:center;padding:40px 20px;color:var(--txt2);font-size:13px;}
+
 /* ── PRENOTAZIONI ── */
 .book-pill{border-radius:5px;padding:5px 7px;margin-bottom:3px;border-left:3px solid #e84a4a;background:rgba(232,74,74,.12);position:relative;cursor:pointer;transition:transform .1s;}
 .book-pill:hover{transform:translateX(2px);}
@@ -2795,6 +2877,32 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:8.5px;color:#111;backgroun
 .lgs-sala-card{background:var(--surf);border:1px solid var(--bdr);border-top:3px solid;border-radius:8px;overflow:hidden;}
 .lgs-sala-head{display:flex;align-items:center;gap:6px;padding:7px 12px;font-size:12px;font-weight:700;background:var(--surf2);border-bottom:1px solid var(--bdr);}
 .lgs-sala-card .lday-row{grid-template-columns:50px 1fr 40px;padding:6px 12px;}
+
+
+/* ══ PLAYLIST ══════════════════════════════════════════ */
+.pl-card{background:var(--surf);border:1px solid var(--bdr);border-radius:12px;margin-bottom:14px;overflow:hidden;}
+.pl-card-head{padding:12px 14px 10px;display:grid;grid-template-columns:54px 1fr;gap:10px;border-bottom:1px solid var(--bdr);background:var(--surf2);}
+.pl-poster{width:54px;height:76px;border-radius:5px;overflow:hidden;background:rgba(128,128,128,.15);border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;}
+.pl-poster img{width:54px;height:76px;object-fit:cover;display:block;}
+.pl-info{display:flex;flex-direction:column;justify-content:space-between;min-width:0;}
+.pl-title{font-size:14px;font-weight:700;color:var(--txt);line-height:1.3;margin-bottom:3px;}
+.pl-meta{font-size:10px;color:var(--txt2);margin-bottom:6px;line-height:1.5;}
+.pl-times{display:flex;flex-wrap:wrap;gap:4px;}
+.pl-time{font-size:11px;font-weight:700;font-family:monospace;background:rgba(232,200,74,.12);border:1px solid rgba(232,200,74,.3);color:var(--acc);border-radius:4px;padding:2px 7px;}
+.pl-trailers-section{padding:12px 14px;}
+.pl-trailers-label{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--txt2);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.pl-trailers-label::after{content:'';flex:1;height:1px;background:var(--bdr);}
+.pl-trailer-row{display:grid;grid-template-columns:70px 1fr 28px;gap:8px;align-items:center;margin-bottom:7px;}
+.pl-trailer-row:last-child{margin-bottom:0;}
+.pl-thumb{width:70px;height:40px;border-radius:4px;overflow:hidden;background:var(--surf2);border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;flex-shrink:0;text-decoration:none;}
+.pl-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.pl-thumb-ph{font-size:16px;color:var(--txt2);}
+.pl-thumb-play{position:absolute;width:20px;height:20px;background:rgba(0,0,0,.65);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;color:#fff;pointer-events:none;}
+.pl-trailer-sel{font-size:12px;padding:5px 8px;width:100%;background:var(--surf);border:1px solid var(--bdr);color:var(--txt);border-radius:6px;cursor:pointer;}
+.pl-trailer-sel:focus{outline:2px solid var(--acc);}
+.pl-trailer-clear{background:none;border:none;color:var(--txt2);cursor:pointer;font-size:16px;padding:0;line-height:1;}
+.pl-trailer-clear:hover{color:var(--red);}
+.pl-empty{text-align:center;padding:40px 20px;color:var(--txt2);font-size:13px;}
 
 /* ── PRENOTAZIONI ── */
 .book-pill{border-radius:5px;padding:5px 7px;margin-bottom:3px;border-left:3px solid #e84a4a;background:rgba(232,74,74,.12);position:relative;cursor:pointer;transition:transform .1s;}
@@ -3787,6 +3895,248 @@ function renderBookings(){
   h+='</div>';
   w.innerHTML=h;
 }
+
+// ── PLAYLIST ─────────────────────────────────────────
+// Stato locale: {filmId: [ytId1, ytId2, ...]} per sala corrente
+let _plTrailers = {};
+
+function renderPlaylist(){
+  const sid = document.getElementById('pl-sala').value;
+  const sl  = SALE[sid];
+  const wd  = wdates();
+  const days = wdays();
+  const today = new Date().toISOString().slice(0,10);
+
+  // Week label
+  const weekEl = document.getElementById('pl-week');
+  if(weekEl) weekEl.innerHTML =
+    '<span style="color:'+sl.col+'">■</span> <strong>'+sl.n+'</strong> · Settimana '+fd(days[0])+' — '+fd(days[6]);
+
+  // Films in this sala this week, ordered by first show start time
+  const salaShows = S.shows
+    .filter(s => s.sala == sid && wd.includes(s.day))
+    .sort((a,b) => a.day.localeCompare(b.day) || a.start.localeCompare(b.start));
+
+  // Group by filmId keeping order of first appearance
+  const filmOrder = [];
+  const filmShows = {};
+  salaShows.forEach(s => {
+    if(!filmShows[s.filmId]){ filmOrder.push(s.filmId); filmShows[s.filmId]=[]; }
+    filmShows[s.filmId].push(s);
+  });
+
+  const w = document.getElementById('pl-list');
+  if(!filmOrder.length){
+    w.innerHTML='<div class="pl-empty">📽 Nessun film in programmazione per '+sl.n+' questa settimana</div>';
+    return;
+  }
+
+  // Films available as trailers: release >= today OR no release date set
+  const trailerCandidates = S.films
+    .filter(f => !f.release || f.release >= today)
+    .sort((a,b) => (a.release||'9999').localeCompare(b.release||'9999') || a.title.localeCompare(b.title,'it'));
+
+  let html = '';
+
+  filmOrder.forEach(fid => {
+    const film = S.films.find(f => f.id === fid);
+    if(!film) return;
+
+    // Init trailer slots for this film if not present (4 slots)
+    if(!_plTrailers[fid]){
+      // Pre-fill slot 0 with the film's own trailer if available
+      _plTrailers[fid] = [film.trailer||'','','',''];
+    }
+
+    // Show times grouped by day
+    const byDay = {};
+    filmShows[fid].forEach(s => { if(!byDay[s.day]) byDay[s.day]=[]; byDay[s.day].push(s); });
+    const timeChips = Object.keys(byDay).sort().flatMap(ds => {
+      const di = wd.indexOf(ds);
+      const dayShort = di>=0 ? ['Gio','Ven','Sab','Dom','Lun','Mar','Mer'][di] : '';
+      return byDay[ds].map(s => '<span class="pl-time">'+dayShort+' '+s.start+'</span>');
+    }).join('');
+
+    const dur = film.duration ? Math.floor(film.duration/60)+'h'+String(film.duration%60).padStart(2,'0') : '';
+    const meta = [film.distributor, dur, film.rating, film.genre].filter(Boolean).join(' · ');
+        const posterHTML = film.poster ? '<img src="'+film.poster+'" alt="">' : '&#127916;';
+
+    // Build 4 trailer slot rows
+    let trailerRows = '';
+    for(let i=0;i<4;i++){
+      const ytId = (_plTrailers[fid]||[])[i]||'';
+      const thumbPart = ytId
+        ? '<a class="pl-thumb" href="https://www.youtube.com/watch?v='+ytId+'" target="_blank"><img src="https://img.youtube.com/vi/'+ytId+'/mqdefault.jpg" alt=""><span class="pl-thumb-play">&#9658;</span></a>'
+        : '<div class="pl-thumb"><span class="pl-thumb-ph">&#9658;</span></div>';
+      let opts = '<option value="">— Film per trailer —</option>';
+      trailerCandidates.forEach(function(tf){
+        if(!tf.trailer) return;
+        const rel = tf.release ? ' ('+tf.release.split('-').slice(1).reverse().join('/')+')' : '';
+        const isSel = (tf.trailer===ytId && ytId) ? ' selected' : '';
+        opts += '<option value="'+tf.trailer+'"'+isSel+'>'+tf.title+rel+'</option>';
+      });
+      const rowId = 'pltr'+i+'_'+fid.replace(/[^a-z0-9]/gi,'_');
+      trailerRows += '<div class="pl-trailer-row" id="'+rowId+'" data-fid="'+fid+'" data-slot="'+i+'">'
+        +thumbPart
+        +'<select class="pl-trailer-sel" data-fid="'+fid+'" data-slot="'+i+'" onchange="plPickTrailer(this)">'
+        +opts
+        +'</select>'
+        +(ytId
+          ? '<button class="pl-trailer-clear" data-fid="'+fid+'" data-slot="'+i+'" onclick="plClearSlot(this)">&#215;</button>'
+          : '<button class="pl-trailer-clear" style="opacity:.25" disabled>&#215;</button>')
+        +'</div>';
+    }
+
+    html += '<div class="pl-card" id="pl-card-'+fid+'">'
+      +'<div class="pl-card-head" style="border-left:3px solid '+sl.col+'">'
+        +'<div class="pl-poster">'+posterHTML+'</div>'
+        +'<div class="pl-info">'
+          +'<div class="pl-title">'+film.title+'</div>'
+          +'<div class="pl-meta">'+meta+'</div>'
+          +'<div class="pl-times">'+timeChips+'</div>'
+        +'</div>'
+      +'</div>'
+      +'<div class="pl-trailers-section">'
+        +'<div class="pl-trailers-label">Trailer da proiettare</div>'
+        +'<div class="pl-trailer-slots">'+trailerRows+'</div>'
+      +'</div>'
+    +'</div>';
+  });
+
+  w.innerHTML = html;
+}
+
+function plPickTrailer(sel){
+  const fid=sel.dataset.fid, slot=parseInt(sel.dataset.slot), ytId=sel.value;
+  if(!_plTrailers[fid])_plTrailers[fid]=['','','',''];
+  _plTrailers[fid][slot]=ytId;
+  const row=sel.parentElement;
+  if(!row)return;
+  const old=row.querySelector('.pl-thumb,a.pl-thumb');
+  if(old)old.outerHTML=ytId
+    ?'<a class="pl-thumb" href="https://www.youtube.com/watch?v='+ytId+'" target="_blank"><img src="https://img.youtube.com/vi/'+ytId+'/mqdefault.jpg" alt=""><span class="pl-thumb-play">&#9658;</span></a>'
+    :'<div class="pl-thumb"><span class="pl-thumb-ph">&#9658;</span></div>';
+  const cb=row.querySelector('.pl-trailer-clear');
+  if(cb){cb.disabled=!ytId;cb.style.opacity=ytId?'1':'.25';}
+}
+window.plPickTrailer=plPickTrailer;
+
+function plClearSlot(btn){
+  const fid=btn.dataset.fid, slot=parseInt(btn.dataset.slot);
+  if(!_plTrailers[fid])return;
+  _plTrailers[fid][slot]='';
+  const row=btn.parentElement;
+  const sel=row.querySelector('.pl-trailer-sel');
+  if(sel)sel.value='';
+  const old=row.querySelector('.pl-thumb,a.pl-thumb');
+  if(old)old.outerHTML='<div class="pl-thumb"><span class="pl-thumb-ph">&#9658;</span></div>';
+  btn.disabled=true;btn.style.opacity='.25';
+}
+window.plClearSlot=plClearSlot;
+
+function copyPlaylist(){
+  const sid = document.getElementById('pl-sala').value;
+  const sl  = SALE[sid];
+  const wd  = wdates();
+  const days = wdays();
+  const today = new Date().toISOString().slice(0,10);
+  const salaShows = S.shows
+    .filter(s => s.sala==sid && wd.includes(s.day))
+    .sort((a,b) => a.day.localeCompare(b.day)||a.start.localeCompare(b.start));
+  const filmOrder=[];const filmShows={};
+  salaShows.forEach(s=>{if(!filmShows[s.filmId]){filmOrder.push(s.filmId);filmShows[s.filmId]=[];}filmShows[s.filmId].push(s);});
+
+  let txt = 'PLAYLIST ' + sl.n.toUpperCase() + ' · ' + fd(days[0]) + ' — ' + fd(days[6]) + '\n';
+  txt += '═'.repeat(50) + '\n\n';
+
+  filmOrder.forEach((fid,i) => {
+    const film = S.films.find(f=>f.id===fid);
+    if(!film) return;
+    const dur = film.duration ? Math.floor(film.duration/60)+'h'+String(film.duration%60).padStart(2,'0') : '';
+    txt += (i+1)+'. '+film.title.toUpperCase()+(dur?' ('+dur+')':'')+'\n';
+    // Showtimes
+    filmShows[fid].forEach(s=>{
+      const di=wd.indexOf(s.day);
+      const dl=di>=0?['Gio','Ven','Sab','Dom','Lun','Mar','Mer'][di]+' '+fd(days[di]):s.day;
+      txt+='   📅 '+dl+' → '+s.start+'\n';
+    });
+    // Trailers
+    const slots = _plTrailers[fid]||[];
+    const activeTrailers = slots.filter(Boolean);
+    if(activeTrailers.length){
+      txt += '   ▶ TRAILER:\n';
+      activeTrailers.forEach((ytId,ti)=>{
+        const tFilm = S.films.find(f=>f.trailer===ytId);
+        const tTitle = tFilm ? tFilm.title : ytId;
+        txt += '     '+(ti+1)+'. '+tTitle+' → https://youtu.be/'+ytId+'\n';
+      });
+    }
+    txt += '\n';
+  });
+
+  navigator.clipboard.writeText(txt).then(()=>toast('Lista copiata negli appunti','ok')).catch(()=>toast('Errore copia','err'));
+}
+window.copyPlaylist = copyPlaylist;
+
+function printPlaylist(){
+  const sid = document.getElementById('pl-sala').value;
+  const sl  = SALE[sid];
+  const wd  = wdates();
+  const days = wdays();
+  const today = new Date().toISOString().slice(0,10);
+  const salaShows = S.shows
+    .filter(s => s.sala==sid && wd.includes(s.day))
+    .sort((a,b) => a.day.localeCompare(b.day)||a.start.localeCompare(b.start));
+  const filmOrder=[];const filmShows={};
+  salaShows.forEach(s=>{if(!filmShows[s.filmId]){filmOrder.push(s.filmId);filmShows[s.filmId]=[];}filmShows[s.filmId].push(s);});
+
+  let html = '<style>body{font-family:Arial,sans-serif;font-size:12px;color:#111;}'+
+    'h1{font-size:16px;border-bottom:2px solid #111;padding-bottom:6px;}'+
+    '.fc{margin-bottom:16px;border:1px solid #ddd;border-radius:6px;overflow:hidden;}'+
+    '.fh{background:#f5f5f5;padding:8px 12px;border-bottom:1px solid #ddd;}'+
+    '.ft{font-size:13px;font-weight:700;}.fm{font-size:10px;color:#777;}'+
+    '.fb{padding:8px 12px;}'+
+    '.st{display:inline-block;background:#fff8e0;border:1px solid #e8c84a;border-radius:3px;padding:1px 6px;font-size:10px;font-weight:700;margin:1px;}'+
+    '.tr{margin-top:6px;font-size:10px;}'+
+    '.trt{font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.4px;}'+
+    '.tri{margin:2px 0;color:#333;}'+
+    '</style>';
+  html += '<h1>▶ Playlist '+sl.n+' · '+fd(days[0])+' — '+fd(days[6])+'</h1>';
+
+  filmOrder.forEach((fid,i) => {
+    const film = S.films.find(f=>f.id===fid);
+    if(!film) return;
+    const dur = film.duration ? Math.floor(film.duration/60)+'h'+String(film.duration%60).padStart(2,'0') : '';
+    const meta = [film.distributor,dur,film.rating].filter(Boolean).join(' · ');
+    const slots = (_plTrailers[fid]||[]).filter(Boolean);
+    html += '<div class="fc"><div class="fh"><div class="ft">'+(i+1)+'. '+film.title+'</div><div class="fm">'+meta+'</div></div><div class="fb">';
+    filmShows[fid].forEach(s=>{
+      const di=wd.indexOf(s.day);
+      const dl=di>=0?['Gio','Ven','Sab','Dom','Lun','Mar','Mer'][di]+' '+fd(days[di]):s.day;
+      html+='<span class="st">'+dl+' '+s.start+'</span> ';
+    });
+    if(slots.length){
+      html+='<div class="tr"><div class="trt">Trailer:</div>';
+      slots.forEach((ytId,ti)=>{
+        const tFilm=S.films.find(f=>f.trailer===ytId);
+        html+='<div class="tri">'+(ti+1)+'. '+(tFilm?tFilm.title:ytId)+' · youtu.be/'+ytId+'</div>';
+      });
+      html+='</div>';
+    }
+    html+='</div></div>';
+  });
+
+  const blob=new Blob(['<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>'+html+'</body></html>'],{type:'text/html'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='playlist-'+sl.n.toLowerCase()+'-'+wd[0]+'.html';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),5000);
+  toast('Playlist scaricata','ok');
+}
+window.printPlaylist = printPlaylist;
+window.renderPlaylist = renderPlaylist;
+
 window.openBook=openBook;window.editBook=editBook;window.svBook=svBook;
 window.setBMode=setBMode;window.fillBShows=fillBShows;window.fillBShowTimes=fillBShowTimes;window.onBShowSelect=onBShowSelect;
 window.delBook=delBook;window.addBookDate=addBookDate;window.removeBookDate=removeBookDate;
