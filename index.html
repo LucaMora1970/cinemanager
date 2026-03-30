@@ -761,6 +761,44 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
         <button class="btn ba" style="width:100%" onclick="sendDistMails()">📧 Invia a tutti i distributori</button>
       </div>
     </div>
+
+    <!-- ── INVIO CIRCOLARE CCN ── -->
+    <div class="ps" style="margin-top:16px;border-top:2px solid var(--bdr);padding-top:18px">
+      <h3>📢 Circolare a Tutti i Distributori (CCN)</h3>
+      <p style="font-size:11px;color:var(--txt2);margin-bottom:12px">
+        Programma completo di tutti i film inviato a tutti i distributori con contatti email.<br>
+        I destinatari vengono aggiunti in <strong>CCN</strong> — nessuno vede gli altri indirizzi.
+      </p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div>
+          <div class="fr"><label class="flb">Da (mittente visibile)</label>
+            <input type="email" id="circ-from" placeholder="es. cinema@mendrisio.ch">
+          </div>
+          <div class="fr"><label class="flb">Oggetto</label>
+            <input type="text" id="circ-subj" value="Programmazione Settimanale — Cinema Multisala Teatro Mendrisio">
+          </div>
+          <div class="fr"><label class="flb">Note aggiuntive</label>
+            <textarea id="circ-note" placeholder="Testo introduttivo opzionale..." style="min-height:60px"></textarea>
+          </div>
+          <button class="btn bg bs" onclick="distSetWeek();circSetWeek()" style="font-size:11px;margin-top:4px">📅 Usa settimana corrente</button>
+        </div>
+        <div>
+          <div class="fr" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+            <div><label class="flb">Dal</label>
+              <input type="date" id="circ-from-date" style="width:100%">
+            </div>
+            <div><label class="flb">Al</label>
+              <input type="date" id="circ-to-date" style="width:100%">
+            </div>
+          </div>
+          <div id="circ-preview" style="background:var(--surf2);border:1px solid var(--bdr);border-radius:6px;padding:9px 12px;font-size:11px;color:var(--txt2);min-height:54px;margin-bottom:10px">
+            Clicca Anteprima per vedere i destinatari CCN
+          </div>
+          <button class="btn bg" style="width:100%;margin-bottom:7px" onclick="previewCircolare()">👁 Anteprima CCN</button>
+          <button class="btn ba" style="width:100%" onclick="sendCircolare()">📧 Invia Circolare in CCN</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- TAB: MEDIA -->
@@ -3724,6 +3762,113 @@ async function sendDistMails(){
   }
   toast(sent?sent+' email preparate':'Nessun film in programmazione per i distributori con contatti nel periodo selezionato','ok');
 }
+
+// ── INVIO CIRCOLARE CCN ──────────────────────────────────
+function circSetWeek(){
+  const wd=wdates();
+  const f=document.getElementById('circ-from-date');
+  const t=document.getElementById('circ-to-date');
+  if(f)f.value=wd[0];
+  if(t)t.value=wd[6];
+}
+window.circSetWeek=circSetWeek;
+
+function previewCircolare(){
+  if(!S.distributors||!S.distributors.length){
+    document.getElementById('circ-preview').innerHTML='<span style="color:var(--red)">Nessun distributore presente</span>';
+    return;
+  }
+  const allEmails=[];
+  S.distributors.forEach(function(dist){
+    (dist.contacts||[]).forEach(function(ct){
+      if(ct.email&&!allEmails.includes(ct.email))allEmails.push(ct.email);
+    });
+  });
+  const fromVal=document.getElementById('circ-from').value||'(non impostato)';
+  const fromDate=document.getElementById('circ-from-date').value;
+  const toDate=document.getElementById('circ-to-date').value;
+  const periodLabel=(fromDate&&toDate)
+    ?(fromDate.split('-').reverse().join('/')+' → '+toDate.split('-').reverse().join('/'))
+    :'settimana corrente';
+  let html='<div style="margin-bottom:5px"><strong style="color:var(--acc)">'+allEmails.length+'</strong> destinatari in CCN</div>';
+  html+='<div style="font-size:10px;color:var(--txt2);margin-bottom:4px">Da: <strong>'+fromVal+'</strong> · Periodo: '+periodLabel+'</div>';
+  if(allEmails.length){
+    html+='<div style="font-size:10px;color:var(--txt2);word-break:break-all;max-height:70px;overflow-y:auto">'+allEmails.join(', ')+'</div>';
+  } else {
+    html+='<div style="color:var(--red);font-size:11px">Nessun contatto email nei distributori</div>';
+  }
+  document.getElementById('circ-preview').innerHTML=html;
+}
+window.previewCircolare=previewCircolare;
+
+function sendCircolare(){
+  if(!S.distributors||!S.distributors.length){toast('Aggiungi distributori prima','err');return;}
+  const allEmails=[];
+  S.distributors.forEach(function(dist){
+    (dist.contacts||[]).forEach(function(ct){
+      if(ct.email&&!allEmails.includes(ct.email))allEmails.push(ct.email);
+    });
+  });
+  if(!allEmails.length){toast('Nessun contatto email nei distributori','err');return;}
+  const fromEmail=document.getElementById('circ-from').value.trim();
+  const subjRaw=document.getElementById('circ-subj').value||'Programmazione Settimanale';
+  const note=document.getElementById('circ-note').value.trim();
+  const fromDate=document.getElementById('circ-from-date').value||wdates()[0];
+  const toDate=document.getElementById('circ-to-date').value||wdates()[6];
+  // Build range of days
+  const rangeDays=[];
+  const cur=new Date(fromDate+'T12:00:00');
+  const end=new Date(toDate+'T12:00:00');
+  while(cur<=end){rangeDays.push(cur.toISOString().slice(0,10));cur.setDate(cur.getDate()+1);}
+  const shows=S.shows.filter(function(s){return rangeDays.includes(s.day);});
+  const fromLabel=fromDate.split('-').reverse().join('/');
+  const toLabel=toDate.split('-').reverse().join('/');
+  const SEP='-'.repeat(40);
+  // Build body text
+  const lines=[];
+  lines.push('Gentili Distributori,');
+  lines.push('');
+  if(note){lines.push(note);lines.push('');}
+  lines.push('Di seguito la programmazione di tutti i film');
+  lines.push('dal '+fromLabel+' al '+toLabel+':');
+  lines.push('');
+  lines.push(SEP);
+  // Group by film
+  const filmIds=[...new Set(shows.map(function(s){return s.filmId;}))];
+  const sortedFilms=filmIds.map(function(id){return S.films.find(function(f){return f.id===id;});})
+    .filter(Boolean).sort(function(a,b){return a.title.localeCompare(b.title,'it');});
+  sortedFilms.forEach(function(film){
+    const fShows=shows.filter(function(s){return s.filmId===film.id;})
+      .sort(function(a,b){return a.day.localeCompare(b.day)||a.start.localeCompare(b.start);});
+    if(!fShows.length)return;
+    const dur=film.duration?(Math.floor(film.duration/60)+'h'+String(film.duration%60).padStart(2,'0')):'';
+    const meta=[dur,film.rating,film.genre,film.distributor].filter(Boolean).join(' - ');
+    lines.push('');
+    lines.push(film.title.toUpperCase()+(meta?' ('+meta+')':''));
+    const byDay={};
+    fShows.forEach(function(s){if(!byDay[s.day])byDay[s.day]=[];byDay[s.day].push(s);});
+    Object.keys(byDay).sort().forEach(function(ds){
+      const d=new Date(ds+'T12:00:00');
+      const dl=d.toLocaleDateString('it-IT',{weekday:'long',day:'2-digit',month:'2-digit'});
+      const times=byDay[ds].map(function(s){return s.start+' ('+sn(s.sala)+')';}).join('   ');
+      lines.push('  '+dl.charAt(0).toUpperCase()+dl.slice(1)+': '+times);
+    });
+  });
+  lines.push('');
+  lines.push(SEP);
+  lines.push('Cinema Multisala Teatro Mendrisio');
+  const body=lines.join('\n');
+  // Build mailto with BCC
+  let mailto='mailto:';
+  if(fromEmail)mailto+=fromEmail;
+  mailto+='?bcc='+encodeURIComponent(allEmails.join(','));
+  mailto+='&subject='+encodeURIComponent(subjRaw);
+  mailto+='&body='+encodeURIComponent(body);
+  window.location.href=mailto;
+  toast(allEmails.length+' destinatari CCN — client email aperto','ok');
+}
+window.sendCircolare=sendCircolare;
+
 window.addDistributor=addDistributor;window.addDistContact=addDistContact;window.remDistContact=remDistContact;window.remDistributor=remDistributor;window.renderDist=renderDist;window.fillDistDropdown=fillDistDropdown;window.fillFilmDistDropdown=fillFilmDistDropdown;window.previewDist=previewDist;window.sendDistMails=sendDistMails;
 
 // ── Media ──
