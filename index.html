@@ -5331,7 +5331,7 @@ function socialGenerate(){
           lines.push(emoji+' '+f.title+(sched?' \u2192 '+sched:''));
         });
         if(weekFilms.length>6)lines.push('\u2026e altri '+(weekFilms.length-6)+' film!');
-        lines.push('');lines.push('\uD83C\uDFAB Prenota su '+cinemaUrl);lines.push('\uD83D\uDCCD Via Lugano 2, Mendrisio');
+        lines.push('');lines.push('\uD83C\uDFAB Prenota su '+cinemaUrl);lines.push('\uD83D\uDCCD Via Vincenzo Vela 2, Mendrisio');
       }else if(t==='formale'){
         lines.push('Cinema Multisala Teatro Mendrisio');
         lines.push('Programmazione '+fd(days[0])+' \u2013 '+fd(days[6]));lines.push('');
@@ -5559,11 +5559,11 @@ function drawSlideText(ctx,film,fShows,wd,days,W,H,fmt){
   var px=function(v){return Math.round(v);};
 
   // Barra brand in cima
-  ctx.fillStyle='#e8c84a';
+  ctx.fillStyle='#f0801a';
   ctx.fillRect(0,0,W,isStory?6:4);
 
   // Label cinema in alto
-  ctx.fillStyle='rgba(232,200,74,0.75)';
+  ctx.fillStyle='rgba(240,128,26,0.85)';
   ctx.font='bold '+(isStory?11:9)+'px Arial,sans-serif';
   ctx.textAlign='left';
   ctx.letterSpacing='1px';
@@ -5624,13 +5624,13 @@ function drawSlideText(ctx,film,fShows,wd,days,W,H,fmt){
 
   // Linea separatrice oro
   var lineY=schedY-(isStory?22:isLand?14:16);
-  ctx.strokeStyle='rgba(232,200,74,0.35)';
+  ctx.strokeStyle='rgba(240,128,26,0.4)';
   ctx.lineWidth=0.5;
   ctx.beginPath();ctx.moveTo(14,lineY);ctx.lineTo(W-14,lineY);ctx.stroke();
 
   // Label ORARI
   var labelY=schedY-(isStory?8:isLand?5:6);
-  ctx.fillStyle='rgba(232,200,74,0.5)';
+  ctx.fillStyle='rgba(240,128,26,0.6)';
   ctx.font='bold '+(isStory?8:7)+'px Arial,sans-serif';
   ctx.textAlign='center';
   ctx.fillText('ORARI IN PROGRAMMAZIONE',W/2,labelY);
@@ -5653,8 +5653,8 @@ function drawSlideText(ctx,film,fShows,wd,days,W,H,fmt){
     var isNear=i<4; // prime 4 date = più luminose
 
     // Sfondo blocco
-    ctx.fillStyle=isNear?'rgba(232,200,74,0.2)':'rgba(232,200,74,0.08)';
-    ctx.strokeStyle=isNear?'rgba(232,200,74,0.5)':'rgba(232,200,74,0.2)';
+    ctx.fillStyle=isNear?'rgba(240,128,26,0.2)':'rgba(240,128,26,0.08)';
+    ctx.strokeStyle=isNear?'rgba(240,128,26,0.6)':'rgba(240,128,26,0.2)';
     ctx.lineWidth=0.5;
     ctx.beginPath();
     var r=3;
@@ -5668,7 +5668,7 @@ function drawSlideText(ctx,film,fShows,wd,days,W,H,fmt){
     var dayStr=DIT2[di]||'?';
     var dateStr='';
     if(wd[di]){var dp=wd[di].split('-');dateStr=' '+dp[2]+'/'+dp[1];}
-    ctx.fillStyle=isNear?'#e8c84a':'rgba(232,200,74,0.65)';
+    ctx.fillStyle=isNear?'#f0801a':'rgba(240,128,26,0.7)';
     ctx.font='bold '+(isStory?9:8)+'px Arial,sans-serif';
     ctx.textAlign='center';
     var cx=bx+blockW/2;
