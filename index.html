@@ -504,6 +504,55 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
   .day-copy .btn{display:none;} /* hide copy/optimize on tiny screens, use list view instead */
   .fg2{grid-template-columns:1fr;}
 }
+
+/* ══ NEWSLETTER ═══════════════════════════════════════ */
+.nws-card{
+  position:relative;border-radius:7px;overflow:hidden;
+  background:var(--surf2);border:2px solid transparent;
+  cursor:pointer;transition:border-color .15s,background .15s;
+  display:flex;align-items:stretch;
+}
+.nws-card:hover{border-color:var(--bdr);}
+.nws-card.selected{border-color:#f0801a;background:rgba(240,128,26,.07);}
+.nws-card-poster{
+  width:52px;min-width:52px;height:76px;object-fit:cover;display:block;
+  flex-shrink:0;
+}
+        ?'<img class="nws-card-poster" src="'+film.poster+'" alt="">'  
+  width:52px;min-width:52px;height:76px;flex-shrink:0;
+  background:var(--surf);display:flex;align-items:center;justify-content:center;font-size:20px;
+}
+.nws-card-body{padding:7px 8px;flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;}
+.nws-card-title{font-size:11px;font-weight:700;color:var(--txt);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;}
+.nws-card-meta{font-size:9px;color:var(--txt2);line-height:1.4;}
+.nws-card-badge{
+  position:absolute;top:4px;left:4px;
+  background:#f0801a;color:#fff;font-size:8px;font-weight:700;
+  padding:1px 5px;border-radius:2px;letter-spacing:.3px;
+}
+.nws-card-check{
+  width:18px;min-width:18px;display:flex;align-items:center;justify-content:center;
+  font-size:13px;color:var(--txt2);padding-right:2px;transition:color .15s;
+}
+.nws-card.selected .nws-card-check{color:#f0801a;}
+.nws-card-release{font-size:9px;color:#f0801a;font-weight:700;margin-top:2px;}
+.nws-card-arrows{display:flex;flex-direction:column;gap:2px;padding:3px 4px 3px 0;flex-shrink:0;}
+.nws-card-arrows button{
+  width:20px;height:18px;border:0.5px solid var(--bdr);border-radius:3px;
+  background:var(--surf2);color:var(--txt2);font-size:9px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;line-height:1;
+  transition:background .1s,color .1s;padding:0;
+}
+.nws-card-arrows button:hover{background:#f0801a;color:#fff;border-color:#f0801a;}
+.nws-priority-badge{
+  position:absolute;top:4px;right:26px;
+  width:16px;height:16px;border-radius:50%;
+  background:#f0801a;color:#fff;font-size:8px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+}
+
+
 </style>
 </head>
 <body>
@@ -540,7 +589,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="wlbl" id="wlbl">—</div>
     <button onclick="cw(1)">›</button>
   </div>
-  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v31/03 16:28</small>
+  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v31/03 17:34</small>
   <div class="hact">
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
     <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
@@ -624,6 +673,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
   <div class="sh">
     <div class="st">Archivio Film</div>
     <div style="display:flex;align-items:center;gap:12px">
+      <button class="btn bg bs" onclick="tmdbEnrichAll()" title="Recupera backdrop e locandine TMDB per tutti i film che non le hanno" style="font-size:11px">🖼 Immagini TMDB</button>
       <div class="toggle-wrap">
         <span>Mostra scaduti</span>
         <label class="toggle"><input type="checkbox" id="showExp" onchange="rf()"><span class="toggle-slider"></span></label>
@@ -3422,53 +3472,6 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:8.5px;color:#111;backgroun
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px;
 }
 
-
-/* ══ NEWSLETTER ═══════════════════════════════════════ */
-.nws-card{
-  position:relative;border-radius:7px;overflow:hidden;
-  background:var(--surf2);border:2px solid transparent;
-  cursor:pointer;transition:border-color .15s,background .15s;
-  display:flex;align-items:stretch;
-}
-.nws-card:hover{border-color:var(--bdr);}
-.nws-card.selected{border-color:#f0801a;background:rgba(240,128,26,.07);}
-.nws-card-poster{
-  width:52px;min-width:52px;height:76px;object-fit:cover;display:block;
-  flex-shrink:0;
-}
-        ?'<img class="nws-card-poster" src="'+film.poster+'" alt="">'  
-  width:52px;min-width:52px;height:76px;flex-shrink:0;
-  background:var(--surf);display:flex;align-items:center;justify-content:center;font-size:20px;
-}
-.nws-card-body{padding:7px 8px;flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;}
-.nws-card-title{font-size:11px;font-weight:700;color:var(--txt);
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;}
-.nws-card-meta{font-size:9px;color:var(--txt2);line-height:1.4;}
-.nws-card-badge{
-  position:absolute;top:4px;left:4px;
-  background:#f0801a;color:#fff;font-size:8px;font-weight:700;
-  padding:1px 5px;border-radius:2px;letter-spacing:.3px;
-}
-.nws-card-check{
-  width:18px;min-width:18px;display:flex;align-items:center;justify-content:center;
-  font-size:13px;color:var(--txt2);padding-right:2px;transition:color .15s;
-}
-.nws-card.selected .nws-card-check{color:#f0801a;}
-.nws-card-release{font-size:9px;color:#f0801a;font-weight:700;margin-top:2px;}
-.nws-card-arrows{display:flex;flex-direction:column;gap:2px;padding:3px 4px 3px 0;flex-shrink:0;}
-.nws-card-arrows button{
-  width:20px;height:18px;border:0.5px solid var(--bdr);border-radius:3px;
-  background:var(--surf2);color:var(--txt2);font-size:9px;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;line-height:1;
-  transition:background .1s,color .1s;padding:0;
-}
-.nws-card-arrows button:hover{background:#f0801a;color:#fff;border-color:#f0801a;}
-.nws-priority-badge{
-  position:absolute;top:4px;right:26px;
-  width:16px;height:16px;border-radius:50%;
-  background:#f0801a;color:#fff;font-size:8px;font-weight:700;
-  display:flex;align-items:center;justify-content:center;
-}
 
 /* ── PRENOTAZIONI ── */
 .book-pill{border-radius:5px;padding:5px 7px;margin-bottom:3px;border-left:3px solid #e84a4a;background:rgba(232,74,74,.12);position:relative;cursor:pointer;transition:transform .1s;}
@@ -7240,6 +7243,8 @@ window.openStaffReport=openStaffReport;window.genStaffReport=genStaffReport;
 // ── IMPORT DA API BIGLIETTERIA ────────────────────────────
 var _importedFilms=[];
 var IMP_API='https://mendrisiocinema.ch/api/v2/films/expanded.json';
+var TMDB_API_KEY='311ff7247664eb7804d555d57be08219'; // TMDB API Key v3
+var TMDB_IMG='https://image.tmdb.org/t/p/';
 var IMP_CACHE_KEY='cm_imp_cache';
 var IMP_COUNT_KEY='cm_imp_count';
 var IMP_MAX_DAILY=2;
@@ -7477,9 +7482,19 @@ async function doImport(){
     };
     await setDoc(doc(db,'films',id),filmDoc);
     imported++;
+    // Recupero backdrop TMDB in background se disponibile
+    if(filmDoc.tmdbId&&TMDB_API_KEY&&!filmDoc.backdrop){
+      tmdbAutoBackdrop(id,filmDoc.tmdbId).then(function(imgs){
+        if(imgs&&imgs.backdrop){
+          var patched=Object.assign({},filmDoc,{backdrop:imgs.backdrop});
+          if(!filmDoc.poster&&imgs.poster)patched.poster=imgs.poster;
+          fbSetDoc(db,'films',id,patched).catch(function(){});
+        }
+      });
+    }
   }
   co('ovImport');
-  toast(imported+' film importati','ok');
+  toast(imported+' film importati'+(TMDB_API_KEY?' — immagini TMDB in recupero...':''),'ok');
   rf();
 }
 window.doImport=doImport;
@@ -8861,8 +8876,8 @@ async function tmdbFetchImages(){
   var gallery=document.getElementById('fBackdropGallery');
   if(gallery)gallery.innerHTML='<span style="font-size:11px;color:var(--txt2)">⏳ Caricamento immagini...</span>';
   try{
-    var apiKey=IMP_KEY; // usa la stessa API key dell'import biglietteria
-    var url='https://api.themoviedb.org/3/movie/'+tid+'/images?include_image_language=it,de,fr,en,null&api_key='+apiKey;
+    if(!TMDB_API_KEY){toast('TMDB API key non configurata','err');return;}
+    var url='https://api.themoviedb.org/3/movie/'+tid+'/images?include_image_language=it,de,fr,en,null&api_key='+TMDB_API_KEY;
     var res=await fetch(url);
     if(!res.ok)throw new Error('TMDB '+res.status);
     var data=await res.json();
@@ -8929,6 +8944,56 @@ async function tmdbFetchImages(){
   }
 }
 window.tmdbFetchImages=tmdbFetchImages;
+
+
+// ── TMDB AUTO BACKDROP ──────────────────────────────────────────────────────
+// Recupera backdrop TMDB per un film già salvato che non ce l'ha
+async function tmdbAutoBackdrop(filmId,tmdbId){
+  if(!TMDB_API_KEY||!tmdbId)return null;
+  try{
+    var res=await fetch('https://api.themoviedb.org/3/movie/'+tmdbId+'/images?include_image_language=it,de,fr,en,null&api_key='+TMDB_API_KEY);
+    if(!res.ok)return null;
+    var data=await res.json();
+    var backdrops=(data.backdrops||[]).filter(function(b){return b.vote_average>0;})
+      .sort(function(a,b){return b.vote_average-a.vote_average;});
+    var posters=(data.posters||[]).filter(function(p){return p.vote_average>0;})
+      .sort(function(a,b){return b.vote_average-a.vote_average;});
+    var backdrop=backdrops.length?TMDB_IMG+'w780'+backdrops[0].file_path:'';
+    // Aggiorna anche la locandina se quella attuale è vuota o di bassa qualità
+    var poster=posters.length?TMDB_IMG+'w500'+posters[0].file_path:'';
+    return {backdrop:backdrop,poster:poster};
+  }catch(e){return null;}
+}
+window.tmdbAutoBackdrop=tmdbAutoBackdrop;
+
+// Arricchisce tutti i film in archivio che hanno tmdbId ma non backdrop
+async function tmdbEnrichAll(){
+  if(!TMDB_API_KEY){
+    toast('Configura prima TMDB_API_KEY nel file','err');return;
+  }
+  var toEnrich=S.films.filter(function(f){return f.tmdbId&&!f.backdrop;});
+  if(!toEnrich.length){toast('Nessun film da arricchire','ok');return;}
+  toast('Recupero immagini TMDB per '+toEnrich.length+' film...','ok');
+  var updated=0;
+  for(var i=0;i<toEnrich.length;i++){
+    var film=toEnrich[i];
+    var imgs=await tmdbAutoBackdrop(film.id,film.tmdbId);
+    if(imgs&&imgs.backdrop){
+      var patch={...film,backdrop:imgs.backdrop};
+      // Aggiorna anche poster se era vuoto
+      if(!film.poster&&imgs.poster)patch.poster=imgs.poster;
+      try{
+        await fbSetDoc(db,'films',film.id,patch);
+        updated++;
+      }catch(e){}
+    }
+    // Pausa 250ms tra le richieste per rispettare rate limit TMDB
+    await new Promise(function(r){setTimeout(r,250);});
+  }
+  toast('Aggiornati '+updated+' film con immagini TMDB','ok');
+  rf();
+}
+window.tmdbEnrichAll=tmdbEnrichAll;
 
 
 function toggleTheme(){
