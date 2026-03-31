@@ -8498,3 +8498,43 @@ function newsRenderSection(listId,countId,films,selSet,section){
     el.appendChild(card);
   });
 }
+window.clearDay=clearDay;
+
+// ── THEME ───────────────────────────────────────────────
+function toggleTheme(){
+  const isLight=document.body.classList.toggle('light');
+  document.getElementById('btnTheme').textContent=isLight?'☽':'☀';
+  localStorage.setItem('cm_theme',isLight?'light':'dark');
+}
+// restore saved theme
+(function(){if(localStorage.getItem('cm_theme')==='light'){document.body.classList.add('light');const b=document.getElementById('btnTheme');if(b)b.textContent='☽';}})();
+window.toggleTheme=toggleTheme;
+
+// ── INIT ──────────────────────────────────────────────────
+uwl();
+syncSet('busy','Connessione…');
+// Auth handles startup — onAuthStateChanged calls startListeners after login
+
+
+// ── LOADING DIAGNOSTICS ──────────────────────────────
+(function(){
+  var t1=setTimeout(function(){
+    var el=document.getElementById('load-txt');
+    if(el&&document.getElementById('loading').style.display!=='none'){
+      el.textContent='Verifica connessione internet…';
+    }
+  },5000);
+  var t2=setTimeout(function(){
+    var loading=document.getElementById('loading');
+    if(!loading||loading.style.display==='none')return;
+    var errEl=document.getElementById('load-err');
+    var retryBtn=document.getElementById('load-retry-btn');
+    var msg='Impossibile connettersi. Possibili cause:\n'
+      +'• Connessione internet assente\n'
+      +'• Dominio non autorizzato in Firebase Auth\n'
+      +'• Firebase SDK bloccato da firewall/proxy';
+    if(errEl){errEl.style.display='block';errEl.textContent=msg;errEl.style.whiteSpace='pre-line';}
+    if(retryBtn)retryBtn.style.display='block';
+  },10000);
+})();
+
