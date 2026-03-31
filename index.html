@@ -537,16 +537,16 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
 }
 .nws-card.selected .nws-card-check{color:#f0801a;}
 .nws-card-release{font-size:9px;color:#f0801a;font-weight:700;margin-top:2px;}
-.nws-card-arrows{display:flex;flex-direction:column;gap:2px;padding:3px 4px 3px 0;flex-shrink:0;}
+.nws-card-arrows{display:flex;flex-direction:column;gap:2px;padding:4px 3px;flex-shrink:0;justify-content:center;}
 .nws-card-arrows button{
-  width:20px;height:18px;border:0.5px solid var(--bdr);border-radius:3px;
-  background:var(--surf2);color:var(--txt2);font-size:9px;cursor:pointer;
+  width:22px;height:22px;border:0.5px solid var(--bdr);border-radius:4px;
+  background:var(--surf);color:var(--txt2);font-size:10px;cursor:pointer;
   display:flex;align-items:center;justify-content:center;line-height:1;
   transition:background .1s,color .1s;padding:0;
 }
 .nws-card-arrows button:hover{background:#f0801a;color:#fff;border-color:#f0801a;}
 .nws-priority-badge{
-  position:absolute;top:4px;right:26px;
+  position:absolute;bottom:4px;left:4px;
   width:16px;height:16px;border-radius:50%;
   background:#f0801a;color:#fff;font-size:8px;font-weight:700;
   display:flex;align-items:center;justify-content:center;
@@ -589,7 +589,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="wlbl" id="wlbl">—</div>
     <button onclick="cw(1)">›</button>
   </div>
-  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v31/03 18:27</small>
+  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v31/03 19:04</small>
   <div class="hact">
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
     <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
@@ -3774,16 +3774,16 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:8.5px;color:#111;backgroun
 }
 .nws-card.selected .nws-card-check{color:#f0801a;}
 .nws-card-release{font-size:9px;color:#f0801a;font-weight:700;margin-top:2px;}
-.nws-card-arrows{display:flex;flex-direction:column;gap:2px;padding:3px 4px 3px 0;flex-shrink:0;}
+.nws-card-arrows{display:flex;flex-direction:column;gap:2px;padding:4px 3px;flex-shrink:0;justify-content:center;}
 .nws-card-arrows button{
-  width:20px;height:18px;border:0.5px solid var(--bdr);border-radius:3px;
-  background:var(--surf2);color:var(--txt2);font-size:9px;cursor:pointer;
+  width:22px;height:22px;border:0.5px solid var(--bdr);border-radius:4px;
+  background:var(--surf);color:var(--txt2);font-size:10px;cursor:pointer;
   display:flex;align-items:center;justify-content:center;line-height:1;
   transition:background .1s,color .1s;padding:0;
 }
 .nws-card-arrows button:hover{background:#f0801a;color:#fff;border-color:#f0801a;}
 .nws-priority-badge{
-  position:absolute;top:4px;right:26px;
+  position:absolute;bottom:4px;left:4px;
   width:16px;height:16px;border-radius:50%;
   background:#f0801a;color:#fff;font-size:8px;font-weight:700;
   display:flex;align-items:center;justify-content:center;
@@ -8525,7 +8525,11 @@ function newsRenderSection(listId,countId,films,selSet,section){
     card.className='nws-card'+(sel?' selected':'');
     card.dataset.fid=film.id;
     card.dataset.section=section;
-    card.innerHTML=(film.poster
+    card.innerHTML='<div class="nws-card-arrows">'
+        +'<button class="nws-arrow-btn" data-section="'+section+'" data-fid="'+film.id+'" data-dir="up" title="Sposta su">▲</button>'
+        +'<button class="nws-arrow-btn" data-section="'+section+'" data-fid="'+film.id+'" data-dir="down" title="Sposta giù">▼</button>'
+      +'</div>'
+      +(film.poster
         ?'<img class="nws-card-poster" src="'+film.poster+'" alt="" style="background:var(--surf2)">'
         :'<div class="nws-card-poster-ph">🎬</div>')
       +(isNew?'<div class="nws-card-badge">NOVITÀ</div>':'')
@@ -8536,11 +8540,7 @@ function newsRenderSection(listId,countId,films,selSet,section){
         +'<div class="nws-card-meta">'+meta+'</div>'
         +relLabel
       +'</div>'
-      +'<div class="nws-card-check">'+(sel?'✓':'')+'</div>'
-      +'<div class="nws-card-arrows">'
-        +'<button class="nws-arrow-btn" data-section="'+section+'" data-fid="'+film.id+'" data-dir="up" title="Su">▲</button>'
-        +'<button class="nws-arrow-btn" data-section="'+section+'" data-fid="'+film.id+'" data-dir="down" title="Giù">▼</button>'
-      +'</div>';
+      +'<div class="nws-card-check">'+(sel?'✓':'')+'</div>';
     card.addEventListener('click',function(e){
       if(e.target.classList.contains('nws-arrow-btn')){
         e.stopPropagation();
