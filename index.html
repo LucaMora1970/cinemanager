@@ -3421,7 +3421,7 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:8.5px;color:#111;backgroun
   width:52px;min-width:52px;height:76px;object-fit:cover;display:block;
   flex-shrink:0;
 }
-.nws-card-poster-ph{
+        ?'<img class="nws-card-poster" src="'+film.poster+'" alt="">'  
   width:52px;min-width:52px;height:76px;flex-shrink:0;
   background:var(--surf);display:flex;align-items:center;justify-content:center;font-size:20px;
 }
@@ -8466,43 +8466,53 @@ window.newsSelectAll=newsSelectAll;
 function newsRenderSection(listId,countId,films,selSet,section){
   var el=document.getElementById(listId);
   if(!el)return;
-  if(countId){
-    var cnt=document.getElementById(countId);
-    if(cnt)cnt.textContent='('+films.length+' film)';
-  }
+  if(countId){var cnt=document.getElementById(countId);if(cnt)cnt.textContent='('+films.length+' film)';}
   if(!films.length){
-    el.innerHTML='<div style="font-size:12px;color:var(--txt2);padding:8px">Nessun film in questa categoria</div>';
+    el.innerHTML='<div style="font-size:12px;color:var(--txt2);padding:8px;grid-column:1/-1">Nessun film in questa categoria per il periodo selezionato</div>';
     return;
   }
   el.innerHTML='';
-  films.forEach(function(film,i){
+  films.forEach(function(film){
     var sel=selSet.has(film.id);
     var dur=film.duration?Math.floor(film.duration/60)+'h'+String(film.duration%60).padStart(2,'0'):'';
-    var meta=[film.distributor,dur,film.rating,film.genre].filter(Boolean).join(' · ');
-    var row=document.createElement('div');
-    row.className='nws-film-row'+(sel?' selected':'');
-    row.dataset.fid=film.id;
-    row.dataset.section=section;
-
-    var thumb=film.poster
-      ?'<img class="nws-film-thumb" src="'+film.poster+'" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'flex\'" alt=""><div class="nws-film-thumb-ph" style="display:none">🎬</div>'
-      :'<div class="nws-film-thumb-ph">🎬</div>';
-
-    var orderBadge=sel?'<div class="nws-order">'+(newsGetOrder(selSet,film.id,films))+'</div>':'<div style="width:22px;flex-shrink:0"></div>';
-
-    row.innerHTML=thumb
-      +'<div class="nws-film-info">'
-        +'<div class="nws-film-title">'+film.title+'</div>'
-        +'<div class="nws-film-meta">'+meta+(film.release?' · 🗓 '+film.release.split('-').reverse().join('/'):'')+'</div>'
+    var meta=[dur,film.rating,film.genre].filter(Boolean).join(' · ');
+    var isNew=section==='new'&&film.release;
+    var relLabel=film.release?'<div class="nws-card-release">'+film.release.split('-').reverse().join('/')+'</div>':'';
+    var orderArr=(_filmOrder[section]||[]);
+    var isManual=orderArr.indexOf(film.id)>=0;
+    var posDisplay=films.indexOf(film)+1;
+    var card=document.createElement('div');
+    card.className='nws-card'+(sel?' selected':'');
+    card.dataset.fid=film.id;
+    card.dataset.section=section;
+    card.innerHTML=(film.poster
+        ?'<img class="nws-card-poster" src="'+film.poster+'" alt="" style="background:var(--surf2)">'
+        :'<div class="nws-card-poster-ph">🎬</div>')
+      +(isNew?'<div class="nws-card-badge">NOVITÀ</div>':'')
+      +(isManual?'<div class="nws-priority-badge">'+posDisplay+'</div>':'')
+      +'<div class="nws-card-body">'
+        +'<div class="nws-card-title">'+film.title+'</div>'
+        +(film.distributor?'<div class="nws-card-meta" style="color:var(--acc);font-weight:600;font-size:9px">'+film.distributor+'</div>':'')
+        +'<div class="nws-card-meta">'+meta+'</div>'
+        +relLabel
       +'</div>'
-      +orderBadge
-      +'<input type="checkbox" class="nws-ck" '+(sel?'checked':'')+'>';
-
-    row.querySelector('.nws-ck').addEventListener('change',function(e){
-      if(e.target.checked){selSet.add(film.id);}else{selSet.delete(film.id);}
-      newsRenderSection(listId,countId,films,selSet,section);
+      +'<div class="nws-card-check">'+(sel?'✓':'')+'</div>'
+      +'<div class="nws-card-arrows">'
+        +'<button class="nws-arrow-btn" data-section="'+section+'" data-fid="'+film.id+'" data-dir="up" title="Su">▲</button>'
+        +'<button class="nws-arrow-btn" data-section="'+section+'" data-fid="'+film.id+'" data-dir="down" title="Giù">▼</button>'
+      +'</div>';
+    card.addEventListener('click',function(e){
+      if(e.target.classList.contains('nws-arrow-btn')){
+        e.stopPropagation();
+        foMove(e.target.dataset.section,e.target.dataset.fid,e.target.dataset.dir);
+        return;
+      }
+      if(selSet.has(film.id)){selSet.delete(film.id);}else{selSet.add(film.id);}
+      card.classList.toggle('selected',selSet.has(film.id));
+      var chk=card.querySelector('.nws-card-check');
+      if(chk)chk.textContent=selSet.has(film.id)?'✓':'';
     });
-    el.appendChild(row);
+    el.appendChild(card);
   });
 }
 
