@@ -571,6 +571,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
   <div class="tab" id="tab-users" onclick="gt('users')" style="display:none">👥 Utenti</div>
   <div class="tab" id="tab-playlist" onclick="gt('playlist');renderPlaylist();">▶ Playlist</div>
   <div class="tab" id="tab-social" onclick="gt('social')">📱 Social</div>
+  <div class="tab" id="tab-news" onclick="gt('news')">📰 Newsletter</div>
 </div>
 
 <main>
@@ -1013,18 +1014,19 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     </div>
   </div>
 </div>
-<!-- SEZIONE PERMESSI RUOLI -->
-<div id="perm-section" style="display:none;margin-top:28px;padding-top:24px;border-top:2px solid var(--bdr)">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
-    <div>
-      <div style="font-size:15px;font-weight:700">🔐 Visibilità sezioni per ruolo</div>
-      <div style="font-size:12px;color:var(--txt2);margin-top:3px">Configura quali tab sono accessibili per Operatore e Segretaria. Admin vede sempre tutto.</div>
-    </div>
-    <button class="btn ba" onclick="permSave()" style="font-size:12px">💾 Salva permessi</button>
-  </div>
-  <div id="perm-grid"></div>
-</div>
 
+  <!-- SEZIONE PERMESSI RUOLI -->
+  <div id="perm-section" style="display:none;margin-top:28px;padding-top:24px;border-top:2px solid var(--bdr)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <div>
+        <div style="font-size:15px;font-weight:700">🔐 Visibilità sezioni per ruolo</div>
+        <div style="font-size:12px;color:var(--txt2);margin-top:3px">Configura quali tab sono accessibili per Operatore e Segretaria. Admin vede sempre tutto.</div>
+      </div>
+      <button class="btn ba" onclick="permSave()" style="font-size:12px">💾 Salva permessi</button>
+    </div>
+    <div id="perm-grid"></div>
+  </div>
+</div>
 
 <!-- PAGE SOCIAL -->
 <div id="page-social" class="page">
@@ -1101,6 +1103,104 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
       <div id="social-carousel" style="display:flex;gap:10px;overflow-x:auto;padding-bottom:6px"></div>
       <div style="font-size:11px;color:var(--txt2);margin-top:8px">Clicca su ogni slide per scaricarla singolarmente</div>
     </div>
+  </div>
+</div>
+
+
+<!-- PAGE NEWSLETTER -->
+<div id="page-news" class="page">
+  <div class="sh">
+    <div class="st">📰 Newsletter Settimanale</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <button class="btn ba" onclick="newsPreview()" id="news-preview-btn">👁 Anteprima</button>
+      <button class="btn ba" onclick="newsGenerate()" id="news-gen-btn">⬇ Genera HTML</button>
+      <button class="btn bg bs" onclick="newsCopyLink()">🔗 Copia link</button>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+
+    <!-- COLONNA SINISTRA: configurazione -->
+    <div>
+      <!-- SEZIONE 1: Nuove uscite -->
+      <div class="ps" style="margin-bottom:12px">
+        <div style="font-size:13px;font-weight:700;color:var(--acc);margin-bottom:10px;display:flex;align-items:center;gap:8px">
+          <span>🆕 Nuove uscite</span>
+          <span id="news-new-count" style="font-size:10px;color:var(--txt2);font-weight:400"></span>
+        </div>
+        <div id="news-new-films" style="display:flex;flex-direction:column;gap:6px">
+          <!-- popolato da newsInit() -->
+        </div>
+      </div>
+
+      <!-- SEZIONE 2: Ancora in programma -->
+      <div class="ps" style="margin-bottom:12px">
+        <div style="font-size:13px;font-weight:700;color:var(--txt);margin-bottom:10px;display:flex;align-items:center;gap:8px">
+          <span>🎬 Ancora in programma</span>
+          <span id="news-curr-count" style="font-size:10px;color:var(--txt2);font-weight:400"></span>
+        </div>
+        <div id="news-curr-films" style="display:flex;flex-direction:column;gap:6px">
+          <!-- popolato da newsInit() -->
+        </div>
+      </div>
+
+      <!-- SEZIONE 3: In arrivo (anticipazioni) -->
+      <div class="ps">
+        <div style="font-size:13px;font-weight:700;color:var(--txt);margin-bottom:10px">
+          📅 Anticipazioni prossime uscite
+        </div>
+        <div id="news-coming-films" style="display:flex;flex-direction:column;gap:6px">
+          <!-- popolato da newsInit() -->
+        </div>
+      </div>
+    </div>
+
+    <!-- COLONNA DESTRA: messaggi personalizzati -->
+    <div>
+      <!-- Intro editoriale -->
+      <div class="ps" style="margin-bottom:12px">
+        <div style="font-size:13px;font-weight:700;margin-bottom:8px">✏️ Messaggio introduttivo</div>
+        <textarea id="news-intro" rows="4"
+          placeholder="Es: Cari amici del Cinema Multisala! Questa settimana vi proponiamo una selezione straordinaria di film…"
+          style="width:100%;font-size:12px;padding:8px;background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);border-radius:6px;resize:vertical;line-height:1.5"></textarea>
+      </div>
+
+      <!-- Promozioni / comunicazioni -->
+      <div class="ps" style="margin-bottom:12px">
+        <div style="font-size:13px;font-weight:700;margin-bottom:8px">🎁 Promozioni & comunicazioni</div>
+        <textarea id="news-promo" rows="4"
+          placeholder="Es: Ogni martedì biglietto a CHF 10.–&#10;Abbonamento annuale disponibile in cassa&#10;Prenotazioni online su mendrisiocinema.ch"
+          style="width:100%;font-size:12px;padding:8px;background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);border-radius:6px;resize:vertical;line-height:1.5"></textarea>
+      </div>
+
+      <!-- Orari -->
+      <div class="ps" style="margin-bottom:12px">
+        <div style="font-size:13px;font-weight:700;margin-bottom:8px">🕐 Note orari / apertura</div>
+        <textarea id="news-hours" rows="2"
+          placeholder="Es: Chiuso il lunedì · Biglietteria apre 30 min prima"
+          style="width:100%;font-size:12px;padding:8px;background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);border-radius:6px;resize:vertical;line-height:1.5"></textarea>
+      </div>
+
+      <!-- Link fisso info -->
+      <div class="ps" style="background:rgba(240,128,26,0.06);border-color:rgba(240,128,26,0.25)">
+        <div style="font-size:11px;font-weight:700;color:#f0801a;margin-bottom:6px">🔗 Link fisso newsletter</div>
+        <code id="news-link-display" style="font-size:10px;color:var(--txt2);word-break:break-all;display:block;margin-bottom:8px">
+          https://lucamora1970.github.io/cinemanager/newsletter.html
+        </code>
+        <div style="font-size:10px;color:var(--txt2);line-height:1.5">
+          Inserisci questo link nelle email — ogni settimana la pagina viene aggiornata con i nuovi contenuti. Funziona su tutti i dispositivi.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Anteprima inline -->
+  <div id="news-preview-wrap" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="font-size:13px;font-weight:700">👁 Anteprima newsletter</div>
+      <button class="btn bg bs" onclick="document.getElementById('news-preview-wrap').style.display='none'">✕ Chiudi</button>
+    </div>
+    <iframe id="news-iframe" style="width:100%;height:700px;border:1px solid var(--bdr);border-radius:8px;background:#fff"></iframe>
   </div>
 </div>
 
@@ -1852,12 +1952,12 @@ async function fbSE(list){await setDoc(doc(db,'settings','emails'),{list});}
 async function fbSetDoc(db2,col,docId,data){await setDoc(doc(db2,col,docId),data);}
 
 // ── TABS ──────────────────────────────────────────────────
-const TABS=['prog','lista','arch','prnt','mail','book','staff','users','playlist','social'];
+const TABS=['prog','lista','arch','prnt','mail','book','staff','users','playlist','social','news'];
 function gt(id){
   document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('on',TABS[i]===id));
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
   document.getElementById('page-'+id).classList.add('on');
-  if(id==='lista')rl();if(id==='arch')rf();if(id==='mail')rem();if(id==='staff'){renderAllDays();}if(id==='playlist')renderPlaylist();if(id==='social'&&typeof socialGenerate==='function')socialGenerate();if(id==='users')renderPermGrid();
+  if(id==='lista')rl();if(id==='arch')rf();if(id==='mail')rem();if(id==='staff'){renderAllDays();}if(id==='playlist')renderPlaylist();if(id==='social'&&typeof socialGenerate==='function')socialGenerate();if(id==='users')renderPermGrid();if(id==='news')newsInit();
 }
 window.gt=gt;
 
@@ -3272,6 +3372,32 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:8.5px;color:#111;backgroun
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px;
 }
 
+
+/* ══ NEWSLETTER ═══════════════════════════════════════ */
+.nws-film-row{
+  display:flex;align-items:center;gap:10px;
+  padding:7px 10px;border-radius:6px;
+  background:var(--surf2);border:1px solid var(--bdr);
+  cursor:default;transition:border-color .15s;
+}
+.nws-film-row.selected{border-color:var(--acc);background:rgba(240,128,26,.08);}
+.nws-film-thumb{
+  width:36px;height:52px;object-fit:cover;border-radius:3px;
+  flex-shrink:0;background:var(--surf2);
+}
+.nws-film-thumb-ph{
+  width:36px;height:52px;border-radius:3px;flex-shrink:0;
+  background:var(--surf2);display:flex;align-items:center;justify-content:center;
+  font-size:16px;
+}
+.nws-film-info{flex:1;min-width:0;}
+.nws-film-title{font-size:12px;font-weight:700;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.nws-film-meta{font-size:10px;color:var(--txt2);margin-top:1px;}
+.nws-ck{width:16px;height:16px;flex-shrink:0;accent-color:var(--acc);cursor:pointer;}
+.nws-order{width:22px;height:22px;border-radius:50%;background:var(--acc);color:#000;
+  font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;}
+
 /* ── PRENOTAZIONI ── */
 .book-pill{border-radius:5px;padding:5px 7px;margin-bottom:3px;border-left:3px solid #e84a4a;background:rgba(232,74,74,.12);position:relative;cursor:pointer;transition:transform .1s;}
 .book-pill:hover{transform:translateX(2px);}
@@ -3531,6 +3657,32 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:8.5px;color:#111;backgroun
   font-size:10px;color:var(--txt2);text-align:center;margin-top:4px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px;
 }
+
+
+/* ══ NEWSLETTER ═══════════════════════════════════════ */
+.nws-film-row{
+  display:flex;align-items:center;gap:10px;
+  padding:7px 10px;border-radius:6px;
+  background:var(--surf2);border:1px solid var(--bdr);
+  cursor:default;transition:border-color .15s;
+}
+.nws-film-row.selected{border-color:var(--acc);background:rgba(240,128,26,.08);}
+.nws-film-thumb{
+  width:36px;height:52px;object-fit:cover;border-radius:3px;
+  flex-shrink:0;background:var(--surf2);
+}
+.nws-film-thumb-ph{
+  width:36px;height:52px;border-radius:3px;flex-shrink:0;
+  background:var(--surf2);display:flex;align-items:center;justify-content:center;
+  font-size:16px;
+}
+.nws-film-info{flex:1;min-width:0;}
+.nws-film-title{font-size:12px;font-weight:700;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.nws-film-meta{font-size:10px;color:var(--txt2);margin-top:1px;}
+.nws-ck{width:16px;height:16px;flex-shrink:0;accent-color:var(--acc);cursor:pointer;}
+.nws-order{width:22px;height:22px;border-radius:50%;background:var(--acc);color:#000;
+  font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;}
 
 /* ── PRENOTAZIONI ── */
 .book-pill{border-radius:5px;padding:5px 7px;margin-bottom:3px;border-left:3px solid #e84a4a;background:rgba(232,74,74,.12);position:relative;cursor:pointer;transition:transform .1s;}
@@ -8021,12 +8173,12 @@ window.setZoom=setZoom;
 var TAB_LABELS={
   prog:'📅 Programmazione',lista:'📋 Lista',arch:'🎬 Archivio Film',
   prnt:'🖨 Stampa & PDF',mail:'📧 Email',book:'📋 Prenotazioni',
-  staff:'👥 Turni',playlist:'▶ Playlist',social:'📱 Social'
+  staff:'👥 Turni',playlist:'▶ Playlist',social:'📱 Social',news:'📰 Newsletter'
 };
 // Permessi default per ruolo (admin sempre tutto)
 var PERM_DEFAULT={
-  operator:{prog:true,lista:true,arch:true,prnt:true,mail:true,book:true,staff:true,playlist:true,social:true},
-  segretaria:{prog:true,lista:false,arch:false,prnt:true,mail:false,book:true,staff:false,playlist:false,social:false}
+  operator:{prog:true,lista:true,arch:true,prnt:true,mail:true,book:true,staff:true,playlist:true,social:true,news:true},
+  segretaria:{prog:true,lista:false,arch:false,prnt:true,mail:false,book:true,staff:false,playlist:false,social:false,news:false}
 };
 var PERM_TABS=Object.keys(TAB_LABELS); // ['prog','lista','arch',...]
 
@@ -8124,6 +8276,302 @@ async function permSave(){
   }
 }
 window.permSave=permSave;
+
+
+// ── NEWSLETTER ───────────────────────────────────────
+var _newsSelNew=new Set();   // filmId selezionati sezione Nuove uscite
+var _newsSelCurr=new Set();  // filmId selezionati sezione In programma
+var _newsSelComing=new Set();// filmId selezionati sezione Anticipazioni
+
+function newsInit(){
+  var today=toLocalDate(new Date());
+  var wd=wdates();var days=wdays();
+
+  // Sezione Nuove uscite: film con release negli ultimi 14 giorni o prossimi 7
+  var d14=new Date();d14.setDate(d14.getDate()-14);
+  var d14s=toLocalDate(d14);
+  var d7=new Date();d7.setDate(d7.getDate()+7);
+  var d7s=toLocalDate(d7);
+  var weekFilmIds=new Set(S.shows.filter(function(s){return wd.includes(s.day);}).map(function(s){return s.filmId;}));
+  var newFilms=S.films.filter(function(f){
+    return f.release&&f.release>=d14s&&f.release<=d7s&&weekFilmIds.has(f.id);
+  }).sort(function(a,b){return (a.release||'').localeCompare(b.release||'');});
+
+  // Sezione In programma: film in settimana NON nelle nuove uscite
+  var newIds=new Set(newFilms.map(function(f){return f.id;}));
+  var currFilms=S.films.filter(function(f){
+    return weekFilmIds.has(f.id)&&!newIds.has(f.id);
+  }).sort(function(a,b){return a.title.localeCompare(b.title,'it');});
+
+  // Sezione Anticipazioni: film con release prossimi 30 giorni, non in settimana
+  var d30=new Date();d30.setDate(d30.getDate()+30);
+  var d30s=toLocalDate(d30);
+  var comingFilms=S.films.filter(function(f){
+    return f.release&&f.release>d7s&&f.release<=d30s&&!weekFilmIds.has(f.id);
+  }).sort(function(a,b){return (a.release||'').localeCompare(b.release||'');});
+
+  // Auto-seleziona tutti
+  newFilms.forEach(function(f){_newsSelNew.add(f.id);});
+  currFilms.forEach(function(f){_newsSelCurr.add(f.id);});
+  comingFilms.forEach(function(f){_newsSelComing.add(f.id);});
+
+  // Render sezioni
+  newsRenderSection('news-new-films','news-new-count',newFilms,_newsSelNew,'new');
+  newsRenderSection('news-curr-films','news-curr-count',currFilms,_newsSelCurr,'curr');
+  newsRenderSection('news-coming-films',null,comingFilms,_newsSelComing,'coming');
+
+  // Week range nel titolo
+  if(days.length){
+    var wRange=fd(days[0])+' — '+fd(days[6]);
+    var title=document.querySelector('#page-news .st');
+    if(title)title.textContent='📰 Newsletter · '+wRange;
+  }
+}
+window.newsInit=newsInit;
+
+function newsRenderSection(listId,countId,films,selSet,section){
+  var el=document.getElementById(listId);
+  if(!el)return;
+  if(countId){
+    var cnt=document.getElementById(countId);
+    if(cnt)cnt.textContent='('+films.length+' film)';
+  }
+  if(!films.length){
+    el.innerHTML='<div style="font-size:12px;color:var(--txt2);padding:8px">Nessun film in questa categoria</div>';
+    return;
+  }
+  el.innerHTML='';
+  films.forEach(function(film,i){
+    var sel=selSet.has(film.id);
+    var dur=film.duration?Math.floor(film.duration/60)+'h'+String(film.duration%60).padStart(2,'0'):'';
+    var meta=[film.distributor,dur,film.rating,film.genre].filter(Boolean).join(' · ');
+    var row=document.createElement('div');
+    row.className='nws-film-row'+(sel?' selected':'');
+    row.dataset.fid=film.id;
+    row.dataset.section=section;
+
+    var thumb=film.poster
+      ?'<img class="nws-film-thumb" src="'+film.poster+'" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'flex\'" alt=""><div class="nws-film-thumb-ph" style="display:none">🎬</div>'
+      :'<div class="nws-film-thumb-ph">🎬</div>';
+
+    var orderBadge=sel?'<div class="nws-order">'+(newsGetOrder(selSet,film.id,films))+'</div>':'<div style="width:22px;flex-shrink:0"></div>';
+
+    row.innerHTML=thumb
+      +'<div class="nws-film-info">'
+        +'<div class="nws-film-title">'+film.title+'</div>'
+        +'<div class="nws-film-meta">'+meta+(film.release?' · 🗓 '+film.release.split('-').reverse().join('/'):'')+'</div>'
+      +'</div>'
+      +orderBadge
+      +'<input type="checkbox" class="nws-ck" '+(sel?'checked':'')+'>';
+
+    row.querySelector('.nws-ck').addEventListener('change',function(e){
+      if(e.target.checked){selSet.add(film.id);}else{selSet.delete(film.id);}
+      newsRenderSection(listId,countId,films,selSet,section);
+    });
+    el.appendChild(row);
+  });
+}
+
+function newsGetOrder(selSet,filmId,films){
+  var ordered=[...selSet].filter(function(id){return films.find(function(f){return f.id===id;});});
+  var idx=ordered.indexOf(filmId);
+  return idx>=0?idx+1:'';
+}
+
+function newsBuildHTML(){
+  var today=toLocalDate(new Date());
+  var wd=wdates();var days=wdays();
+  var intro=document.getElementById('news-intro')?.value.trim()||'';
+  var promo=document.getElementById('news-promo')?.value.trim()||'';
+  var hours=document.getElementById('news-hours')?.value.trim()||'';
+  var wRange=days.length?fd(days[0])+' — '+fd(days[6]):'';
+
+  function getSelectedFilms(selSet){
+    return [...selSet].map(function(id){return S.films.find(function(f){return f.id===id;});}).filter(Boolean);
+  }
+  var newFilms=getSelectedFilms(_newsSelNew);
+  var currFilms=getSelectedFilms(_newsSelCurr);
+  var comingFilms=getSelectedFilms(_newsSelComing);
+
+  var ORA='#f0801a';
+
+  function filmCard(film,isNew){
+    var dur=film.duration?Math.floor(film.duration/60)+'h'+String(film.duration%60).padStart(2,'0'):'';
+    var meta=[dur,film.rating,film.genre].filter(Boolean).join(' &nbsp;·&nbsp; ');
+    var releaseLabel=film.release?'<span style="background:'+ORA+';color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:3px;vertical-align:middle;margin-left:6px">NOVITÀ · '+film.release.split('-').reverse().join('/')+'</span>':'';
+    var poster=film.poster
+      ?'<img src="'+film.poster+'" alt="'+film.title+'" style="width:90px;height:130px;object-fit:cover;border-radius:4px;display:block;">'
+      :'<div style="width:90px;height:130px;background:#1a1a2a;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:28px;">🎬</div>';
+    var ticketBtn=film.ticketUrl
+      ?'<a href="'+film.ticketUrl+'" style="display:inline-block;background:'+ORA+';color:#fff;text-decoration:none;padding:8px 18px;border-radius:4px;font-size:12px;font-weight:700;margin-top:10px;">🎟 Prenota ora</a>'
+      :'';
+    var trailerBtn=film.trailer
+      ?'<a href="https://www.youtube.com/watch?v='+film.trailer+'" style="display:inline-block;background:rgba(240,128,26,.12);color:'+ORA+';text-decoration:none;padding:8px 14px;border-radius:4px;font-size:12px;font-weight:700;margin-top:10px;margin-left:8px;border:1px solid rgba(240,128,26,.4);">▶ Trailer</a>'
+      :'';
+    // Orari in settimana
+    var fShows=S.shows.filter(function(s){return s.filmId===film.id&&wd.includes(s.day);})
+      .sort(function(a,b){return a.day.localeCompare(b.day)||a.start.localeCompare(b.start);});
+    var byDay={};var dayOrd=[];
+    fShows.forEach(function(s){
+      var di=wd.indexOf(s.day);
+      if(!byDay[di]){byDay[di]=[];dayOrd.push(di);}
+      byDay[di].push(s.start);
+    });
+    var DIT3=['Gio','Ven','Sab','Dom','Lun','Mar','Mer'];
+    var schedHtml='';
+    if(dayOrd.length){
+      schedHtml='<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px">';
+      dayOrd.forEach(function(di){
+        var dp=wd[di]?wd[di].split('-'):'';
+        var dateLabel=dp?DIT3[di]+' '+dp[2]+'/'+dp[1]:'';
+        var timesStr=byDay[di].join(' — ');
+        schedHtml+='<div style="background:rgba(240,128,26,.1);border:1px solid rgba(240,128,26,.3);border-radius:4px;padding:4px 10px;font-size:11px;font-weight:700;color:#f0801a;white-space:nowrap">'
+          +'<span style="color:#555;font-weight:400">'+dateLabel+'</span> '+timesStr
+          +'</div>';
+      });
+      schedHtml+='</div>';
+    }
+    return '<table cellpadding="0" cellspacing="0" style="width:100%;margin-bottom:20px;border-bottom:1px solid #eee;padding-bottom:20px"><tr valign="top">'
+      +'<td style="width:100px;padding-right:16px">'+poster+'</td>'
+      +'<td>'
+        +'<div style="font-size:18px;font-weight:700;color:#111;margin-bottom:4px">'+film.title+releaseLabel+'</div>'
+        +(meta?'<div style="font-size:12px;color:#888;margin-bottom:6px">'+meta+'</div>':'')
+        +(film.distributor?'<div style="font-size:11px;color:#aaa">'+film.distributor+'</div>':'')
+        +schedHtml
+        +'<div>'+ticketBtn+trailerBtn+'</div>'
+      +'</td>'
+      +'</tr></table>';
+  }
+
+  function sectionBlock(emoji,title,films,bgColor){
+    if(!films.length)return'';
+    var cards=films.map(function(f){return filmCard(f,true);}).join('');
+    return '<table cellpadding="0" cellspacing="0" style="width:100%;margin-bottom:24px"><tr><td style="background:'+bgColor+';border-radius:8px;padding:20px">'
+      +'<h2 style="font-size:16px;font-weight:700;color:#111;margin:0 0 16px;padding-bottom:10px;border-bottom:2px solid '+ORA+'">'+emoji+' '+title+'</h2>'
+      +cards
+      +'</td></tr></table>';
+  }
+
+  // Promozioni block
+  var promoBlock='';
+  if(promo){
+    var lines=promo.split('\n').filter(function(l){return l.trim();});
+    promoBlock='<table cellpadding="0" cellspacing="0" style="width:100%;margin-bottom:24px"><tr><td style="background:#fff8f0;border:1px solid rgba(240,128,26,.25);border-radius:8px;padding:20px">'
+      +'<h2 style="font-size:16px;font-weight:700;color:'+ORA+';margin:0 0 12px;">🎁 Promozioni & info</h2>'
+      +'<ul style="margin:0;padding-left:20px;font-size:13px;color:#333;line-height:1.8">'
+      +lines.map(function(l){return '<li>'+l+'</li>';}).join('')
+      +'</ul>'
+      +'</td></tr></table>';
+  }
+
+  // Coming soon (anticipazioni): formato compatto
+  var comingBlock='';
+  if(comingFilms.length){
+    var comingRows=comingFilms.map(function(film){
+      var poster=film.poster
+        ?'<img src="'+film.poster+'" style="width:48px;height:68px;object-fit:cover;border-radius:3px;">'
+        :'<div style="width:48px;height:68px;background:#1a1a2a;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:18px">🎬</div>';
+      var rel=film.release?film.release.split('-').reverse().join('/'):'';
+      return '<tr><td style="padding:8px;width:60px">'+poster+'</td>'
+        +'<td style="padding:8px;vertical-align:middle">'
+          +'<div style="font-weight:700;font-size:13px;color:#111">'+film.title+'</div>'
+          +(film.genre?'<div style="font-size:11px;color:#888">'+film.genre+'</div>':'')
+          +(rel?'<div style="font-size:11px;color:'+ORA+';font-weight:700;margin-top:2px">📅 Uscita: '+rel+'</div>':'')
+        +'</td></tr>';
+    }).join('<tr><td colspan="2" style="padding:0;border-bottom:1px solid #f0f0f0"></td></tr>');
+    comingBlock='<table cellpadding="0" cellspacing="0" style="width:100%;margin-bottom:24px"><tr><td style="background:#f8f8ff;border-radius:8px;padding:20px">'
+      +'<h2 style="font-size:16px;font-weight:700;color:#333;margin:0 0 14px;padding-bottom:10px;border-bottom:2px solid #333">📅 In arrivo prossimamente</h2>'
+      +'<table cellpadding="0" cellspacing="0" style="width:100%">'+comingRows+'</table>'
+      +'</td></tr></table>';
+  }
+
+  var hoursBlock=hours?'<table cellpadding="0" cellspacing="0" style="width:100%;margin-bottom:24px"><tr><td style="background:#f5f5f5;border-radius:8px;padding:16px 20px">'
+    +'<div style="font-size:12px;color:#666;line-height:1.7">🕐 '+hours.split('\n').join(' &nbsp;·&nbsp; ')+'</div>'
+    +'</td></tr></table>':'';
+
+  var html='<!DOCTYPE html><html lang="it"><head>'
+    +'<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+    +'<title>Newsletter · Cinema Multisala Teatro Mendrisio · '+wRange+'</title>'
+    +'<style>'
+    +'*{box-sizing:border-box;margin:0;padding:0;}'
+    +'body{font-family:Arial,Helvetica,sans-serif;background:#f4f4f4;color:#111;}'
+    +'a{color:#f0801a;}'
+    +'@media(max-width:600px){.news-inner{padding:16px!important;}.news-header-inner{padding:20px 16px!important;}}'
+    +'</style>'
+    +'</head><body>'
+    // ── HEADER ──
+    +'<div style="background:#0d1117;padding:0">'
+      +'<div class="news-header-inner" style="max-width:600px;margin:0 auto;padding:28px 24px">'
+        +'<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">'
+          +'<div>'
+            +'<div style="color:#f0801a;font-size:20px;font-weight:700;letter-spacing:0.5px">CINEMA MULTISALA</div>'
+            +'<div style="color:rgba(255,255,255,0.55);font-size:12px;letter-spacing:0.3px">TEATRO MENDRISIO · VIA VINCENZO VELA 2</div>'
+          +'</div>'
+          +'<div style="text-align:right">'
+            +'<div style="color:rgba(255,255,255,0.4);font-size:10px;text-transform:uppercase;letter-spacing:1px">Programmazione</div>'
+            +'<div style="color:#fff;font-size:14px;font-weight:700">'+wRange+'</div>'
+          +'</div>'
+        +'</div>'
+        +(intro?'<div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.75);font-size:13px;line-height:1.7">'+intro+'</div>':'')
+      +'</div>'
+    +'</div>'
+    // ── CONTENUTO ──
+    +'<div style="max-width:600px;margin:0 auto;padding:0">'
+      +'<div class="news-inner" style="background:#fff;padding:24px">'
+        +sectionBlock('🆕','Nuove uscite questa settimana',newFilms,'#fffdf9')
+        +sectionBlock('🎬','Ancora in programma',currFilms,'#fafafa')
+        +comingBlock
+        +promoBlock
+        +hoursBlock
+      +'</div>'
+    +'</div>'
+    // ── FOOTER ──
+    +'<div style="background:#0d1117;padding:0">'
+      +'<div style="max-width:600px;margin:0 auto;padding:20px 24px;text-align:center">'
+        +'<a href="https://mendrisiocinema.ch" style="color:#f0801a;font-weight:700;text-decoration:none;font-size:13px">mendrisiocinema.ch</a>'
+        +'<div style="color:rgba(255,255,255,0.35);font-size:10px;margin-top:6px">Via Vincenzo Vela 2, 6850 Mendrisio · Cinema Multisala Teatro</div>'
+        +'<div style="color:rgba(255,255,255,0.2);font-size:9px;margin-top:8px">Per non ricevere più questa newsletter, contatta la biglietteria</div>'
+      +'</div>'
+    +'</div>'
+    +'</body></html>';
+  return html;
+}
+window.newsBuildHTML=newsBuildHTML;
+
+function newsPreview(){
+  var html=newsBuildHTML();
+  var ifrm=document.getElementById('news-iframe');
+  var wrap=document.getElementById('news-preview-wrap');
+  if(!ifrm||!wrap)return;
+  wrap.style.display='block';
+  var blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  ifrm.src=url;
+  setTimeout(function(){URL.revokeObjectURL(url);},10000);
+  ifrm.scrollIntoView({behavior:'smooth',block:'start'});
+}
+window.newsPreview=newsPreview;
+
+function newsGenerate(){
+  var html=newsBuildHTML();
+  var blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;
+  a.download='newsletter.html';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(function(){URL.revokeObjectURL(url);},10000);
+  toast('newsletter.html scaricata — caricala su GitHub come /cinemanager/newsletter.html','ok');
+}
+window.newsGenerate=newsGenerate;
+
+function newsCopyLink(){
+  var link='https://lucamora1970.github.io/cinemanager/newsletter.html';
+  navigator.clipboard.writeText(link)
+    .then(function(){toast('Link copiato: '+link,'ok');})
+    .catch(function(){toast('Errore copia','err');});
+}
+window.newsCopyLink=newsCopyLink;
 
 function toggleTheme(){
   const isLight=document.body.classList.toggle('light');
