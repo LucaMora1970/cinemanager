@@ -589,7 +589,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="wlbl" id="wlbl">—</div>
     <button onclick="cw(1)">›</button>
   </div>
-  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v31/03 21:11</small>
+  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v31/03 21:23</small>
   <div class="hact">
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
     <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
@@ -5855,32 +5855,38 @@ function socialRenderCarousel(){
     grad.addColorStop(0,'rgba(0,0,0,0)');
     grad.addColorStop(1,'rgba(0,0,0,0.92)');
 
-    // Disegna locandina se disponibile
-    if(film.poster){
+    // Funzione interna draw — eseguita dopo eventuale caricamento immagine
+    function drawSlide(bgImg){
+      if(bgImg){
+        var iw=bgImg.naturalWidth,ih=bgImg.naturalHeight;
+        var sc2=Math.max(W/iw,H/ih);
+        var sw=iw*sc2,sh=ih*sc2;
+        var sx=(W-sw)/2,sy=(H-sh)/2;
+        ctx.save();
+        // Per tipobg: opacity 45% sul backdrop
+        if(window._socialLayout==='tipobg'){ctx.globalAlpha=0.45;}
+        ctx.drawImage(bgImg,sx,sy,sw,sh);
+        ctx.restore();
+      }
+      ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
+      ctx.letterSpacing="0px";
+      drawSlideText(ctx,film,fShows,wd,days,W,H,fmt);
+    }
+
+    // Sceglie l'immagine sorgente in base al layout
+    var imgSrc=(window._socialLayout==='tipobg'&&film.backdrop)?film.backdrop:film.poster;
+    if(imgSrc){
       var img=new Image();
       img.crossOrigin='anonymous';
-      img.onload=function(){
-        // Fit cover
-        var iw=img.naturalWidth,ih=img.naturalHeight;
-        var scale=Math.max(W/iw,H/ih);
-        var sw=iw*scale,sh=ih*scale;
-        var sx=(W-sw)/2,sy=(H-sh)/2;
-        ctx.drawImage(img,sx,sy,sw,sh);
-        ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
-        ctx.letterSpacing="0px";drawSlideText(ctx,film,fShows,wd,days,W,H,fmt);
-      };
-      img.onerror=function(){
-        ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
-        ctx.letterSpacing="0px";drawSlideText(ctx,film,fShows,wd,days,W,H,fmt);
-      };
-      img.src=film.poster;
+      img.onload=function(){drawSlide(img);};
+      img.onerror=function(){drawSlide(null);};
+      img.src=imgSrc;
     } else {
       // Sfondo con gradiente brand
       var bgGrad=ctx.createLinearGradient(0,0,W,H);
       bgGrad.addColorStop(0,'#1a1a2e');bgGrad.addColorStop(1,'#16213e');
       ctx.fillStyle=bgGrad;ctx.fillRect(0,0,W,H);
-      ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
-      ctx.letterSpacing="0px";drawSlideText(ctx,film,fShows,wd,days,W,H,fmt);
+      drawSlide(null);
     }
 
     wrap.appendChild(canvas);
@@ -5923,9 +5929,21 @@ function drawLayout2B(ctx,film,fShows,wd,days,W,H,fmt,withBackdrop){
   var scale=W/1080;
   var S=function(n){return Math.round(n*scale);};
 
-  // ── Sfondo nero ──────────────────────────────────────────────────────────
-  ctx.fillStyle='#0d0d0d';
-  ctx.fillRect(0,0,W,H);
+  // ── Sfondo nero (solo per layout tipo puro)
+  var isTypoBg=(window._socialLayout==='tipobg');
+  if(!isTypoBg){
+    ctx.fillStyle='#0d0d0d';
+    ctx.fillRect(0,0,W,H);
+  } else {
+    // Dissolvenza sul backdrop già disegnato
+    var bdGrad=ctx.createLinearGradient(0,0,0,H);
+    bdGrad.addColorStop(0,'rgba(10,10,18,0.25)');
+    bdGrad.addColorStop(0.30,'rgba(10,10,18,0.45)');
+    bdGrad.addColorStop(0.55,'rgba(10,10,18,0.82)');
+    bdGrad.addColorStop(0.75,'rgba(10,10,18,0.96)');
+    bdGrad.addColorStop(1,'rgba(10,10,18,1.0)');
+    ctx.fillStyle=bdGrad;ctx.fillRect(0,0,W,H);
+  }
 
   // ── Backdrop (25% opacity) ───────────────────────────────────────────────
   if(withBackdrop&&film.backdrop){
@@ -6153,7 +6171,7 @@ function drawSlideText(ctx,film,fShows,wd,days,W,H,fmt){
   // ── Dispatcher layout ────────────────────────────────────────────────
   var layout=window._socialLayout||'classic';
   if(layout==='tipo')   {drawLayout2B(ctx,film,fShows,wd,days,W,H,fmt,false);return;}
-  if(layout==='tipobg') {drawLayout2B(ctx,film,fShows,wd,days,W,H,fmt,true);return;}
+  if(layout==='tipobg') {drawLayout2B(ctx,film,fShows,wd,days,W,H,fmt,false);return;} // backdrop già disegnato
   // layout==='classic' → continua con il codice originale
   var isStory=fmt==='story';
   var isLand=fmt==='landscape';
