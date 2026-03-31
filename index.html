@@ -589,7 +589,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="wlbl" id="wlbl">—</div>
     <button onclick="cw(1)">›</button>
   </div>
-  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v31/03 21:48</small>
+  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v31/03 22:09</small>
   <div class="hact">
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
     <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
@@ -5857,18 +5857,21 @@ function socialRenderCarousel(){
 
     // Funzione interna draw — eseguita dopo eventuale caricamento immagine
     function drawSlide(bgImg){
+      var is2BFoto=(window._socialLayout==='tipobg');
       if(bgImg){
         var iw=bgImg.naturalWidth,ih=bgImg.naturalHeight;
         var sc2=Math.max(W/iw,H/ih);
         var sw=iw*sc2,sh=ih*sc2;
         var sx=(W-sw)/2,sy=(H-sh)/2;
         ctx.save();
-        // Per tipobg: opacity 45% sul backdrop
-        if(window._socialLayout==='tipobg'){ctx.globalAlpha=0.45;}
+        ctx.globalAlpha=is2BFoto?0.45:1.0;
         ctx.drawImage(bgImg,sx,sy,sw,sh);
         ctx.restore();
       }
-      ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
+      // Per 2B Foto: NON applicare il grad del Classic (il gradient è in drawLayout2BContent)
+      if(!is2BFoto){
+        ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
+      }
       ctx.letterSpacing="0px";
       drawSlideText(ctx,film,fShows,wd,days,W,H,fmt);
     }
@@ -8415,16 +8418,19 @@ async function importMatched(items){
       updCount++;
     } else {
       // ── NUOVO INSERIMENTO ──────────────────────────────────────────────
+      // Se api=null (film ProCinema senza corrispondenza biglietteria):
+      // usa titolo da ProCinema, crea film base che verrà arricchito da TMDB
       var id=uid();
       var filmDoc={
         id:id,
-        title:api?api.title:pf.title,
-        titleOriginal:pf.title,
+        title:api?api.title:pf.title,  // titolo italiano da API o titolo ProCinema
+        titleOriginal:pf.title,         // titolo originale ProCinema sempre
         duration:api?parseInt(api.length)||0:0,
         genre:api?api.genre||pf.genre||'':pf.genre||'',
         director:api?api.director||'':'',
         rating:pf.age&&pf.age!=='-'?pf.age+'anni':(api&&api.age&&api.age!=='n/p'?api.age:''),
-        release:pf.releaseIT||'',endDate:'',
+        release:pf.releaseIT||'',
+        endDate:'',
         poster:(api&&api.playbill_path&&!api.playbill_path.includes('noposter'))?api.playbill_path:'',
         backdrop:(api&&api.backdrop_path&&!api.backdrop_path.includes('noposter'))?('https://image.tmdb.org/t/p/w780'+api.backdrop_path):'',
         description:api?api.plot?api.plot.slice(0,300):'':'',
@@ -8434,7 +8440,8 @@ async function importMatched(items){
         cast:api?api.cast||'':'',
         language:api?api.language||'':'',
         suisa:pf.suisa||'',
-        apiId:api?api.original_id||null:null
+        apiId:api?api.original_id||null:null,
+        tmdbId:api?api.tmdb_id||null:null  // null se no api → tmdbEnrichAll lo cercherà per titolo
       };
       await setDoc(doc(db,'films',id),filmDoc);
       if(filmDoc.distributor)importAutoAddDistributor(filmDoc.distributor);
