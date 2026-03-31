@@ -589,7 +589,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="wlbl" id="wlbl">—</div>
     <button onclick="cw(1)">›</button>
   </div>
-  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v31/03 22:18</small>
+  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v31/03 22:26</small>
   <div class="hact">
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
     <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
@@ -5876,8 +5876,9 @@ function socialRenderCarousel(){
       drawSlideText(ctx,film,fShows,wd,days,W,H,fmt);
     }
 
-    // Sceglie l'immagine sorgente in base al layout
-    var imgSrc=(window._socialLayout==='tipobg'&&film.backdrop)?film.backdrop:film.poster;
+    // Sceglie immagine: tipobg→solo backdrop, altri layout→poster
+    var _is2BFoto=(window._socialLayout==='tipobg');
+    var imgSrc=_is2BFoto?(film.backdrop||''):film.poster;
     if(imgSrc){
       var img=new Image();
       img.crossOrigin='anonymous';
@@ -5885,10 +5886,14 @@ function socialRenderCarousel(){
       img.onerror=function(){drawSlide(null);};
       img.src=imgSrc;
     } else {
-      // Sfondo con gradiente brand
-      var bgGrad=ctx.createLinearGradient(0,0,W,H);
-      bgGrad.addColorStop(0,'#1a1a2e');bgGrad.addColorStop(1,'#16213e');
-      ctx.fillStyle=bgGrad;ctx.fillRect(0,0,W,H);
+      // Nessuna immagine disponibile
+      if(!_is2BFoto){
+        // Classic senza poster: gradiente brand
+        var bgGrad=ctx.createLinearGradient(0,0,W,H);
+        bgGrad.addColorStop(0,'#1a1a2e');bgGrad.addColorStop(1,'#16213e');
+        ctx.fillStyle=bgGrad;ctx.fillRect(0,0,W,H);
+      }
+      // 2B senza backdrop: sfondo già nero dal canvas, va bene così
       drawSlide(null);
     }
 
