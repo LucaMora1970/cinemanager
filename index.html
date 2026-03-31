@@ -1422,7 +1422,19 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     </div>
     <div class="fgr">
       <div class="fr"><label class="flb">Fine programmazione</label><input type="date" id="fEndDate"></div>
-      <div class="fr"><label class="flb">URL Locandina</label><input type="url" id="fPoster" placeholder="https://…"></div>
+      <div class="fr"><label class="flb">URL Locandina</label>
+        <div style="display:flex;gap:6px;align-items:center">
+          <input type="url" id="fPoster" placeholder="https://…" style="flex:1">
+          <button type="button" class="btn bg bs" onclick="tmdbFetchImages()" title="Recupera da TMDB" style="white-space:nowrap;font-size:11px">🎬 TMDB</button>
+        </div>
+      </div>
+      <div class="fr"><label class="flb">Foto di scena (backdrop)</label>
+        <div style="display:flex;gap:6px;align-items:center">
+          <input type="url" id="fBackdrop" placeholder="https://image.tmdb.org/…" style="flex:1" oninput="tmdbUpdateBackdropPreview()">
+          <div id="fBackdropPreview" style="width:80px;height:45px;border-radius:4px;overflow:hidden;border:1px solid var(--bdr);flex-shrink:0;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--txt2)">anteprima</div>
+        </div>
+        <div id="fBackdropGallery" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"></div>
+      </div>
       <div class="fr"><label class="flb">Codice SUISA</label><input type="text" id="fSuisa" placeholder="es. 1020.422"></div>
       <div class="fr"><label class="flb">Link Biglietteria</label><input type="url" id="fTicketUrl" placeholder="https://multisala.mendrisiocinema.ch/film/…"></div>
       <div class="fr"><label class="flb">Trailer YouTube (ID o URL completo)</label><input type="text" id="fTrailer" placeholder="es. bTaytqYtib0 oppure URL completo"></div>
@@ -3126,6 +3138,8 @@ function editFilm(id){
   document.getElementById('fRelease').value=f.release||'';
   document.getElementById('fEndDate').value=f.endDate||'';
   document.getElementById('fPoster').value=f.poster||'';
+  var fbEl=document.getElementById('fBackdrop');if(fbEl)fbEl.value=f.backdrop||'';
+  tmdbUpdateBackdropPreview();
   var fsEl=document.getElementById('fSuisa');if(fsEl)fsEl.value=f.suisa||'';
   var foaEl=document.getElementById('fOpenAir');if(foaEl)foaEl.checked=!!f.openAir;
   var ftEl=document.getElementById('fTicketUrl');if(ftEl)ftEl.value=f.ticketUrl||'';
@@ -3155,6 +3169,7 @@ async function svFilm(){
     poster:document.getElementById('fPoster').value||'',
     ticketUrl:document.getElementById('fTicketUrl')?document.getElementById('fTicketUrl').value||'':'',
     trailer:document.getElementById('fTrailer')?normalizeTrailerId(document.getElementById('fTrailer').value||''):'',
+    backdrop:document.getElementById('fBackdrop')?document.getElementById('fBackdrop').value.trim()||'':'',
     openAir:document.getElementById('fOpenAir')?document.getElementById('fOpenAir').checked:false};
   await fbSF(film);co('ovF');toast(eid?'Film aggiornato':'Film aggiunto','ok');
 }
@@ -7449,6 +7464,7 @@ async function doImport(){
       release:f.start_date||'',
       endDate:'',
       poster:(f.playbill_path&&!f.playbill_path.includes('noposter'))?f.playbill_path:'',
+      backdrop:'',
       description:f.plot?f.plot.slice(0,300):'',
       distributor:'',
       ticketUrl:f.film_url_for_cinema||f.film_url||'',
@@ -7938,6 +7954,7 @@ async function importMatched(items){
       rating:pf.age&&pf.age!=='-'?pf.age+'anni':(api&&api.age&&api.age!=='n/p'?api.age:''),
       release:pf.releaseIT||'',endDate:'',
       poster:(api&&api.playbill_path&&!api.playbill_path.includes('noposter'))?api.playbill_path:'',
+      backdrop:(api&&api.backdrop_path&&!api.backdrop_path.includes('noposter'))?('https://image.tmdb.org/t/p/w780'+api.backdrop_path):'',
       description:api?api.plot?api.plot.slice(0,300):'':'',
       distributor:pf.distributor||'',
       ticketUrl:api?api.film_url_for_cinema||'':'',
@@ -8813,6 +8830,105 @@ function foMove(section,filmId,direction){
   newsRenderSection(listId,countId,films,selSet,section);
 }
 window.foMove=foMove;
+
+
+// ── TMDB IMMAGINI ─────────────────────────────────────────────────────────────
+var TMDB_IMG_BASE='https://image.tmdb.org/t/p/';
+
+function tmdbUpdateBackdropPreview(){
+  var url=document.getElementById('fBackdrop')?.value.trim()||'';
+  var prev=document.getElementById('fBackdropPreview');
+  if(!prev)return;
+  if(url){
+    prev.innerHTML='<img src="'+url+'" style="width:100%;height:100%;object-fit:cover">';
+  } else {
+    prev.innerHTML='<span style="font-size:10px;color:var(--txt2)">anteprima</span>';
+  }
+}
+window.tmdbUpdateBackdropPreview=tmdbUpdateBackdropPreview;
+
+async function tmdbFetchImages(){
+  var tmdbId=document.getElementById('fTmdbId')?.value.trim()||
+             document.getElementById('fId')?.value.trim()||'';
+  // Cerca il film corrente nell'archivio per recuperare il tmdbId
+  var fid=document.getElementById('fId')?.value.trim();
+  var film=fid?S.films.find(function(f){return f.id===fid;}):null;
+  var tid=film?.tmdbId||film?.tmdbid||null;
+  if(!tid){
+    toast('Nessun ID TMDB disponibile per questo film — importa prima da TMDB','err');
+    return;
+  }
+  var gallery=document.getElementById('fBackdropGallery');
+  if(gallery)gallery.innerHTML='<span style="font-size:11px;color:var(--txt2)">⏳ Caricamento immagini...</span>';
+  try{
+    var apiKey=IMP_KEY; // usa la stessa API key dell'import biglietteria
+    var url='https://api.themoviedb.org/3/movie/'+tid+'/images?include_image_language=it,de,fr,en,null&api_key='+apiKey;
+    var res=await fetch(url);
+    if(!res.ok)throw new Error('TMDB '+res.status);
+    var data=await res.json();
+    var backdrops=(data.backdrops||[])
+      .sort(function(a,b){return b.vote_average-a.vote_average;})
+      .slice(0,8);
+    var posters=(data.posters||[])
+      .sort(function(a,b){return b.vote_average-a.vote_average;})
+      .slice(0,4);
+    if(gallery){
+      gallery.innerHTML='';
+      if(backdrops.length){
+        var lbl=document.createElement('div');
+        lbl.style='width:100%;font-size:10px;color:var(--txt2);margin-bottom:2px;font-weight:600';
+        lbl.textContent='Foto di scena (backdrop)';
+        gallery.appendChild(lbl);
+      }
+      backdrops.forEach(function(bd){
+        var imgUrl=TMDB_IMG_BASE+'w780'+bd.file_path;
+        var img=document.createElement('img');
+        img.src=TMDB_IMG_BASE+'w300'+bd.file_path;
+        img.style='width:120px;height:68px;object-fit:cover;border-radius:4px;cursor:pointer;border:2px solid transparent;transition:border-color .15s';
+        img.title='Clicca per selezionare · '+Math.round(bd.vote_average*10)/10+' ⭐';
+        img.addEventListener('click',function(){
+          document.getElementById('fBackdrop').value=imgUrl;
+          gallery.querySelectorAll('img').forEach(function(i){i.style.borderColor='transparent';});
+          img.style.borderColor='#f0801a';
+          tmdbUpdateBackdropPreview();
+        });
+        gallery.appendChild(img);
+      });
+      if(posters.length){
+        var lbl2=document.createElement('div');
+        lbl2.style='width:100%;font-size:10px;color:var(--txt2);margin:6px 0 2px;font-weight:600';
+        lbl2.textContent='Locandine disponibili';
+        gallery.appendChild(lbl2);
+      }
+      posters.forEach(function(p){
+        var imgUrl=TMDB_IMG_BASE+'w500'+p.file_path;
+        var img=document.createElement('img');
+        img.src=TMDB_IMG_BASE+'w92'+p.file_path;
+        img.style='width:48px;height:72px;object-fit:cover;border-radius:4px;cursor:pointer;border:2px solid transparent;transition:border-color .15s';
+        img.title='Clicca per usare come locandina · '+(p.iso_639_1||'universale');
+        img.addEventListener('click',function(){
+          document.getElementById('fPoster').value=imgUrl;
+          posters_gallery: gallery.querySelectorAll('img').forEach(function(i){i.style.borderColor='transparent';});
+          img.style.borderColor='#f0801a';
+        });
+        gallery.appendChild(img);
+      });
+      if(!backdrops.length&&!posters.length){
+        gallery.innerHTML='<span style="font-size:11px;color:var(--txt2)">Nessuna immagine trovata su TMDB</span>';
+      }
+    }
+    // Seleziona automaticamente il primo backdrop se il campo è vuoto
+    if(backdrops.length&&!document.getElementById('fBackdrop')?.value){
+      document.getElementById('fBackdrop').value=TMDB_IMG_BASE+'w780'+backdrops[0].file_path;
+      tmdbUpdateBackdropPreview();
+    }
+    toast('Trovati '+backdrops.length+' backdrop e '+posters.length+' locandine','ok');
+  }catch(e){
+    if(gallery)gallery.innerHTML='<span style="font-size:11px;color:var(--txt2)">Errore: '+e.message+'</span>';
+    toast('Errore TMDB: '+e.message,'err');
+  }
+}
+window.tmdbFetchImages=tmdbFetchImages;
 
 
 function toggleTheme(){
