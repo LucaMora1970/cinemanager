@@ -146,8 +146,6 @@ select option{background:var(--surf2);}
 .sp-del{position:absolute;top:3px;right:3px;background:none;border:none;
   color:var(--txt2);cursor:pointer;font-size:13px;opacity:0;transition:opacity .15s;padding:0;}
 .show-pill:hover .sp-del{opacity:1;}.sp-del:hover{color:var(--red);}
-.show-pill.plan-future{border-style:dashed;opacity:0.75;}
-.show-pill.plan-future .sp-title::before{content:"🗓 ";font-size:9px;}
 
 /* empty cell add button */
 .add-slot{
@@ -558,10 +556,10 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     </div>
     <button id="btnGlobalOpt" class="btn bg" onclick="openGlobalOpt()" style="color:var(--acc);border-color:rgba(232,200,74,.4)">⚡ <span class="btn-label">Ottimizza Orari</span></button>
     <button id="btnVerifica" class="btn bg" onclick="openVerifica()" style="color:#4ae87a;border-color:rgba(74,232,122,.4)">🔍 <span class="btn-label">Verifica</span></button>
-    <div id="plan-mode-wrap" style="display:flex;align-items:center;gap:6px;background:var(--surf2);border:1px solid var(--bdr);border-radius:7px;padding:4px 10px;cursor:pointer" onclick="togglePlanMode()" title="Modalità pianificazione: mostra tutti i film inclusi quelli previsti oltre 60 giorni">
+    <div id="plan-mode-wrap" style="display:flex;align-items:center;gap:6px;background:var(--surf2);border:1px solid var(--bdr);border-radius:7px;padding:4px 10px;cursor:pointer" onclick="togglePlanMode()" title="Film futuri oltre 60gg">
       <span id="plan-mode-icon" style="font-size:14px">📋</span>
       <span style="font-size:11px;font-weight:600;color:var(--txt2)" id="plan-mode-label">Pianificazione</span>
-      <span id="plan-mode-dot" style="width:8px;height:8px;border-radius:50%;background:var(--bdr);display:inline-block;transition:background .2s;flex-shrink:0"></span>
+      <span id="plan-mode-dot" style="width:8px;height:8px;border-radius:50%;background:var(--bdr);display:inline-block;flex-shrink:0"></span>
     </div>
     <button id="btnAddShow" class="btn ba" onclick="try{openShow();}catch(e){alert('Errore: '+e.message);}">＋ Aggiungi Spettacolo</button>
   </div>
@@ -1023,7 +1021,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
 </div>
 
   <!-- SEZIONE PERMESSI RUOLI -->
-  <div id="perm-section" style="display:none;margin-top:28px;padding-top:24px;border-top:2px solid var(--bdr)">
+  <div id="perm-section" style="display:none">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
       <div>
         <div style="font-size:15px;font-weight:700">🔐 Visibilità sezioni per ruolo</div>
@@ -1956,6 +1954,9 @@ function startListeners(){
   onSnapshot(doc(db,'settings','media'),snap=>{S.media=snap.exists()?snap.data().list||[]:[];if(document.getElementById('media-list'))renderMedia();});
   // Carica trailer playlist salvati
   // Listener permessi ruoli
+  onSnapshot(doc(db,'settings','filmOrder'),snap=>{
+    if(snap.exists()){var d=snap.data();if(d.week===foCurrentWeek()){_filmOrder=d.order||{new:[],curr:[],coming:[]};_filmOrderWeek=d.week;}}
+  });
   onSnapshot(doc(db,'settings','permissions'),snap=>{
     S.permissions=snap.exists()?snap.data():{};
     // Riapplica visibilità se utente già loggato
@@ -1984,7 +1985,6 @@ function gt(id){
   document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('on',TABS[i]===id));
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
   document.getElementById('page-'+id).classList.add('on');
-  // perm-section visibile SOLO nella tab Utenti per admin
   var _ps=document.getElementById('perm-section');
   if(_ps)_ps.style.display=(id==='users'&&window._userRole==='admin')?'block':'none';
   if(id==='lista')rl();if(id==='arch')rf();if(id==='mail')rem();if(id==='staff'){renderAllDays();}if(id==='playlist')renderPlaylist();if(id==='social'&&typeof socialGenerate==='function')socialGenerate();if(id==='users')renderPermGrid();if(id==='news')newsInit();
@@ -2148,8 +2148,7 @@ function rs(){
           html.push(`<div class="add-above" onclick="event.stopPropagation();openShowSlot('${ds}','${rowKey}','${sid}')" title="Aggiungi spettacolo in questa fascia">＋ aggiungi</div>`);
           rowShows.forEach(s=>{
             const film=S.films.find(f=>f.id===s.filmId);
-            const isPlanFuture=_planMode&&film&&film.release&&film.release>todayStr;
-            html.push(`<div class="show-pill ${SALE[s.sala].sc}${isPlanFuture?' plan-future':''}" onclick="event.stopPropagation();editShow('${s.id}')">
+            html.push(`<div class="show-pill ${SALE[s.sala].sc}" onclick="event.stopPropagation();editShow('${s.id}')">
               <button class="sp-del" onclick="event.stopPropagation();delShow('${s.id}')">×</button>
               <div class="sp-title" style="${film?'':'color:#e84a4a'}">${film?film.title:'⚠ Film eliminato'}</div>
               <div class="sp-time">${s.start} → ${s.end}</div>
@@ -2669,6 +2668,7 @@ function fillF(sel){
       if(f.id===sel)return true;
       // Exclude scaduti (endDate < oggi) — nascosti di default
       if(f.endDate&&f.endDate<todayStr)return false;
+      if(_planMode)return true;
       // Exclude film con release > oggi+60gg (troppo lontani)
       if(f.release&&f.release>d60Str)return false;
       return true;
@@ -2676,9 +2676,8 @@ function fillF(sel){
     .forEach(f=>{
       const o=document.createElement('option');
       o.value=f.id;
-      // Disabled: release tra oggi+12 e oggi+60 (prossimamente)
-      const isProssimamente=f.release&&f.release>d12Str&&f.release<=d60Str;
       const isFuture=_planMode&&f.release&&f.release>d60Str;
+      const isProssimamente=f.release&&f.release>d12Str&&f.release<=d60Str;
       if(isFuture){
         o.disabled=false;
         o.textContent=`🗓 ${f.title} (${f.duration} min) — previsto ${f.release.split('-').reverse().join('/')}`;
@@ -3416,8 +3415,8 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:8.5px;color:#111;backgroun
   cursor:pointer;transition:border-color .15s,background .15s;
   display:flex;align-items:stretch;
 }
-.nws-card:hover{transform:translateY(-2px);}
-.nws-card.selected{border-color:#f0801a;background:rgba(240,128,26,.06);}
+.nws-card:hover{border-color:var(--bdr);}
+.nws-card.selected{border-color:#f0801a;background:rgba(240,128,26,.07);}
 .nws-card-poster{
   width:52px;min-width:52px;height:76px;object-fit:cover;display:block;
   flex-shrink:0;
@@ -3431,23 +3430,29 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:8.5px;color:#111;backgroun
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;}
 .nws-card-meta{font-size:9px;color:var(--txt2);line-height:1.4;}
 .nws-card-badge{
-  position:absolute;top:6px;left:6px;
-  background:#f0801a;color:#fff;font-size:9px;font-weight:700;
-  padding:2px 6px;border-radius:3px;letter-spacing:.3px;
+  position:absolute;top:4px;left:4px;
+  background:#f0801a;color:#fff;font-size:8px;font-weight:700;
+  padding:1px 5px;border-radius:2px;letter-spacing:.3px;
 }
 .nws-card-check{
-  position:absolute;top:6px;right:6px;
-  width:20px;height:20px;border-radius:50%;
-  border:2px solid rgba(255,255,255,0.7);
-  background:rgba(0,0,0,0.4);
+  width:18px;min-width:18px;display:flex;align-items:center;justify-content:center;
+  font-size:13px;color:var(--txt2);padding-right:2px;transition:color .15s;
+}
+.nws-card.selected .nws-card-check{color:#f0801a;}
+.nws-card-release{font-size:9px;color:#f0801a;font-weight:700;margin-top:2px;}
+.nws-card-arrows{display:flex;flex-direction:column;gap:2px;padding:3px 4px 3px 0;flex-shrink:0;}
+.nws-card-arrows button{
+  width:20px;height:18px;border:0.5px solid var(--bdr);border-radius:3px;
+  background:var(--surf2);color:var(--txt2);font-size:9px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;line-height:1;
+  transition:background .1s,color .1s;padding:0;
+}
+.nws-card-arrows button:hover{background:#f0801a;color:#fff;border-color:#f0801a;}
+.nws-priority-badge{
+  position:absolute;top:4px;right:26px;
+  width:16px;height:16px;border-radius:50%;
+  background:#f0801a;color:#fff;font-size:8px;font-weight:700;
   display:flex;align-items:center;justify-content:center;
-  font-size:11px;color:#fff;transition:all .15s;
-}
-.nws-card.selected .nws-card-check{
-  background:#f0801a;border-color:#f0801a;
-}
-.nws-card-release{
-  font-size:9px;color:#f0801a;font-weight:700;margin-top:3px;
 }
 
 /* ── PRENOTAZIONI ── */
@@ -3718,8 +3723,8 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:8.5px;color:#111;backgroun
   cursor:pointer;transition:border-color .15s,background .15s;
   display:flex;align-items:stretch;
 }
-.nws-card:hover{transform:translateY(-2px);}
-.nws-card.selected{border-color:#f0801a;background:rgba(240,128,26,.06);}
+.nws-card:hover{border-color:var(--bdr);}
+.nws-card.selected{border-color:#f0801a;background:rgba(240,128,26,.07);}
 .nws-card-poster{
   width:52px;min-width:52px;height:76px;object-fit:cover;display:block;
   flex-shrink:0;
@@ -3733,23 +3738,29 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:8.5px;color:#111;backgroun
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;}
 .nws-card-meta{font-size:9px;color:var(--txt2);line-height:1.4;}
 .nws-card-badge{
-  position:absolute;top:6px;left:6px;
-  background:#f0801a;color:#fff;font-size:9px;font-weight:700;
-  padding:2px 6px;border-radius:3px;letter-spacing:.3px;
+  position:absolute;top:4px;left:4px;
+  background:#f0801a;color:#fff;font-size:8px;font-weight:700;
+  padding:1px 5px;border-radius:2px;letter-spacing:.3px;
 }
 .nws-card-check{
-  position:absolute;top:6px;right:6px;
-  width:20px;height:20px;border-radius:50%;
-  border:2px solid rgba(255,255,255,0.7);
-  background:rgba(0,0,0,0.4);
+  width:18px;min-width:18px;display:flex;align-items:center;justify-content:center;
+  font-size:13px;color:var(--txt2);padding-right:2px;transition:color .15s;
+}
+.nws-card.selected .nws-card-check{color:#f0801a;}
+.nws-card-release{font-size:9px;color:#f0801a;font-weight:700;margin-top:2px;}
+.nws-card-arrows{display:flex;flex-direction:column;gap:2px;padding:3px 4px 3px 0;flex-shrink:0;}
+.nws-card-arrows button{
+  width:20px;height:18px;border:0.5px solid var(--bdr);border-radius:3px;
+  background:var(--surf2);color:var(--txt2);font-size:9px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;line-height:1;
+  transition:background .1s,color .1s;padding:0;
+}
+.nws-card-arrows button:hover{background:#f0801a;color:#fff;border-color:#f0801a;}
+.nws-priority-badge{
+  position:absolute;top:4px;right:26px;
+  width:16px;height:16px;border-radius:50%;
+  background:#f0801a;color:#fff;font-size:8px;font-weight:700;
   display:flex;align-items:center;justify-content:center;
-  font-size:11px;color:#fff;transition:all .15s;
-}
-.nws-card.selected .nws-card-check{
-  background:#f0801a;border-color:#f0801a;
-}
-.nws-card-release{
-  font-size:9px;color:#f0801a;font-weight:700;margin-top:3px;
 }
 
 /* ── PRENOTAZIONI ── */
@@ -8267,7 +8278,7 @@ function applyTabVisibility(role){
       if(el)el.style.display='';
     });
     document.getElementById('tab-users').style.display='block';
-    // perm-section gestita da gt()
+    // perm gestita da gt()
     return;
   }
   var perms=getPermissions(role);
@@ -8279,7 +8290,7 @@ function applyTabVisibility(role){
   // Tab utenti sempre nascosto per non-admin
   var uel=document.getElementById('tab-users');if(uel)uel.style.display='none';
   // Sezione permessi nascosta per non-admin
-  // perm-section gestita da gt()
+  // perm gestita da gt()
   // Se la pagina corrente non è più visibile → torna a prog
   var activePage=document.querySelector('.page.on');
   if(activePage){
@@ -8413,13 +8424,15 @@ function newsLoadFilms(){
   }).sort(function(a,b){return (a.release||'').localeCompare(b.release||'');});
 
   // Reset selezioni e auto-seleziona tutti
-  _newsSelNew=new Set(newFilms.map(function(f){return f.id;}));
-  _newsSelCurr=new Set(currFilms.map(function(f){return f.id;}));
-  _newsSelComing=new Set(comingFilms.map(function(f){return f.id;}));
-
-  newsRenderSection('news-new-films','news-new-count',newFilms,_newsSelNew,'new');
-  newsRenderSection('news-curr-films','news-curr-count',currFilms,_newsSelCurr,'curr');
-  newsRenderSection('news-coming-films','news-coming-count',comingFilms,_newsSelComing,'coming');
+  var ordNew=foApply(newFilms,'new',rangeDays);
+  var ordCurr=foApply(currFilms,'curr',rangeDays);
+  var ordComing=foApply(comingFilms,'coming',rangeDays);
+  _newsSelNew=new Set(ordNew.map(function(f){return f.id;}));
+  _newsSelCurr=new Set(ordCurr.map(function(f){return f.id;}));
+  _newsSelComing=new Set(ordComing.map(function(f){return f.id;}));
+  newsRenderSection('news-new-films','news-new-count',ordNew,_newsSelNew,'new');
+  newsRenderSection('news-curr-films','news-curr-count',ordCurr,_newsSelCurr,'curr');
+  newsRenderSection('news-coming-films','news-coming-count',ordComing,_newsSelComing,'coming');
 
   // Aggiorna label periodo
   var fmtFrom=_newsPeriodFrom.split('-').reverse().join('/');
@@ -8430,8 +8443,7 @@ function newsLoadFilms(){
 window.newsLoadFilms=newsLoadFilms;
 
 function newsInit(){
-  // Default: prossima settimana
-  newsSetNextWeek();
+  foLoad().then(function(){newsSetNextWeek();}).catch(function(){newsSetNextWeek();});
 }
 window.newsInit=newsInit;
 
@@ -8702,22 +8714,96 @@ function newsCopyLink(){
 }
 window.newsCopyLink=newsCopyLink;
 
-// ── MODALITÀ PIANIFICAZIONE ──────────────────────────
+// ── MODALITÀ PIANIFICAZIONE ──────────────────────────────────────────────────
 var _planMode=false;
-
 function togglePlanMode(){
   _planMode=!_planMode;
   var dot=document.getElementById('plan-mode-dot');
-  var label=document.getElementById('plan-mode-label');
+  var lbl=document.getElementById('plan-mode-label');
   var wrap=document.getElementById('plan-mode-wrap');
   var icon=document.getElementById('plan-mode-icon');
   if(dot)dot.style.background=_planMode?'#f0801a':'var(--bdr)';
-  if(label){label.style.color=_planMode?'#f0801a':'var(--txt2)';}
-  if(wrap){wrap.style.borderColor=_planMode?'rgba(240,128,26,.4)':'var(--bdr)';}
+  if(lbl)lbl.style.color=_planMode?'#f0801a':'var(--txt2)';
+  if(wrap)wrap.style.borderColor=_planMode?'rgba(240,128,26,.4)':'var(--bdr)';
   if(icon)icon.textContent=_planMode?'🗓':'📋';
-  toast(_planMode?'Modalità pianificazione attiva — tutti i film disponibili':'Modalità pianificazione disattivata','ok');
+  toast(_planMode?'Pianificazione attiva — film futuri visibili':'Pianificazione disattivata','ok');
 }
 window.togglePlanMode=togglePlanMode;
+
+// ── SISTEMA PRIORITÀ FILM ────────────────────────────────────────────────────
+var _filmOrder={new:[],curr:[],coming:[]};
+var _filmOrderWeek='';
+
+function foCurrentWeek(){
+  try{var wd=wdates();return wd.length?wd[0]:'';}catch(e){return '';}
+}
+window.foCurrentWeek=foCurrentWeek;
+
+async function foLoad(){
+  try{
+    var snap=await new Promise(function(res,rej){
+      var u=onSnapshot(doc(db,'settings','filmOrder'),function(s){u();res(s);},function(e){u();rej(e);});
+    });
+    if(snap.exists()){
+      var d=snap.data();
+      if(d.week===foCurrentWeek()){
+        _filmOrder=d.order||{new:[],curr:[],coming:[]};
+        _filmOrderWeek=d.week;
+        return;
+      }
+    }
+  }catch(e){}
+  _filmOrder={new:[],curr:[],coming:[]};
+  _filmOrderWeek=foCurrentWeek();
+}
+window.foLoad=foLoad;
+
+async function foSave(){
+  try{await fbSetDoc(db,'settings','filmOrder',{week:foCurrentWeek(),order:_filmOrder});}
+  catch(e){console.warn('foSave',e);}
+}
+window.foSave=foSave;
+
+function foApply(films,section,wd){
+  var ordered=(_filmOrder[section]||[]).slice();
+  var result=[];
+  ordered.forEach(function(id){
+    var f=films.find(function(x){return x.id===id;});
+    if(f)result.push(f);
+  });
+  var remaining=films.filter(function(f){return !ordered.includes(f.id);});
+  remaining.sort(function(a,b){
+    var aS=(S.shows||[]).filter(function(s){return s.filmId===a.id&&(wd||[]).includes(s.day);}).length;
+    var bS=(S.shows||[]).filter(function(s){return s.filmId===b.id&&(wd||[]).includes(s.day);}).length;
+    if(a.release&&b.release){var rc=b.release.localeCompare(a.release);if(rc!==0)return rc;}
+    if(a.release&&!b.release)return -1;
+    if(!a.release&&b.release)return 1;
+    if(bS!==aS)return bS-aS;
+    return a.title.localeCompare(b.title,'it');
+  });
+  return result.concat(remaining);
+}
+window.foApply=foApply;
+
+function foMove(section,filmId,direction){
+  var listId='news-'+section+'-films';
+  var cards=document.querySelectorAll('#'+listId+' .nws-card');
+  var allIds=[].slice.call(cards).map(function(ca){return ca.dataset.fid;}).filter(Boolean);
+  if(!allIds.length)return;
+  var arr=allIds.slice();
+  var idx=arr.indexOf(filmId);
+  if(idx<0)return;
+  if(direction==='up'&&idx>0){var t=arr[idx-1];arr[idx-1]=arr[idx];arr[idx]=t;}
+  else if(direction==='down'&&idx<arr.length-1){var t=arr[idx+1];arr[idx+1]=arr[idx];arr[idx]=t;}
+  _filmOrder[section]=arr;
+  foSave();
+  var countId=section==='new'?'news-new-count':section==='curr'?'news-curr-count':'news-coming-count';
+  var selSet=section==='new'?_newsSelNew:section==='curr'?_newsSelCurr:_newsSelComing;
+  var films=arr.map(function(id){return S.films.find(function(f){return f.id===id;});}).filter(Boolean);
+  newsRenderSection(listId,countId,films,selSet,section);
+}
+window.foMove=foMove;
+
 
 function toggleTheme(){
   const isLight=document.body.classList.toggle('light');
