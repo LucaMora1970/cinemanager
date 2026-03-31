@@ -589,7 +589,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="wlbl" id="wlbl">—</div>
     <button onclick="cw(1)">›</button>
   </div>
-  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v31/03 17:34</small>
+  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v31/03 18:27</small>
   <div class="hact">
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
     <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
@@ -1177,6 +1177,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
         <button onclick="newsSetCurrentWeek()" style="font-size:10px;padding:2px 7px;border:1px solid var(--bdr);border-radius:4px;background:none;color:var(--txt2);cursor:pointer">Sett. corrente</button>
         <button onclick="newsSetNextWeek()" style="font-size:10px;padding:2px 7px;border:1px solid var(--acc);border-radius:4px;background:rgba(240,128,26,.1);color:var(--acc);cursor:pointer;font-weight:600">Prossima sett. ▸</button>
       </div>
+      <button class="btn bg bs" onclick="newsSaveOrder()" style="font-size:12px">💾 Salva ordine</button>
       <button class="btn ba" onclick="newsPreview()" id="news-preview-btn">👁 Anteprima</button>
       <button class="btn ba" onclick="newsGenerate()" id="news-gen-btn">⬇ Genera HTML</button>
       <button class="btn bg bs" onclick="newsCopyLink()">🔗 Copia link</button>
@@ -1486,6 +1487,12 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
         <div id="fBackdropGallery" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"></div>
       </div>
       <div class="fr"><label class="flb">Codice SUISA</label><input type="text" id="fSuisa" placeholder="es. 1020.422"></div>
+      <div class="fr"><label class="flb">ID TMDB</label>
+        <div style="display:flex;gap:6px;align-items:center">
+          <input type="text" id="fTmdbId" placeholder="es. 1084244" style="flex:1">
+          <button type="button" class="btn bg bs" onclick="tmdbFetchImages()" style="font-size:11px">🎬 Carica immagini</button>
+        </div>
+      </div>
       <div class="fr"><label class="flb">Link Biglietteria</label><input type="url" id="fTicketUrl" placeholder="https://multisala.mendrisiocinema.ch/film/…"></div>
       <div class="fr"><label class="flb">Trailer YouTube (ID o URL completo)</label><input type="text" id="fTrailer" placeholder="es. bTaytqYtib0 oppure URL completo"></div>
     </div>
@@ -3191,6 +3198,7 @@ function editFilm(id){
   var fbEl=document.getElementById('fBackdrop');if(fbEl)fbEl.value=f.backdrop||'';
   tmdbUpdateBackdropPreview();
   var fsEl=document.getElementById('fSuisa');if(fsEl)fsEl.value=f.suisa||'';
+  var ftmdbEl=document.getElementById('fTmdbId');if(ftmdbEl)ftmdbEl.value=f.tmdbId||'';
   var foaEl=document.getElementById('fOpenAir');if(foaEl)foaEl.checked=!!f.openAir;
   var ftEl=document.getElementById('fTicketUrl');if(ftEl)ftEl.value=f.ticketUrl||'';
   var ftrEl=document.getElementById('fTrailer');if(ftrEl)ftrEl.value=f.trailer||'';
@@ -8688,7 +8696,7 @@ function newsBuildHTML(){
     +'<div style="background:#0d1117;padding:0">'
       +'<div class="news-header-inner" style="max-width:600px;margin:0 auto;padding:24px 24px 20px">'
         +'<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">'
-          +'<img src="'+NEWS_LOGO+'" alt="Cinema Multisala Teatro" style="height:52px;width:auto;display:block;filter:brightness(0) invert(1) sepia(1) saturate(5) hue-rotate(360deg);">'
+          +'<img src="'+NEWS_LOGO+'" alt="Cinema Multisala Teatro" style="height:52px;width:auto;display:block;">'
           +'<div style="text-align:right">'
             +'<div style="color:rgba(255,255,255,0.45);font-size:10px;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:3px">Programmazione</div>'
             +'<div style="color:#fff;font-size:15px;font-weight:700">'+wRange+'</div>'
@@ -8720,6 +8728,28 @@ function newsBuildHTML(){
   return html;
 }
 window.newsBuildHTML=newsBuildHTML;
+
+function newsSaveOrder(){
+  // Legge l'ordine corrente dalle card visibili e lo salva
+  var sections=['new','curr','coming'];
+  sections.forEach(function(sec){
+    var listId='news-'+sec+'-films';
+    var cards=document.querySelectorAll('#'+listId+' .nws-card');
+    if(!cards.length)return;
+    var order=[].slice.call(cards).map(function(c){return c.dataset.fid;}).filter(Boolean);
+    _filmOrder[sec]=order;
+  });
+  _filmOrderWeek=foCurrentWeek();
+  foSave().then(function(){
+    toast('Ordine salvato — aggiorno anteprima...','ok');
+    // Aggiorna automaticamente l'anteprima se aperta
+    var ifrm=document.getElementById('news-iframe');
+    if(ifrm&&document.getElementById('news-preview-wrap').style.display!=='none'){
+      newsPreview();
+    }
+  }).catch(function(){toast('Errore salvataggio','err');});
+}
+window.newsSaveOrder=newsSaveOrder;
 
 function newsPreview(){
   var html=newsBuildHTML();
@@ -8863,14 +8893,14 @@ function tmdbUpdateBackdropPreview(){
 window.tmdbUpdateBackdropPreview=tmdbUpdateBackdropPreview;
 
 async function tmdbFetchImages(){
-  var tmdbId=document.getElementById('fTmdbId')?.value.trim()||
-             document.getElementById('fId')?.value.trim()||'';
-  // Cerca il film corrente nell'archivio per recuperare il tmdbId
-  var fid=document.getElementById('fId')?.value.trim();
+  var fid=document.getElementById('fId')?.value.trim()||'';
   var film=fid?S.films.find(function(f){return f.id===fid;}):null;
-  var tid=film?.tmdbId||film?.tmdbid||null;
+  var tid=(document.getElementById('fTmdbId')?.value.trim()&&parseInt(document.getElementById('fTmdbId').value))||film?.tmdbId||film?.tmdbid||null;
   if(!tid){
-    toast('Nessun ID TMDB disponibile per questo film — importa prima da TMDB','err');
+    // Prova a cercare per titolo su TMDB
+    var titolo=document.getElementById('fTit')?.value.trim()||'';
+    if(!titolo){toast('Apri prima un film dall\'archivio','err');return;}
+    toast('tmdbId non trovato — cerca per titolo "'+titolo+'" su TMDB e inserisci l\'ID manualmente nel campo','err');
     return;
   }
   var gallery=document.getElementById('fBackdropGallery');
