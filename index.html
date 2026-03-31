@@ -589,7 +589,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="wlbl" id="wlbl">—</div>
     <button onclick="cw(1)">›</button>
   </div>
-  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v31/03 21:01</small>
+  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v31/03 21:11</small>
   <div class="hact">
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
     <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
@@ -5935,7 +5935,7 @@ function drawLayout2B(ctx,film,fShows,wd,days,W,H,fmt,withBackdrop){
     img.onload=function(){
       loaded=true;
       ctx.save();
-      ctx.globalAlpha=0.25;
+      ctx.globalAlpha=0.45;
       // Scala per coprire tutta la slide
       var iR=img.width/img.height;
       var sR=W/H;
@@ -6001,15 +6001,15 @@ function drawLayout2BContent(ctx,film,byDay,dayOrd,DIT2,W,H,fmt,scale,S,ORA,isSt
         var lw=logoH*(li.naturalWidth/li.naturalHeight);
         ctx.drawImage(li,PL,PT,lw,logoH);
       }else{
-        ctx.font='700 '+S(18)+'px Arial';ctx.fillStyle=ORA;
+        ctx.font='700 '+S(22)+'px Arial';ctx.fillStyle=ORA;
         ctx.fillText('CINEMA',PL,PT+S(22));
       }
     }catch(e){
-      ctx.font='700 '+S(18)+'px Arial';ctx.fillStyle=ORA;
+      ctx.font='700 '+S(22)+'px Arial';ctx.fillStyle=ORA;
       ctx.fillText('CINEMA',PL,PT+S(22));
     }
   }else{
-    ctx.font='700 '+S(18)+'px Arial';ctx.fillStyle=ORA;
+    ctx.font='700 '+S(22)+'px Arial';ctx.fillStyle=ORA;
     ctx.fillText('CINEMA',PL,PT+S(22));
   }
 
@@ -6039,23 +6039,47 @@ function drawLayout2BContent(ctx,film,byDay,dayOrd,DIT2,W,H,fmt,scale,S,ORA,isSt
   ctx.fillText('— NOVITÀ IN SALA',PL,cy);
   cy+=S(28);
 
-  // ── Titolo grande ─────────────────────────────────────────────────────────
-  var titleWords=film.title.toUpperCase().split(' ');
-  var line1='',line2='';
-  // Divide il titolo in 2 righe max
-  ctx.font='900 '+S(82)+'px Arial';
+  // ── Titolo grande adattivo ───────────────────────────────────────────────
+  var titleUP=film.title.toUpperCase();
+  var titleWords=titleUP.split(' ');
   var maxW=W-PL-PR;
-  if(ctx.measureText(film.title.toUpperCase()).width<=maxW){
-    line1=film.title.toUpperCase();
-  }else{
-    var mid=Math.ceil(titleWords.length/2);
-    line1=titleWords.slice(0,mid).join(' ');
-    line2=titleWords.slice(mid).join(' ');
+  // Cerca il font size ottimale (da 82 scende fino a 44)
+  var tSize=S(82);
+  var line1T='',line2T='',line3T='';
+  for(var ts=82;ts>=44;ts-=6){
+    tSize=S(ts);
+    ctx.font='900 '+tSize+'px Arial';
+    if(ctx.measureText(titleUP).width<=maxW){
+      line1T=titleUP;line2T='';line3T='';break;
+    }
+    // Prova 2 righe
+    var found2=false;
+    for(var split=1;split<titleWords.length;split++){
+      var l1=titleWords.slice(0,split).join(' ');
+      var l2=titleWords.slice(split).join(' ');
+      if(ctx.measureText(l1).width<=maxW&&ctx.measureText(l2).width<=maxW){
+        line1T=l1;line2T=l2;line3T='';found2=true;break;
+      }
+    }
+    if(found2)break;
+    // Prova 3 righe
+    if(titleWords.length>=3){
+      var t3=Math.ceil(titleWords.length/3);
+      var la=titleWords.slice(0,t3).join(' ');
+      var lb=titleWords.slice(t3,t3*2).join(' ');
+      var lc=titleWords.slice(t3*2).join(' ');
+      if(ctx.measureText(la).width<=maxW&&ctx.measureText(lb).width<=maxW&&ctx.measureText(lc).width<=maxW){
+        line1T=la;line2T=lb;line3T=lc;break;
+      }
+    }
   }
+  var lineH=tSize*1.05;
+  ctx.font='900 '+tSize+'px Arial';
   ctx.fillStyle='#ffffff';
-  ctx.fillText(line1,PL,cy+S(78));
-  if(line2){ctx.fillText(line2,PL,cy+S(160));cy+=S(82);}
-  cy+=S(100);
+  ctx.fillText(line1T,PL,cy+lineH);
+  if(line2T){ctx.fillText(line2T,PL,cy+lineH*2);}
+  if(line3T){ctx.fillText(line3T,PL,cy+lineH*3);}
+  cy+=line3T?lineH*3+S(16):line2T?lineH*2+S(16):lineH+S(16);
 
   // ── Meta (durata · rating · genere) ──────────────────────────────────────
   var metaParts=[film.duration?Math.floor(film.duration/60)+'h'+String(film.duration%60).padStart(2,'0'):null,film.rating,film.genre].filter(Boolean);
@@ -6083,16 +6107,16 @@ function drawLayout2BContent(ctx,film,byDay,dayOrd,DIT2,W,H,fmt,scale,S,ORA,isSt
   cy+=S(24);
 
   // ── Tabella orari ─────────────────────────────────────────────────────────
-  var rowH=S(32);
+  var rowH=S(38);
   dayOrd.forEach(function(di){
     var dayLabel=DIT2[di].toUpperCase();
     var times=byDay[di].times.slice().sort();
 
     // Giorno
-    ctx.font='700 '+S(18)+'px Arial';
+    ctx.font='700 '+S(22)+'px Arial';
     ctx.fillStyle='rgba(255,255,255,0.75)';
     ctx.letterSpacing=S(1)+'px';
-    ctx.fillText(dayLabel,PL,cy+S(18));
+    ctx.fillText(dayLabel,PL,cy+S(26));
     ctx.letterSpacing='0px';
 
     // Puntini tratteggiati
@@ -6100,14 +6124,14 @@ function drawLayout2BContent(ctx,film,byDay,dayOrd,DIT2,W,H,fmt,scale,S,ORA,isSt
     var dotsEndX=W-PR-S(110);
     ctx.save();ctx.setLineDash([S(2),S(5)]);
     ctx.strokeStyle='rgba(255,255,255,0.18)';ctx.lineWidth=S(1);
-    ctx.beginPath();ctx.moveTo(dotsX,cy+S(12));ctx.lineTo(dotsEndX,cy+S(12));ctx.stroke();
+    ctx.beginPath();ctx.moveTo(dotsX,cy+S(16));ctx.lineTo(dotsEndX,cy+S(16));ctx.stroke();
     ctx.restore();
 
     // Orari — tutti stessa dimensione, separati da ·
-    ctx.font='700 '+S(26)+'px "Courier New",monospace';
+    ctx.font='700 '+S(32)+'px "Courier New",monospace';
     ctx.fillStyle=ORA;
     ctx.textAlign='right';
-    ctx.fillText(times.join('  ·  '),W-PR,cy+S(22));
+    ctx.fillText(times.join('  ·  '),W-PR,cy+S(28));
     ctx.textAlign='left';
 
     cy+=rowH;
