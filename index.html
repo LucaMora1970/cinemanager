@@ -561,16 +561,16 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
 </header>
 
 <div class="tabs">
-  <div class="tab on"  onclick="gt('prog')">📅 Programmazione</div>
-  <div class="tab"     onclick="gt('lista')">📋 Lista</div>
-  <div class="tab"     onclick="gt('arch')">🎬 Archivio Film</div>
-  <div class="tab"     onclick="gt('prnt')">🖨 Stampa & PDF</div>
-  <div class="tab"     onclick="gt('mail')">📧 Email</div>
+  <div class="tab on" id="tab-prog" onclick="gt('prog')">📅 Programmazione</div>
+  <div class="tab" id="tab-lista" onclick="gt('lista')">📋 Lista</div>
+  <div class="tab" id="tab-arch" onclick="gt('arch')">🎬 Archivio Film</div>
+  <div class="tab" id="tab-prnt" onclick="gt('prnt')">🖨 Stampa & PDF</div>
+  <div class="tab" id="tab-mail" onclick="gt('mail')">📧 Email</div>
   <div class="tab" id="tab-book" onclick="gt('book')">📋 Prenotazioni</div>
   <div class="tab" id="tab-staff" onclick="gt('staff')">👥 Turni</div>
   <div class="tab" id="tab-users" onclick="gt('users')" style="display:none">👥 Utenti</div>
   <div class="tab" id="tab-playlist" onclick="gt('playlist');renderPlaylist();">▶ Playlist</div>
-  <div class="tab" onclick="gt('social')">📱 Social</div>
+  <div class="tab" id="tab-social" onclick="gt('social')">📱 Social</div>
 </div>
 
 <main>
@@ -1012,6 +1012,17 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
       <button id="dm-next" class="btn bg" onclick="dmNext()" style="min-width:130px">Prossimo →</button>
     </div>
   </div>
+</div>
+<!-- SEZIONE PERMESSI RUOLI -->
+<div id="perm-section" style="display:none;margin-top:28px;padding-top:24px;border-top:2px solid var(--bdr)">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+    <div>
+      <div style="font-size:15px;font-weight:700">🔐 Visibilità sezioni per ruolo</div>
+      <div style="font-size:12px;color:var(--txt2);margin-top:3px">Configura quali tab sono accessibili per Operatore e Segretaria. Admin vede sempre tutto.</div>
+    </div>
+    <button class="btn ba" onclick="permSave()" style="font-size:12px">💾 Salva permessi</button>
+  </div>
+  <div id="perm-grid"></div>
 </div>
 
 
@@ -1712,7 +1723,7 @@ const OA_SALES={'OA1':{n:'CineTour A',col:'#0d5c8a'},'OA2':{n:'CineTour B',col:'
 const sn=id=>SALE[id]?.n||(OA_SALES[id]?.n)||'Sala '+id;
 
 // ── STATE ─────────────────────────────────────────────────
-let S={films:[],shows:[],bookings:[],staff:[],shifts:[],emails:[],ws:thurDay(new Date())};
+let S={films:[],shows:[],bookings:[],staff:[],shifts:[],emails:[],ws:thurDay(new Date()),permissions:{},distributors:[],media:[]};
 
 // ── DATE ──────────────────────────────────────────────────
 function thurDay(d){const dt=new Date(d),dy=dt.getDay(),diff=dy>=4?dy-4:dy+3;dt.setDate(dt.getDate()-diff);dt.setHours(0,0,0,0);return dt;}
@@ -1817,6 +1828,13 @@ function startListeners(){
   onSnapshot(doc(db,'settings','distributors'),snap=>{S.distributors=snap.exists()?snap.data().list||[]:[]; if(document.getElementById('dist-list'))renderDist(); fillFilmDistDropdown();});
   onSnapshot(doc(db,'settings','media'),snap=>{S.media=snap.exists()?snap.data().list||[]:[];if(document.getElementById('media-list'))renderMedia();});
   // Carica trailer playlist salvati
+  // Listener permessi ruoli
+  onSnapshot(doc(db,'settings','permissions'),snap=>{
+    S.permissions=snap.exists()?snap.data():{};
+    // Riapplica visibilità se utente già loggato
+    if(currentUser)applyTabVisibility(currentUser.role);
+    renderPermGrid();
+  });
   onSnapshot(doc(db,'settings','playlists'),snap=>{
     if(snap.exists()){
       var data=snap.data().trailers||{};
@@ -1839,7 +1857,7 @@ function gt(id){
   document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('on',TABS[i]===id));
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
   document.getElementById('page-'+id).classList.add('on');
-  if(id==='lista')rl();if(id==='arch')rf();if(id==='mail')rem();if(id==='staff'){renderAllDays();}if(id==='playlist')renderPlaylist();if(id==='social'&&typeof socialGenerate==='function')socialGenerate();
+  if(id==='lista')rl();if(id==='arch')rf();if(id==='mail')rem();if(id==='staff'){renderAllDays();}if(id==='playlist')renderPlaylist();if(id==='social'&&typeof socialGenerate==='function')socialGenerate();if(id==='users')renderPermGrid();
 }
 window.gt=gt;
 
@@ -5864,18 +5882,10 @@ function showApp(user,role){
   ui.style.display='flex';
   document.getElementById('userAvatar').src=user.photoURL||'';
   document.getElementById('userName').textContent=user.displayName||user.email;
-  // Tab visibility by role
-  document.getElementById('tab-users').style.display=role==='admin'?'block':'none';
-  // Segretaria: show prog (read-only) + prenotazioni only
+  // Tab visibility by role (gestito da applyTabVisibility con permessi Firestore)
+  applyTabVisibility(role);
+  // Hide prog edit buttons per segretaria e operatore senza permessi
   const isSecy=role==='segretaria';
-  const tabOrder=['prog','lista','arch','prnt','mail','book','staff','users'];
-  // Segretaria: hide lista, arch, mail — keep prog(read), prnt, book
-  ['lista','arch','mail'].forEach(function(t){
-    const idx=tabOrder.indexOf(t);
-    const tabs=document.querySelectorAll('.tab');
-    if(tabs[idx])tabs[idx].style.display=isSecy?'none':'';
-  });
-  // Hide prog edit buttons for segretaria
   document.getElementById('btnAddShow').style.display=isSecy?'none':'';
   document.getElementById('btnGlobalOpt').style.display=isSecy?'none':'';
   // Operatore cannot manage users (already hidden), but can do bookings
@@ -7415,7 +7425,9 @@ function filterPDFList(){
   var onlyNew=document.getElementById('pdf-only-new').checked;
   var existingSuisa=S.films.map(function(f){return f.suisa||'';}).filter(Boolean);
   var existingTitles=S.films.map(function(f){return f.title.toLowerCase().trim();});
+  var todayPDF=toLocalDate(new Date());
   var filtered=_pdfFilms.filter(function(f){
+    if(f.releaseIT&&f.releaseIT<todayPDF)return false;
     var titleMatch=!q||f.title.toLowerCase().includes(q);
     var isNew=!existingSuisa.includes(f.suisa)&&!existingTitles.some(function(t){
       return t===f.title.toLowerCase().trim();
@@ -7431,7 +7443,10 @@ function renderPDFList(films,filtered){
   var existingTitles=S.films.map(function(f){return f.title.toLowerCase().trim();});
   var list=document.getElementById('pdf-film-list');
   list.innerHTML='';
-  var sorted=films.slice().sort(function(a,b){return (a.releaseIT||'').localeCompare(b.releaseIT||'');});
+  var todayRender=toLocalDate(new Date());
+  var sorted=films.filter(function(f){
+    return !f.releaseIT||f.releaseIT>=todayRender;
+  }).sort(function(a,b){return (a.releaseIT||'').localeCompare(b.releaseIT||'');});
   sorted.forEach(function(film){
     var realIdx=_pdfFilms.indexOf(film);
     var alreadyExists=existingSuisa.includes(film.suisa)||existingTitles.some(function(t){
@@ -7476,10 +7491,13 @@ async function doPDFImport(){
   var btn=document.getElementById('pdf-import-btn');
   btn.disabled=true;btn.textContent='⏳ Analisi corrispondenze...';
 
+  var todayImport=toLocalDate(new Date());
   var selected=[];
   document.querySelectorAll('#pdf-film-list input[type=checkbox]:checked').forEach(function(cb){
     var film=_pdfFilms[parseInt(cb.dataset.idx)];
-    if(film)selected.push(film);
+    if(!film)return;
+    if(film.releaseIT&&film.releaseIT<todayImport)return; // salta film già usciti
+    selected.push(film);
   });
   if(!selected.length){toast('Nessun film selezionato','err');btn.disabled=false;btn.textContent='⬇ Importa e arricchisci';return;}
 
@@ -7997,6 +8015,115 @@ window.setZoom=setZoom;
     if(saved){applyZoom(parseFloat(saved));}
   }catch(e){}
 })();
+
+
+// ── PERMESSI RUOLI ────────────────────────────────────
+var TAB_LABELS={
+  prog:'📅 Programmazione',lista:'📋 Lista',arch:'🎬 Archivio Film',
+  prnt:'🖨 Stampa & PDF',mail:'📧 Email',book:'📋 Prenotazioni',
+  staff:'👥 Turni',playlist:'▶ Playlist',social:'📱 Social'
+};
+// Permessi default per ruolo (admin sempre tutto)
+var PERM_DEFAULT={
+  operator:{prog:true,lista:true,arch:true,prnt:true,mail:true,book:true,staff:true,playlist:true,social:true},
+  segretaria:{prog:true,lista:false,arch:false,prnt:true,mail:false,book:true,staff:false,playlist:false,social:false}
+};
+var PERM_TABS=Object.keys(TAB_LABELS); // ['prog','lista','arch',...]
+
+function getPermissions(role){
+  if(role==='admin')return PERM_TABS.reduce(function(o,t){o[t]=true;return o;},{});
+  var saved=S.permissions[role];
+  if(!saved){return Object.assign({},PERM_DEFAULT[role]||PERM_TABS.reduce(function(o,t){o[t]=true;return o;},{}));}
+  // merge con default per nuovi tab aggiunti in futuro
+  var base=Object.assign({},PERM_DEFAULT[role]||{});
+  return Object.assign(base,saved);
+}
+
+function applyTabVisibility(role){
+  if(role==='admin'){
+    // Admin vede tutto
+    PERM_TABS.forEach(function(t){
+      var el=document.getElementById('tab-'+t);
+      if(el)el.style.display='';
+    });
+    document.getElementById('tab-users').style.display='block';
+    var ps=document.getElementById('perm-section');if(ps)ps.style.display='block';
+    return;
+  }
+  var perms=getPermissions(role);
+  PERM_TABS.forEach(function(t){
+    var el=document.getElementById('tab-'+t);
+    if(!el)return;
+    el.style.display=perms[t]?'':'none';
+  });
+  // Tab utenti sempre nascosto per non-admin
+  var uel=document.getElementById('tab-users');if(uel)uel.style.display='none';
+  // Sezione permessi nascosta per non-admin
+  var ps=document.getElementById('perm-section');if(ps)ps.style.display='none';
+  // Se la pagina corrente non è più visibile → torna a prog
+  var activePage=document.querySelector('.page.on');
+  if(activePage){
+    var pid=activePage.id.replace('page-','');
+    if(pid!=='users'&&perms[pid]===false)gt('prog');
+  }
+}
+
+function renderPermGrid(){
+  var w=document.getElementById('perm-grid');
+  if(!w)return;
+  var roles=['operator','segretaria'];
+  var roleLabels={operator:'👤 Operatore',segretaria:'✉️ Segretaria'};
+  var html='<table style="width:100%;border-collapse:collapse;font-size:12px">';
+  // Header
+  html+='<thead><tr>';
+  html+='<th style="text-align:left;padding:8px 12px;background:var(--surf2);border:1px solid var(--bdr);font-weight:700;min-width:180px">Sezione</th>';
+  roles.forEach(function(r){
+    html+='<th style="text-align:center;padding:8px 16px;background:var(--surf2);border:1px solid var(--bdr);font-weight:700;min-width:120px">'+roleLabels[r]+'</th>';
+  });
+  html+='<th style="text-align:center;padding:8px 16px;background:var(--surf2);border:1px solid var(--bdr);font-weight:700;color:var(--acc);min-width:100px">🔑 Admin</th>';
+  html+='</tr></thead><tbody>';
+  // Righe tab
+  PERM_TABS.forEach(function(t){
+    html+='<tr>';
+    html+='<td style="padding:8px 12px;border:1px solid var(--bdr);font-weight:600">'+TAB_LABELS[t]+'</td>';
+    roles.forEach(function(r){
+      var perms=getPermissions(r);
+      var checked=perms[t]?'checked':'';
+      html+='<td style="text-align:center;padding:8px;border:1px solid var(--bdr);">';
+      html+='<input type="checkbox" class="perm-ck" data-role="'+r+'" data-tab="'+t+'" '+checked;
+      html+=' style="width:16px;height:16px;accent-color:var(--acc);cursor:pointer">';
+      html+='</td>';
+    });
+    // Admin: sempre spuntato, disabilitato
+    html+='<td style="text-align:center;padding:8px;border:1px solid var(--bdr);">';
+    html+='<input type="checkbox" checked disabled style="width:16px;height:16px;opacity:0.4;cursor:not-allowed">';
+    html+='</td>';
+    html+='</tr>';
+  });
+  html+='</tbody></table>';
+  html+='<div style="font-size:11px;color:var(--txt2);margin-top:10px">Le modifiche diventano effettive al prossimo login degli utenti coinvolti.</div>';
+  w.innerHTML=html;
+}
+window.renderPermGrid=renderPermGrid;
+
+async function permSave(){
+  // Leggi tutti i checkbox
+  var result={operator:{},segretaria:{}};
+  document.querySelectorAll('.perm-ck').forEach(function(ck){
+    var role=ck.dataset.role;var tab=ck.dataset.tab;
+    if(!result[role])result[role]={};
+    result[role][tab]=ck.checked;
+  });
+  // Salva su Firestore
+  try{
+    await fbSetDoc(db,'settings','permissions',result);
+    S.permissions=result;
+    toast('Permessi salvati','ok');
+  }catch(e){
+    toast('Errore salvataggio permessi','err');
+  }
+}
+window.permSave=permSave;
 
 function toggleTheme(){
   const isLight=document.body.classList.toggle('light');
