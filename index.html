@@ -589,7 +589,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="wlbl" id="wlbl">—</div>
     <button onclick="cw(1)">›</button>
   </div>
-  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v31/03 19:04</small>
+  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v31/03 19:43</small>
   <div class="hact">
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
     <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
@@ -1107,6 +1107,13 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
       <button class="social-tone-btn" data-t="formale" onclick="socialSetTone(this,'formale')">Formale</button>
       <button class="social-tone-btn active" data-t="friendly" onclick="socialSetTone(this,'friendly')">Friendly</button>
       <button class="social-tone-btn" data-t="conciso" onclick="socialSetTone(this,'conciso')">Conciso</button>
+    </div>
+    <div style="width:1px;height:24px;background:var(--bdr)"></div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <span style="font-size:11px;color:var(--txt2)">Layout:</span>
+      <button class="social-lay-btn active" data-l="classic" onclick="socialSetLayout(this,'classic')">Classic</button>
+      <button class="social-lay-btn" data-l="tipo" onclick="socialSetLayout(this,'tipo')">2B Tipo</button>
+      <button class="social-lay-btn" data-l="tipobg" onclick="socialSetLayout(this,'tipobg')">2B Foto</button>
     </div>
   </div>
 
@@ -5827,7 +5834,232 @@ function socialRenderCarousel(){
 }
 window.socialRenderCarousel=socialRenderCarousel;
 
+// ── LAYOUT 2B: Tipografico con orari ───────────────────────────────────────
+function drawLayout2B(ctx,film,fShows,wd,days,W,H,fmt,withBackdrop){
+  var ORA='#f0801a';
+  var DIT2=['Gio','Ven','Sab','Dom','Lun','Mar','Mer'];
+
+  // Raggruppa orari per giorno
+  var byDay={};var dayOrd=[];
+  fShows.forEach(function(s){
+    var di=wd.indexOf(s.day);if(di<0)return;
+    if(!byDay[di]){byDay[di]={times:[],date:s.day};dayOrd.push(di);}
+    if(byDay[di].times.indexOf(s.start)<0)byDay[di].times.push(s.start);
+  });
+  dayOrd.sort(function(a,b){return a-b;});
+
+  var isStory=fmt==='story';
+  var scale=W/1080;
+  var S=function(n){return Math.round(n*scale);};
+
+  // ── Sfondo nero ──────────────────────────────────────────────────────────
+  ctx.fillStyle='#0d0d0d';
+  ctx.fillRect(0,0,W,H);
+
+  // ── Backdrop (25% opacity) ───────────────────────────────────────────────
+  if(withBackdrop&&film.backdrop){
+    var img=new Image();
+    img.crossOrigin='anonymous';
+    var loaded=false;
+    img.onload=function(){
+      loaded=true;
+      ctx.save();
+      ctx.globalAlpha=0.25;
+      // Scala per coprire tutta la slide
+      var iR=img.width/img.height;
+      var sR=W/H;
+      var dw,dh,dx,dy;
+      if(iR>sR){dh=H;dw=H*iR;dx=(W-dw)/2;dy=0;}
+      else{dw=W;dh=W/iR;dx=0;dy=(H-dh)/2;}
+      ctx.drawImage(img,dx,dy,dw,dh);
+      ctx.restore();
+      // Dissolvenza verticale sopra il backdrop
+      var grad=ctx.createLinearGradient(0,0,0,H);
+      grad.addColorStop(0,'rgba(10,10,18,0.20)');
+      grad.addColorStop(0.30,'rgba(10,10,18,0.40)');
+      grad.addColorStop(0.55,'rgba(10,10,18,0.80)');
+      grad.addColorStop(0.75,'rgba(10,10,18,0.96)');
+      grad.addColorStop(1,'rgba(10,10,18,1.0)');
+      ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
+      drawLayout2BContent(ctx,film,byDay,dayOrd,DIT2,W,H,fmt,scale,S,ORA,isStory);
+    };
+    img.onerror=function(){
+      drawLayout2BContent(ctx,film,byDay,dayOrd,DIT2,W,H,fmt,scale,S,ORA,isStory);
+    };
+    img.src=film.backdrop;
+    // Timeout fallback nel caso l'immagine non carichi
+    setTimeout(function(){
+      if(!loaded)drawLayout2BContent(ctx,film,byDay,dayOrd,DIT2,W,H,fmt,scale,S,ORA,isStory);
+    },3000);
+    return; // il resto verrà disegnato in onload
+  }
+
+  drawLayout2BContent(ctx,film,byDay,dayOrd,DIT2,W,H,fmt,scale,S,ORA,isStory);
+}
+window.drawLayout2B=drawLayout2B;
+
+function drawLayout2BContent(ctx,film,byDay,dayOrd,DIT2,W,H,fmt,scale,S,ORA,isStory){
+  // ── Cerchi geometrici decorativi ──────────────────────────────────────────
+  ctx.save();ctx.globalAlpha=0.08;ctx.strokeStyle=ORA;ctx.lineWidth=S(1);
+  ctx.beginPath();ctx.arc(W*0.85,H*-0.05,S(260),0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.arc(W*0.85,H*-0.05,S(180),0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.arc(W*0.05,H*0.95,S(340),0,Math.PI*2);ctx.stroke();
+  ctx.restore();
+
+  // ── Linee geometriche ─────────────────────────────────────────────────────
+  ctx.save();ctx.globalAlpha=0.06;ctx.strokeStyle=ORA;ctx.lineWidth=S(1);
+  ctx.beginPath();ctx.moveTo(0,H*0.42);ctx.lineTo(W,H*0.42);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(W*0.44,0);ctx.lineTo(W*0.44,H);ctx.stroke();
+  ctx.restore();
+
+  // ── Banda arancio superiore ───────────────────────────────────────────────
+  ctx.fillStyle=ORA;ctx.globalAlpha=0.9;ctx.fillRect(0,0,W,S(4));
+  ctx.fillStyle=ORA;ctx.globalAlpha=0.35;ctx.fillRect(0,H-S(3),W,S(3));
+  ctx.globalAlpha=1;
+
+  var PL=S(52);  // padding left
+  var PR=S(52);  // padding right
+  var PT=S(52);  // padding top
+
+  // ── Logo cinema (in alto a sinistra) ──────────────────────────────────────
+  var logoH=S(34);
+  if(typeof NEWS_LOGO!=='undefined'&&NEWS_LOGO){
+    try{
+      var li=new Image();li.src=NEWS_LOGO;
+      if(li.complete&&li.naturalWidth>0){
+        var lw=logoH*(li.naturalWidth/li.naturalHeight);
+        ctx.drawImage(li,PL,PT,lw,logoH);
+      }else{
+        ctx.font='700 '+S(18)+'px Arial';ctx.fillStyle=ORA;
+        ctx.fillText('CINEMA',PL,PT+S(22));
+      }
+    }catch(e){
+      ctx.font='700 '+S(18)+'px Arial';ctx.fillStyle=ORA;
+      ctx.fillText('CINEMA',PL,PT+S(22));
+    }
+  }else{
+    ctx.font='700 '+S(18)+'px Arial';ctx.fillStyle=ORA;
+    ctx.fillText('CINEMA',PL,PT+S(22));
+  }
+
+  // ── Nome cinema (in alto a destra) ────────────────────────────────────────
+  ctx.font='700 '+S(13)+'px Arial';
+  ctx.fillStyle='rgba(255,255,255,0.30)';
+  ctx.textAlign='right';
+  ctx.fillText('TEATRO',W-PR,PT+S(16));
+  ctx.fillText('MENDRISIO',W-PR,PT+S(32));
+  ctx.textAlign='left';
+
+  var cy=PT+S(72); // cursore verticale
+
+  // ── Regista ───────────────────────────────────────────────────────────────
+  if(film.director){
+    ctx.font='700 '+S(17)+'px Arial';
+    ctx.fillStyle='rgba(255,255,255,0.55)';
+    ctx.letterSpacing=S(2)+'px';
+    ctx.fillText((film.director).toUpperCase(),PL,cy);
+    ctx.letterSpacing='0px';
+    cy+=S(30);
+  }
+
+  // ── Badge novità ──────────────────────────────────────────────────────────
+  ctx.font='700 '+S(16)+'px Arial';
+  ctx.fillStyle=ORA;
+  ctx.fillText('— NOVITÀ IN SALA',PL,cy);
+  cy+=S(28);
+
+  // ── Titolo grande ─────────────────────────────────────────────────────────
+  var titleWords=film.title.toUpperCase().split(' ');
+  var line1='',line2='';
+  // Divide il titolo in 2 righe max
+  ctx.font='900 '+S(82)+'px Arial';
+  var maxW=W-PL-PR;
+  if(ctx.measureText(film.title.toUpperCase()).width<=maxW){
+    line1=film.title.toUpperCase();
+  }else{
+    var mid=Math.ceil(titleWords.length/2);
+    line1=titleWords.slice(0,mid).join(' ');
+    line2=titleWords.slice(mid).join(' ');
+  }
+  ctx.fillStyle='#ffffff';
+  ctx.fillText(line1,PL,cy+S(78));
+  if(line2){ctx.fillText(line2,PL,cy+S(160));cy+=S(82);}
+  cy+=S(100);
+
+  // ── Meta (durata · rating · genere) ──────────────────────────────────────
+  var metaParts=[film.duration?Math.floor(film.duration/60)+'h'+String(film.duration%60).padStart(2,'0'):null,film.rating,film.genre].filter(Boolean);
+  if(metaParts.length){
+    ctx.font=S(17)+'px Arial';
+    ctx.fillStyle='rgba(255,255,255,0.45)';
+    ctx.letterSpacing=S(1.5)+'px';
+    ctx.fillText(metaParts.join(' · ').toUpperCase(),PL,cy);
+    ctx.letterSpacing='0px';
+    cy+=S(28);
+  }
+
+  // ── Cast (max 5 nomi) ─────────────────────────────────────────────────────
+  if(film.cast){
+    var castNames=film.cast.split(',').map(function(n){return n.trim();}).filter(Boolean).slice(0,5);
+    ctx.font=S(16)+'px Arial';
+    ctx.fillStyle='rgba(255,255,255,0.5)';
+    ctx.fillText(castNames.join(' · '),PL,cy);
+    cy+=S(26);
+  }
+  cy+=S(8);
+
+  // ── Riga arancio ──────────────────────────────────────────────────────────
+  ctx.fillStyle=ORA;ctx.fillRect(PL,cy,S(50),S(3));
+  cy+=S(24);
+
+  // ── Tabella orari ─────────────────────────────────────────────────────────
+  var rowH=S(32);
+  dayOrd.forEach(function(di){
+    var dayLabel=DIT2[di].toUpperCase();
+    var times=byDay[di].times.slice().sort();
+
+    // Giorno
+    ctx.font='700 '+S(18)+'px Arial';
+    ctx.fillStyle='rgba(255,255,255,0.75)';
+    ctx.letterSpacing=S(1)+'px';
+    ctx.fillText(dayLabel,PL,cy+S(18));
+    ctx.letterSpacing='0px';
+
+    // Puntini tratteggiati
+    var dotsX=PL+S(58);
+    var dotsEndX=W-PR-S(110);
+    ctx.save();ctx.setLineDash([S(2),S(5)]);
+    ctx.strokeStyle='rgba(255,255,255,0.18)';ctx.lineWidth=S(1);
+    ctx.beginPath();ctx.moveTo(dotsX,cy+S(12));ctx.lineTo(dotsEndX,cy+S(12));ctx.stroke();
+    ctx.restore();
+
+    // Orari — tutti stessa dimensione, separati da ·
+    ctx.font='700 '+S(26)+'px "Courier New",monospace';
+    ctx.fillStyle=ORA;
+    ctx.textAlign='right';
+    ctx.fillText(times.join('  ·  '),W-PR,cy+S(22));
+    ctx.textAlign='left';
+
+    cy+=rowH;
+  });
+
+  // ── Footer ────────────────────────────────────────────────────────────────
+  ctx.font=S(14)+'px Arial';
+  ctx.fillStyle='rgba(255,255,255,0.25)';
+  ctx.fillText('mendrisiocinema.ch  ·  Via Vincenzo Vela 2, Mendrisio',PL,H-S(22));
+
+  // ── Corner accent ─────────────────────────────────────────────────────────
+  ctx.strokeStyle='rgba(240,128,26,0.5)';ctx.lineWidth=S(3);
+  ctx.beginPath();ctx.moveTo(W-PR,H-S(42));ctx.lineTo(W-PR,H-S(22));ctx.lineTo(W-PR-S(20),H-S(22));ctx.stroke();
+}
+window.drawLayout2BContent=drawLayout2BContent;
+
+
 function drawSlideText(ctx,film,fShows,wd,days,W,H,fmt){
+  // ── Dispatcher layout ────────────────────────────────────────────────
+  var layout=window._socialLayout||'classic';
+  if(layout==='tipo')   {drawLayout2B(ctx,film,fShows,wd,days,W,H,fmt,false);return;}
+  if(layout==='tipobg') {drawLayout2B(ctx,film,fShows,wd,days,W,H,fmt,true);return;}
+  // layout==='classic' → continua con il codice originale
   var isStory=fmt==='story';
   var isLand=fmt==='landscape';
   var DIT2=['Gio','Ven','Sab','Dom','Lun','Mar','Mer'];
