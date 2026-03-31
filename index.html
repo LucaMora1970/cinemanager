@@ -589,7 +589,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="wlbl" id="wlbl">—</div>
     <button onclick="cw(1)">›</button>
   </div>
-  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v31/03 22:09</small>
+  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v31/03 22:18</small>
   <div class="hact">
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
     <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
@@ -5991,6 +5991,24 @@ function drawLayout2B(ctx,film,fShows,wd,days,W,H,fmt,withBackdrop){
 window.drawLayout2B=drawLayout2B;
 
 function drawLayout2BContent(ctx,film,byDay,dayOrd,DIT2,W,H,fmt,scale,S,ORA,isStory){
+  var isTypoBg=(window._socialLayout==='tipobg');
+
+  // ── Sfondo: nero puro per tipo, gradient dissolvenza per tipobg ──────────
+  if(!isTypoBg){
+    ctx.fillStyle='#0d0d0d';
+    ctx.fillRect(0,0,W,H);
+  } else {
+    // Dissolvenza verticale sopra il backdrop già disegnato nel canvas
+    var bdGrad=ctx.createLinearGradient(0,0,0,H);
+    bdGrad.addColorStop(0,'rgba(10,10,18,0.20)');
+    bdGrad.addColorStop(0.30,'rgba(10,10,18,0.45)');
+    bdGrad.addColorStop(0.55,'rgba(10,10,18,0.82)');
+    bdGrad.addColorStop(0.75,'rgba(10,10,18,0.96)');
+    bdGrad.addColorStop(1.0,'rgba(10,10,18,1.00)');
+    ctx.fillStyle=bdGrad;
+    ctx.fillRect(0,0,W,H);
+  }
+
   // ── Cerchi geometrici decorativi ──────────────────────────────────────────
   ctx.save();ctx.globalAlpha=0.08;ctx.strokeStyle=ORA;ctx.lineWidth=S(1);
   ctx.beginPath();ctx.arc(W*0.85,H*-0.05,S(260),0,Math.PI*2);ctx.stroke();
