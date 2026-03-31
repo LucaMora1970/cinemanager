@@ -589,7 +589,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="wlbl" id="wlbl">—</div>
     <button onclick="cw(1)">›</button>
   </div>
-  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v31/03 20:29</small>
+  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v31/03 21:01</small>
   <div class="hact">
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
     <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
@@ -1998,6 +1998,8 @@ function cw(n){
   S.ws=new Date(S.ws);
   S.ws.setDate(S.ws.getDate()+n*7);
   refreshCurrentPage();
+
+  if(document.getElementById('page-social')?.classList.contains('on'))socialGenerate();
 }
 window.cw=cw;
 
@@ -8095,8 +8097,16 @@ function renderPDFList(films,filtered){
   var list=document.getElementById('pdf-film-list');
   list.innerHTML='';
   var todayRender=toLocalDate(new Date());
+  // Finestra: oggi-15gg ≤ releaseIT ≤ oggi+10mesi
+  var dMinus15=new Date();dMinus15.setDate(dMinus15.getDate()-15);
+  var dMinus15Str=toLocalDate(dMinus15);
+  var dPlus10m=new Date();dPlus10m.setMonth(dPlus10m.getMonth()+10);
+  var dPlus10mStr=toLocalDate(dPlus10m);
   var sorted=films.filter(function(f){
-    return !f.releaseIT||f.releaseIT>=todayRender;
+    if(!f.releaseIT)return true; // senza data: mostra sempre
+    if(f.releaseIT<dMinus15Str)return false; // uscito da più di 15 giorni: escludi
+    if(f.releaseIT>dPlus10mStr)return false; // più di 10 mesi nel futuro: escludi
+    return true;
   }).sort(function(a,b){return (a.releaseIT||'').localeCompare(b.releaseIT||'');});
   sorted.forEach(function(film){
     var realIdx=_pdfFilms.indexOf(film);
@@ -8346,35 +8356,64 @@ async function doConfirmedImport(){
 window.doConfirmedImport=doConfirmedImport;
 
 async function importMatched(items){
+  var newCount=0;var updCount=0;
   for(var i=0;i<items.length;i++){
     var pf=items[i].pf;var api=items[i].api;
-    var id=uid();
     var trailerId='';
     if(api&&api.url_trailer){var mt=api.url_trailer.match(/[\w-]{11}/);trailerId=mt?mt[0]:'';}
-    var filmDoc={
-      id:id,
-      title:api?api.title:pf.title,
-      titleOriginal:pf.title,
-      duration:api?parseInt(api.length)||0:0,
-      genre:api?api.genre||pf.genre||'':pf.genre||'',
-      director:api?api.director||'':'',
-      rating:pf.age&&pf.age!=='-'?pf.age+'anni':(api&&api.age&&api.age!=='n/p'?api.age:''),
-      release:pf.releaseIT||'',endDate:'',
-      poster:(api&&api.playbill_path&&!api.playbill_path.includes('noposter'))?api.playbill_path:'',
-      backdrop:(api&&api.backdrop_path&&!api.backdrop_path.includes('noposter'))?('https://image.tmdb.org/t/p/w780'+api.backdrop_path):'',
-      description:api?api.plot?api.plot.slice(0,300):'':'',
-      distributor:pf.distributor||'',
-      ticketUrl:api?api.film_url_for_cinema||'':'',
-      trailer:trailerId,
-      cast:api?api.cast||'':'',
-      language:api?api.language||'':'',
-      suisa:pf.suisa||'',
-      apiId:api?api.original_id||null:null
-    };
-    await setDoc(doc(db,'films',id),filmDoc);
-    // Auto-aggiunge distributore alla lista email se nuovo
-    if(filmDoc.distributor)importAutoAddDistributor(filmDoc.distributor);
+
+    // Cerca film esistente per SUISA (più affidabile) o titolo
+    var existing=null;
+    if(pf.suisa){
+      existing=S.films.find(function(x){return x.suisa&&x.suisa===pf.suisa;});
+    }
+    if(!existing){
+      var tn=(api?api.title:pf.title).toLowerCase().trim();
+      existing=S.films.find(function(x){return x.title.toLowerCase().trim()===tn;});
+    }
+
+    if(existing){
+      // ── AGGIORNAMENTO: solo SUISA, distributore, data release (Ticino) ──
+      var patched=Object.assign({},existing,{
+        suisa:pf.suisa||existing.suisa||'',
+        distributor:pf.distributor||existing.distributor||'',
+        release:pf.releaseIT||existing.release||''
+      });
+      await setDoc(doc(db,'films',existing.id),patched);
+      if(pf.distributor)importAutoAddDistributor(pf.distributor);
+      updCount++;
+    } else {
+      // ── NUOVO INSERIMENTO ──────────────────────────────────────────────
+      var id=uid();
+      var filmDoc={
+        id:id,
+        title:api?api.title:pf.title,
+        titleOriginal:pf.title,
+        duration:api?parseInt(api.length)||0:0,
+        genre:api?api.genre||pf.genre||'':pf.genre||'',
+        director:api?api.director||'':'',
+        rating:pf.age&&pf.age!=='-'?pf.age+'anni':(api&&api.age&&api.age!=='n/p'?api.age:''),
+        release:pf.releaseIT||'',endDate:'',
+        poster:(api&&api.playbill_path&&!api.playbill_path.includes('noposter'))?api.playbill_path:'',
+        backdrop:(api&&api.backdrop_path&&!api.backdrop_path.includes('noposter'))?('https://image.tmdb.org/t/p/w780'+api.backdrop_path):'',
+        description:api?api.plot?api.plot.slice(0,300):'':'',
+        distributor:pf.distributor||'',
+        ticketUrl:api?api.film_url_for_cinema||'':'',
+        trailer:trailerId,
+        cast:api?api.cast||'':'',
+        language:api?api.language||'':'',
+        suisa:pf.suisa||'',
+        apiId:api?api.original_id||null:null
+      };
+      await setDoc(doc(db,'films',id),filmDoc);
+      if(filmDoc.distributor)importAutoAddDistributor(filmDoc.distributor);
+      newCount++;
+    }
   }
+  var msg=[];
+  if(newCount)msg.push(newCount+' nuovi');
+  if(updCount)msg.push(updCount+' aggiornati (SUISA/dist/data)');
+  toast((msg.join(', ')||'Nessuna modifica')+' film importati da ProCinema','ok');
 }
 window.importMatched=importMatched;
 
