@@ -1984,6 +1984,9 @@ function gt(id){
   document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('on',TABS[i]===id));
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
   document.getElementById('page-'+id).classList.add('on');
+  // perm-section visibile SOLO nella tab Utenti per admin
+  var _ps=document.getElementById('perm-section');
+  if(_ps)_ps.style.display=(id==='users'&&window._userRole==='admin')?'block':'none';
   if(id==='lista')rl();if(id==='arch')rf();if(id==='mail')rem();if(id==='staff'){renderAllDays();}if(id==='playlist')renderPlaylist();if(id==='social'&&typeof socialGenerate==='function')socialGenerate();if(id==='users')renderPermGrid();if(id==='news')newsInit();
 }
 window.gt=gt;
@@ -8264,7 +8267,7 @@ function applyTabVisibility(role){
       if(el)el.style.display='';
     });
     document.getElementById('tab-users').style.display='block';
-    var ps=document.getElementById('perm-section');if(ps)ps.style.display='block';
+    // perm-section gestita da gt()
     return;
   }
   var perms=getPermissions(role);
@@ -8276,7 +8279,7 @@ function applyTabVisibility(role){
   // Tab utenti sempre nascosto per non-admin
   var uel=document.getElementById('tab-users');if(uel)uel.style.display='none';
   // Sezione permessi nascosta per non-admin
-  var ps=document.getElementById('perm-section');if(ps)ps.style.display='none';
+  // perm-section gestita da gt()
   // Se la pagina corrente non è più visibile → torna a prog
   var activePage=document.querySelector('.page.on');
   if(activePage){
