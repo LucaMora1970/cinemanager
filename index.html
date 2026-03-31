@@ -589,7 +589,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="wlbl" id="wlbl">—</div>
     <button onclick="cw(1)">›</button>
   </div>
-  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v31/03 20:07</small>
+  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v31/03 20:29</small>
   <div class="hact">
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
     <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
@@ -1350,6 +1350,9 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
         <input type="text" id="imp-search" placeholder="Cerca film..." style="flex:1" oninput="filterImportList()">
         <label style="font-size:12px;display:flex;align-items:center;gap:5px;white-space:nowrap;cursor:pointer">
           <input type="checkbox" id="imp-only-new" checked onchange="filterImportList()"> Solo nuovi
+        </label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--txt2);cursor:pointer">
+          <input type="checkbox" id="imp-update-existing" checked> Aggiorna esistenti
         </label>
       </div>
       <div id="imp-film-list" style="max-height:340px;overflow-y:auto;display:flex;flex-direction:column;gap:5px"></div>
@@ -7704,7 +7707,10 @@ function renderImportList(films,filtered){
     var isPast=film.start_date&&film.start_date<toLocalDate(new Date());
 
     var row=document.createElement('div');
-    row.style.cssText='display:flex;align-items:flex-start;gap:10px;padding:7px 10px;background:var(--surf2);border:1px solid var(--bdr);border-radius:6px;'+(alreadyExists?'opacity:.45':'');
+    var updateMode=document.getElementById('imp-update-existing')?.checked;
+    row.style.cssText='display:flex;align-items:flex-start;gap:10px;padding:7px 10px;background:var(--surf2);border:1px solid var(--bdr);border-radius:6px;'
+      +(alreadyExists&&!updateMode?'opacity:.45':'')
+      +(alreadyExists&&updateMode?'border-color:rgba(240,128,26,.5);':'');
 
     var cb=document.createElement('input');
     cb.type='checkbox';cb.dataset.idx=realIdx>=0?realIdx:idx;
@@ -7751,56 +7757,133 @@ function updateImportCount(){
 }
 window.updateImportCount=updateImportCount;
 
+// ── Auto-aggiorna lista distributori da import ───────────────────────────
+async function importAutoAddDistributor(name){
+  if(!name||!name.trim())return;
+  var n=name.trim();
+  if(!S.distributors)S.distributors=[];
+  // Controlla se esiste già (case-insensitive)
+  var exists=S.distributors.find(function(d){return d.name.toLowerCase()===n.toLowerCase();});
+  if(exists)return; // già presente
+  // Aggiunge con lista contatti vuota
+  S.distributors.push({name:n,contacts:[]});
+  try{
+    await fbSetDoc(db,'settings','distributors',{list:S.distributors});
+    if(document.getElementById('dist-list'))renderDist();
+    fillDistDropdown();
+    fillFilmDistDropdown();
+  }catch(e){console.warn('importAutoAddDistributor error',e);}
+}
+window.importAutoAddDistributor=importAutoAddDistributor;
+
+
 async function doImport(){
   var btn=document.getElementById('imp-import-btn');
   btn.disabled=true;btn.textContent='⏳ Importazione...';
+  var updateExisting=document.getElementById('imp-update-existing')?.checked!==false;
   var selected=[];
   document.querySelectorAll('#imp-film-list input[type=checkbox]:checked').forEach(function(cb){
     var film=_importedFilms[parseInt(cb.dataset.idx)];
     if(film)selected.push(film);
   });
-  var imported=0;
+  var imported=0;var updated=0;
   for(var i=0;i<selected.length;i++){
     var f=selected[i];
-    var id=uid();
     var trailerRaw=f.url_trailer||'';
     var trailerId=trailerRaw.match(/[\w-]{11}/)?trailerRaw.match(/[\w-]{11}/)[0]:'';
-    var filmDoc={
-      id:id,
-      title:f.title||'',
-      duration:parseInt(f.length)||0,
-      genre:f.genre||'',
-      director:f.director||'',
-      rating:f.age&&f.age!=='n/p'?f.age:'',
-      release:f.start_date||'',
-      endDate:'',
-      poster:(f.playbill_path&&!f.playbill_path.includes('noposter'))?f.playbill_path:'',
-      backdrop:'',
-      description:f.plot?f.plot.slice(0,300):'',
-      distributor:'',
-      ticketUrl:f.film_url_for_cinema||f.film_url||'',
-      trailer:trailerId,
-      cast:f.cast||'',
-      language:f.language||'',
-      country:f.country_name||'',
-      tmdbId:f.tmdb_id||null,
-      apiId:f.original_id||null
-    };
-    await setDoc(doc(db,'films',id),filmDoc);
-    imported++;
-    // Recupero backdrop TMDB in background se disponibile
-    if(filmDoc.tmdbId&&TMDB_API_KEY&&!filmDoc.backdrop){
-      tmdbAutoBackdrop(id,filmDoc.tmdbId).then(function(imgs){
-        if(imgs&&imgs.backdrop){
-          var patched=Object.assign({},filmDoc,{backdrop:imgs.backdrop});
-          if(!filmDoc.poster&&imgs.poster)patched.poster=imgs.poster;
-          fbSetDoc(db,'films',id,patched).catch(function(){});
-        }
-      });
+
+    // ── Cerca film esistente per apiId (più affidabile) o per titolo ────────
+    var apiId=f.original_id||null;
+    var existing=null;
+    if(apiId){
+      existing=S.films.find(function(x){return x.apiId===apiId||x.apiId===String(apiId);});
     }
+    if(!existing){
+      var titleNorm=f.title.toLowerCase().trim();
+      existing=S.films.find(function(x){return x.title.toLowerCase().trim()===titleNorm;});
+    }
+
+    if(existing&&updateExisting){
+      // ── AGGIORNAMENTO: mantieni i campi manuali, aggiorna quelli dall'API ─
+      var newPoster=(f.playbill_path&&!f.playbill_path.includes('noposter'))?f.playbill_path:'';
+      // Distributore: ProCinema (f.distributor) ha precedenza, poi existing
+      var newDist=f.distributor?f.distributor.trim():'';
+      var finalDist=newDist||existing.distributor||'';
+      var patched=Object.assign({},existing,{
+        title:f.title||existing.title,
+        duration:parseInt(f.length)||existing.duration,
+        genre:f.genre||existing.genre,
+        director:f.director||existing.director,
+        rating:(f.age&&f.age!=='n/p')?f.age:existing.rating,
+        release:f.start_date||existing.release,
+        poster:newPoster||existing.poster,
+        cast:existing.cast||f.cast||'',
+        description:existing.description||(f.plot?f.plot.slice(0,300):''),
+        distributor:finalDist,
+        ticketUrl:f.film_url_for_cinema||f.film_url||existing.ticketUrl||'',
+        tmdbId:f.tmdb_id||existing.tmdbId||null,
+        apiId:apiId||existing.apiId||null
+      });
+      // Auto-aggiunge distributore alla lista email se nuovo
+      if(finalDist)importAutoAddDistributor(finalDist);
+      await fbSetDoc(db,'films',existing.id,patched);
+      updated++;
+      // Recupero backdrop TMDB se manca ancora
+      if(patched.tmdbId&&TMDB_API_KEY&&!patched.backdrop){
+        tmdbAutoBackdrop(existing.id,patched.tmdbId).then(function(imgs){
+          if(imgs&&imgs.backdrop){
+            var p2=Object.assign({},patched,{backdrop:imgs.backdrop});
+            if(!patched.poster&&imgs.poster)p2.poster=imgs.poster;
+            fbSetDoc(db,'films',existing.id,p2).catch(function(){});
+          }
+        });
+      }
+    } else if(!existing){
+      // ── NUOVO INSERIMENTO ────────────────────────────────────────────────
+      var id=uid();
+      var newFilmDist=f.distributor?f.distributor.trim():'';
+      var filmDoc={
+        id:id,
+        title:f.title||'',
+        duration:parseInt(f.length)||0,
+        genre:f.genre||'',
+        director:f.director||'',
+        rating:(f.age&&f.age!=='n/p')?f.age:'',
+        release:f.start_date||'',
+        endDate:'',
+        poster:(f.playbill_path&&!f.playbill_path.includes('noposter'))?f.playbill_path:'',
+        backdrop:'',
+        description:f.plot?f.plot.slice(0,300):'',
+        distributor:newFilmDist,
+        ticketUrl:f.film_url_for_cinema||f.film_url||'',
+        trailer:trailerId,
+        cast:f.cast||'',
+        language:f.language||'',
+        country:f.country_name||'',
+        tmdbId:f.tmdb_id||null,
+        apiId:apiId
+      };
+      // Auto-aggiunge distributore alla lista email se nuovo
+      if(newFilmDist)importAutoAddDistributor(newFilmDist);
+      await fbSetDoc(db,'films',id,filmDoc);
+      imported++;
+      if(filmDoc.tmdbId&&TMDB_API_KEY&&!filmDoc.backdrop){
+        tmdbAutoBackdrop(id,filmDoc.tmdbId).then(function(imgs){
+          if(imgs&&imgs.backdrop){
+            var p2=Object.assign({},filmDoc,{backdrop:imgs.backdrop});
+            if(!filmDoc.poster&&imgs.poster)p2.poster=imgs.poster;
+            fbSetDoc(db,'films',id,p2).catch(function(){});
+          }
+        });
+      }
+    }
+    // se existing && !updateExisting → skip silenzioso
   }
   co('ovImport');
-  toast(imported+' film importati'+(TMDB_API_KEY?' — immagini TMDB in recupero...':''),'ok');
+  var msg=[];
+  if(imported>0)msg.push(imported+' nuovi');
+  if(updated>0)msg.push(updated+' aggiornati');
+  toast((msg.join(', ')||'Nessuna modifica')+' film'+(TMDB_API_KEY?' — TMDB in recupero...':''),'ok');
   rf();
 }
 window.doImport=doImport;
@@ -8022,7 +8105,10 @@ function renderPDFList(films,filtered){
     });
     var dateLabel=film.releaseIT?film.releaseIT.split('-').reverse().join('/'):'';
     var row=document.createElement('div');
-    row.style.cssText='display:flex;align-items:flex-start;gap:10px;padding:7px 10px;background:var(--surf2);border:1px solid var(--bdr);border-radius:6px;'+(alreadyExists?'opacity:.45':'');
+    var updateMode=document.getElementById('imp-update-existing')?.checked;
+    row.style.cssText='display:flex;align-items:flex-start;gap:10px;padding:7px 10px;background:var(--surf2);border:1px solid var(--bdr);border-radius:6px;'
+      +(alreadyExists&&!updateMode?'opacity:.45':'')
+      +(alreadyExists&&updateMode?'border-color:rgba(240,128,26,.5);':'');
     var cb=document.createElement('input');
     cb.type='checkbox';cb.dataset.idx=realIdx>=0?realIdx:0;
     cb.checked=!alreadyExists;cb.style.cssText='margin-top:4px;flex-shrink:0';
@@ -8286,6 +8372,8 @@ async function importMatched(items){
       apiId:api?api.original_id||null:null
     };
     await setDoc(doc(db,'films',id),filmDoc);
+    // Auto-aggiunge distributore alla lista email se nuovo
+    if(filmDoc.distributor)importAutoAddDistributor(filmDoc.distributor);
   }
 }
 window.importMatched=importMatched;
