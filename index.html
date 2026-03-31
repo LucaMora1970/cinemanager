@@ -1850,7 +1850,7 @@ const OA_SALES={'OA1':{n:'CineTour A',col:'#0d5c8a'},'OA2':{n:'CineTour B',col:'
 const sn=id=>SALE[id]?.n||(OA_SALES[id]?.n)||'Sala '+id;
 
 // ── STATE ─────────────────────────────────────────────────
-let S={films:[],shows:[],bookings:[],staff:[],shifts:[],emails:[],ws:thurDay(new Date()),permissions:{},distributors:[],media:[]};
+let S={films:[],shows:[],bookings:[],staff:[],shifts:[],emails:[],ws:'',permissions:{},distributors:[],media:[]};
 
 // ── DATE ──────────────────────────────────────────────────
 function thurDay(d){const dt=new Date(d),dy=dt.getDay(),diff=dy>=4?dy-4:dy+3;dt.setDate(dt.getDate()-diff);dt.setHours(0,0,0,0);return dt;}
