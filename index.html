@@ -589,7 +589,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="wlbl" id="wlbl">—</div>
     <button onclick="cw(1)">›</button>
   </div>
-  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v31/03 19:43</small>
+  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v31/03 20:07</small>
   <div class="hact">
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
     <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
@@ -3467,6 +3467,13 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:8.5px;color:#111;backgroun
   border:1.5px solid var(--bdr);background:var(--surf2);color:var(--txt2);
   transition:all .15s;
 }
+.social-lay-btn{
+  padding:5px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;
+  border:1.5px solid var(--bdr);background:var(--surf2);color:var(--txt2);
+  transition:all .15s;
+}
+.social-lay-btn.active{background:#f0801a;color:#fff;border-color:#f0801a;}
+.social-lay-btn:hover:not(.active){background:var(--surf);}
 .social-plat-btn.active,.social-tone-btn.active{
   border-color:var(--acc);background:rgba(232,200,74,.12);color:var(--acc);
 }
@@ -3728,6 +3735,13 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:8.5px;color:#111;backgroun
   border:1.5px solid var(--bdr);background:var(--surf2);color:var(--txt2);
   transition:all .15s;
 }
+.social-lay-btn{
+  padding:5px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;
+  border:1.5px solid var(--bdr);background:var(--surf2);color:var(--txt2);
+  transition:all .15s;
+}
+.social-lay-btn.active{background:#f0801a;color:#fff;border-color:#f0801a;}
+.social-lay-btn:hover:not(.active){background:var(--surf);}
 .social-plat-btn.active,.social-tone-btn.active{
   border-color:var(--acc);background:rgba(232,200,74,.12);color:var(--acc);
 }
@@ -5564,6 +5578,14 @@ function socialSetTone(btn,t){
   document.querySelectorAll('.social-tone-btn').forEach(function(b){b.classList.remove('active');});
   btn.classList.add('active');_socialTone=t;socialGenerate();
 }
+var _socialLayout='classic';
+function socialSetLayout(btn,layout){
+  document.querySelectorAll('.social-lay-btn').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  window._socialLayout=layout;
+  socialGenerate();
+}
+window.socialSetLayout=socialSetLayout;
 window.socialSetTone=socialSetTone;
 
 function socialGenerate(){
@@ -5571,7 +5593,29 @@ function socialGenerate(){
   var allShows=S.shows.filter(function(s){return wd.includes(s.day);});
   var filmIds=[...new Set(allShows.map(function(s){return s.filmId;}))];
   var weekFilms=filmIds.map(function(id){return S.films.find(function(f){return f.id===id;});})
-    .filter(Boolean).sort(function(a,b){return a.title.localeCompare(b.title,'it');});
+    .filter(Boolean);
+
+  // ── Ordina: 1) nuove uscite settimana corrente, 2) più spettacoli, 3) priorità manuale, 4) alfabetico
+  var d14s=wd.length?wd[0]:'';
+  var d7s=wd.length?wd[wd.length-1]:'';
+  weekFilms.sort(function(a,b){
+    // Spettacoli questa settimana
+    var aShows=allShows.filter(function(s){return s.filmId===a.id;}).length;
+    var bShows=allShows.filter(function(s){return s.filmId===b.id;}).length;
+    // Nuova uscita = release dentro la settimana corrente
+    var aIsNew=a.release&&a.release>=d14s&&a.release<=d7s;
+    var bIsNew=b.release&&b.release>=d14s&&b.release<=d7s;
+    if(aIsNew&&!bIsNew)return -1;
+    if(!aIsNew&&bIsNew)return 1;
+    // Più spettacoli prima
+    if(bShows!==aShows)return bShows-aShows;
+    // Poi data release: più recente prima (nuovo→vecchio)
+    if(a.release&&b.release){var rc=b.release.localeCompare(a.release);if(rc!==0)return rc;}
+    if(a.release&&!b.release)return -1;
+    if(!a.release&&b.release)return 1;
+    // Infine alfabetico
+    return a.title.localeCompare(b.title,'it');
+  });
 
   // Week label
   var wl=document.getElementById('social-week');
@@ -5754,7 +5798,29 @@ function socialRenderCarousel(){
   var allShows=S.shows.filter(function(s){return wd.includes(s.day);});
   var filmIds=[...new Set(allShows.map(function(s){return s.filmId;}))];
   var weekFilms=filmIds.map(function(id){return S.films.find(function(f){return f.id===id;});})
-    .filter(Boolean).sort(function(a,b){return a.title.localeCompare(b.title,'it');});
+    .filter(Boolean);
+
+  // ── Ordina: 1) nuove uscite settimana corrente, 2) più spettacoli, 3) priorità manuale, 4) alfabetico
+  var d14s=wd.length?wd[0]:'';
+  var d7s=wd.length?wd[wd.length-1]:'';
+  weekFilms.sort(function(a,b){
+    // Spettacoli questa settimana
+    var aShows=allShows.filter(function(s){return s.filmId===a.id;}).length;
+    var bShows=allShows.filter(function(s){return s.filmId===b.id;}).length;
+    // Nuova uscita = release dentro la settimana corrente
+    var aIsNew=a.release&&a.release>=d14s&&a.release<=d7s;
+    var bIsNew=b.release&&b.release>=d14s&&b.release<=d7s;
+    if(aIsNew&&!bIsNew)return -1;
+    if(!aIsNew&&bIsNew)return 1;
+    // Più spettacoli prima
+    if(bShows!==aShows)return bShows-aShows;
+    // Poi data release: più recente prima (nuovo→vecchio)
+    if(a.release&&b.release){var rc=b.release.localeCompare(a.release);if(rc!==0)return rc;}
+    if(a.release&&!b.release)return -1;
+    if(!a.release&&b.release)return 1;
+    // Infine alfabetico
+    return a.title.localeCompare(b.title,'it');
+  });
 
   var fmt=document.getElementById('social-img-fmt')?document.getElementById('social-img-fmt').value:'square';
   var W=fmt==='story'?405:fmt==='landscape'?540:405;
