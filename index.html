@@ -589,7 +589,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="wlbl" id="wlbl">—</div>
     <button onclick="cw(1)">›</button>
   </div>
-  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v01/04 15:45</small>
+  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v01/04 16:00</small>
   <div class="hact">
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
     <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
@@ -733,6 +733,12 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
       <p style="font-size:12px;color:var(--txt2);margin-bottom:10px">Una pagina per film: tabella verde con orari + locandina. Da vetrina.</p>
       <button class="btn ba" onclick="pPDF('cartelli')">⬇ Scarica PDF</button>
     </div>
+    <div class="ps" style="grid-column:1/-1">
+      <h3>🎞 Copertine Film — A4 Landscape (3508×2480)</h3>
+      <p style="font-size:12px;color:var(--txt2);margin-bottom:10px">Una pagina per film: backdrop a destra con dissolvenza verso sinistra, testi + orari su sfondo bianco a sinistra. Include i 2 giorni precedenti all'inizio settimana. Da vetrina, locandina digitale o comunicati stampa.</p>
+      <button class="btn ba" onclick="pPDFCopertine()">⬇ Scarica PDF Copertine</button>
+    </div>
+
     <div class="ps" style="grid-column:1/-1">
       <h3>📰 Programma Settimanale Compatto</h3>
       <p style="font-size:12px;color:var(--txt2);margin-bottom:10px">Due colonne, giorno come capitolo, film + sala + orario rientrati. Formato professionale da distribuire o affiggere.</p>
@@ -10468,6 +10474,276 @@ async function propApplyToGrid(){
   }
 }
 window.propApplyToGrid=propApplyToGrid;
+
+
+// ══════════════════════════════════════════════════════════════════════════
+// COPERTINE FILM — A4 Landscape 3508×2480
+// Backdrop dx → dissolvenza bianca sx · testi bianchi sx · giorni in nero
+// ══════════════════════════════════════════════════════════════════════════
+async function pPDFCopertine(){
+  toast('Generazione copertine...','ok');
+
+  // Settimana corrente + 2 giorni precedenti
+  var wd=wdates(); // array di 7 date (Gio→Mer)
+  var allDates=[];
+  // Aggiungi 2 giorni prima dell'inizio settimana
+  for(var d=2;d>=1;d--){
+    var prev=new Date(wd[0]+'T12:00:00');
+    prev.setDate(prev.getDate()-d);
+    allDates.push(toLocalDate(prev));
+  }
+  allDates=allDates.concat(wd); // tot 9 date (2+7)
+
+  var allShows=S.shows.filter(function(s){return allDates.includes(s.day);});
+  var filmIds=[...new Set(allShows.map(function(s){return s.filmId;}))];
+  var weekFilms=filmIds.map(function(id){return S.films.find(function(f){return f.id===id;});}).filter(Boolean);
+
+  // Ordina: nuovi prima, poi più spettacoli
+  var d0=allDates[0];var dN=allDates[allDates.length-1];
+  weekFilms.sort(function(a,b){
+    var aNew=a.release&&a.release>=wd[0]&&a.release<=wd[6];
+    var bNew=b.release&&b.release>=wd[0]&&b.release<=wd[6];
+    if(aNew&&!bNew)return -1;if(!aNew&&bNew)return 1;
+    var aS=allShows.filter(function(s){return s.filmId===a.id;}).length;
+    var bS=allShows.filter(function(s){return s.filmId===b.id;}).length;
+    return bS-aS||a.title.localeCompare(b.title,'it');
+  });
+
+  if(!weekFilms.length){toast('Nessun film in programmazione','err');return;}
+
+  // Dimensioni A4 landscape 300dpi
+  var PW=3508,PH=2480;
+  var scale=PW/1080; // fattore scala
+
+  function S2(n){return Math.round(n*scale);}
+
+  // Genera una canvas per ogni film
+  var canvases=[];
+  for(var fi=0;fi<weekFilms.length;fi++){
+    var film=weekFilms[fi];
+    var fShows=allShows.filter(function(s){return s.filmId===film.id;})
+      .sort(function(a,b){return a.day.localeCompare(b.day)||a.start.localeCompare(b.start);});
+
+    // Raggruppa orari per giorno
+    var byDay={};
+    var DIT=['Mar','Mer','Gio','Ven','Sab','Dom','Lun','Mar','Mer'];
+    // Mappa data→nome giorno abbreviato
+    var dayNames={};
+    allDates.forEach(function(d){
+      var dt=new Date(d+'T12:00:00');
+      var names=['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+      dayNames[d]=names[dt.getDay()];
+    });
+    fShows.forEach(function(s){
+      if(!byDay[s.day])byDay[s.day]=[];
+      if(!byDay[s.day].includes(s.start))byDay[s.day].push(s.start);
+    });
+    var showDays=Object.keys(byDay).sort();
+    if(!showDays.length)continue;
+
+    var cv=document.createElement('canvas');
+    cv.width=PW;cv.height=PH;
+    var ctx=cv.getContext('2d');
+
+    // Sfondo bianco
+    ctx.fillStyle='#ffffff';ctx.fillRect(0,0,PW,PH);
+
+    // ── BACKDROP a destra ──────────────────────────────────────────────────
+    var bdLoaded=false;
+    if(film.backdrop){
+      await new Promise(function(resolve){
+        var img=new Image();img.crossOrigin='anonymous';
+        img.onload=function(){
+          var iw=img.naturalWidth,ih=img.naturalHeight;
+          var sc2=Math.max(PW/iw,PH/ih);
+          var sw=iw*sc2,sh=ih*sc2;
+          var sx=(PW-sw)/2,sy=0;
+          ctx.drawImage(img,sx,sy,sw,sh);
+          bdLoaded=true;resolve();
+        };
+        img.onerror=function(){resolve();};
+        img.src=film.backdrop;
+      });
+    }
+
+    // ── GRADIENTI dissolvenza ──────────────────────────────────────────────
+    // 1. Bianco da sx verso dx (copre ~55% da sinistra)
+    var gLR=ctx.createLinearGradient(0,0,PW,0);
+    gLR.addColorStop(0,   'rgba(255,255,255,1)');
+    gLR.addColorStop(0.30,'rgba(255,255,255,0.97)');
+    gLR.addColorStop(0.50,'rgba(255,255,255,0.70)');
+    gLR.addColorStop(0.65,'rgba(255,255,255,0.25)');
+    gLR.addColorStop(0.78,'rgba(255,255,255,0)');
+    gLR.addColorStop(1,   'rgba(255,255,255,0)');
+    ctx.fillStyle=gLR;ctx.fillRect(0,0,PW,PH);
+
+    // 2. Bianco top e bottom leggero
+    var gT=ctx.createLinearGradient(0,0,0,PH);
+    gT.addColorStop(0,'rgba(255,255,255,0.55)');
+    gT.addColorStop(0.12,'rgba(255,255,255,0)');
+    ctx.fillStyle=gT;ctx.fillRect(0,0,PW,PH);
+    var gB=ctx.createLinearGradient(0,0,0,PH);
+    gB.addColorStop(0.85,'rgba(255,255,255,0)');
+    gB.addColorStop(1,'rgba(255,255,255,0.65)');
+    ctx.fillStyle=gB;ctx.fillRect(0,0,PW,PH);
+
+    // ── BANDA ARANCIO TOP ──────────────────────────────────────────────────
+    ctx.fillStyle='#f0801a';ctx.fillRect(0,0,PW,S2(4));
+
+    var PL=S2(52);
+    var ORA='#f0801a';
+
+    // ── HEADER ─────────────────────────────────────────────────────────────
+    ctx.font='700 '+S2(14)+'px Arial';
+    ctx.fillStyle=ORA;ctx.letterSpacing=S2(2)+'px';
+    ctx.textAlign='left';ctx.fillText('CINEMA',PL,S2(38));
+    ctx.font='500 '+S2(11)+'px Arial';
+    ctx.fillStyle='rgba(40,50,80,0.5)';ctx.letterSpacing=S2(1.5)+'px';
+    ctx.fillText('MULTISALA TEATRO',PL,S2(54));
+    ctx.letterSpacing='0px';
+    ctx.font='700 '+S2(13)+'px Arial';
+    ctx.fillStyle='rgba(255,255,255,0.35)';ctx.textAlign='right';
+    ctx.fillText('MENDRISIO',PW-PL,S2(46));
+    ctx.textAlign='left';
+
+    // ── CALCOLO BLOCCO TESTI (centrato verticalmente) ──────────────────────
+    var blockH=0;
+    if(film.director)blockH+=S2(38);
+    blockH+=S2(36); // badge
+    // Titolo
+    var maxTW=PW*0.52-PL-S2(20);
+    var tUP=film.title.toUpperCase();
+    var tWords=tUP.split(' ');
+    var tSize=S2(90);var l1=tUP,l2='',l3='';
+    for(var ts=90;ts>=40;ts-=6){
+      tSize=S2(ts);ctx.font='900 '+tSize+'px Arial';
+      if(ctx.measureText(tUP).width<=maxTW){l1=tUP;l2='';l3='';break;}
+      var f2=false;
+      for(var sp=1;sp<tWords.length;sp++){
+        var la=tWords.slice(0,sp).join(' '),lb=tWords.slice(sp).join(' ');
+        if(ctx.measureText(la).width<=maxTW&&ctx.measureText(lb).width<=maxTW){l1=la;l2=lb;l3='';f2=true;break;}
+      }
+      if(f2)break;
+    }
+    var lH=tSize*1.05;
+    blockH+=l3?lH*3+S2(28):l2?lH*2+S2(28):lH+S2(28);
+    var metaParts=[film.duration?Math.floor(film.duration/60)+'h'+String(film.duration%60).padStart(2,'0'):null,film.rating,film.genre].filter(Boolean);
+    if(metaParts.length)blockH+=S2(32);
+    if(film.cast)blockH+=S2(30);
+    blockH+=S2(8)+S2(3)+S2(30); // spazio+riga+margine
+    blockH+=showDays.length*S2(88); // righe orario RADDOPPIATE
+
+    var headerBot=S2(80);var footerTop=PH-S2(60);
+    var avail=footerTop-headerBot;
+    var cy=headerBot+Math.max(0,(avail-blockH)*0.5);
+
+    // ── REGISTA ────────────────────────────────────────────────────────────
+    if(film.director){
+      ctx.font='700 '+S2(21)+'px Arial';
+      ctx.fillStyle='rgba(20,30,60,0.55)';ctx.letterSpacing=S2(2)+'px';
+      ctx.fillText(film.director.toUpperCase(),PL,cy);
+      ctx.letterSpacing='0px';cy+=S2(38);
+    }
+
+    // ── BADGE ──────────────────────────────────────────────────────────────
+    var isNew=film.release&&film.release>=wd[0]&&film.release<=wd[6];
+    ctx.font='700 '+S2(20)+'px Arial';ctx.fillStyle=ORA;
+    ctx.fillText(isNew?'— NOVITÀ IN SALA':'— ANCORA IN SALA',PL,cy);cy+=S2(36);
+
+    // ── TITOLO ─────────────────────────────────────────────────────────────
+    ctx.font='900 '+tSize+'px Arial';ctx.fillStyle='#111827';
+    ctx.fillText(l1,PL,cy+lH);
+    if(l2)ctx.fillText(l2,PL,cy+lH*2);
+    if(l3)ctx.fillText(l3,PL,cy+lH*3);
+    cy+=l3?lH*3+S2(28):l2?lH*2+S2(28):lH+S2(28);
+
+    // ── META ───────────────────────────────────────────────────────────────
+    if(metaParts.length){
+      ctx.font=S2(21)+'px Arial';ctx.fillStyle='rgba(20,30,60,0.45)';
+      ctx.letterSpacing=S2(1.5)+'px';
+      ctx.fillText(metaParts.join(' · ').toUpperCase(),PL,cy);
+      ctx.letterSpacing='0px';cy+=S2(32);
+    }
+
+    // ── CAST ───────────────────────────────────────────────────────────────
+    if(film.cast){
+      var cNames=film.cast.split(',').map(function(n){return n.trim();}).filter(Boolean).slice(0,5);
+      ctx.font=S2(20)+'px Arial';ctx.fillStyle='rgba(20,30,60,0.4)';
+      ctx.fillText(cNames.join(' · '),PL,cy);cy+=S2(30);
+    }
+    cy+=S2(8);
+
+    // ── RIGA ARANCIO ───────────────────────────────────────────────────────
+    ctx.fillStyle=ORA;ctx.fillRect(PL,cy,S2(60),S2(3));cy+=S2(30);
+
+    // ── ORARI: giorno nero sx, orario arancio Courier dx ──────────────────
+    // RADDOPPIATI rispetto alla 2B Foto standard
+    var orarioRight=Math.round(PW*0.52)-S2(20);
+    showDays.forEach(function(day){
+      var times=byDay[day].slice().sort();
+      var dName=dayNames[day]||'';
+
+      // Giorno in NERO — font raddoppiato S(28)→S(56)
+      ctx.font='700 '+S2(56)+'px Arial';
+      ctx.fillStyle='#111827';ctx.letterSpacing=S2(1)+'px';
+      ctx.textAlign='left';
+      ctx.fillText(dName.toUpperCase(),PL,cy+S2(56));
+      ctx.letterSpacing='0px';
+
+      // Puntini tratteggiati
+      var dayW=ctx.measureText(dName.toUpperCase()).width;
+      ctx.letterSpacing='0px';
+      var dotsX=PL+dayW+S2(16);var dotsEnd=orarioRight-S2(180);
+      ctx.save();ctx.setLineDash([S2(3),S2(8)]);
+      ctx.strokeStyle='rgba(30,40,80,0.18)';ctx.lineWidth=S2(1.5);
+      ctx.beginPath();ctx.moveTo(dotsX,cy+S2(36));ctx.lineTo(Math.max(dotsX+S2(20),dotsEnd),cy+S2(36));ctx.stroke();
+      ctx.restore();
+
+      // Orario in ARANCIO Courier — font raddoppiato S(34)→S(68)
+      ctx.font='700 '+S2(68)+'px "Courier New",monospace';
+      ctx.fillStyle=ORA;ctx.textAlign='right';
+      ctx.fillText(times.join('  →  '),orarioRight,cy+S2(60));
+      ctx.textAlign='left';
+
+      cy+=S2(88);
+    });
+
+    // ── FOOTER ─────────────────────────────────────────────────────────────
+    ctx.font=S2(13)+'px Arial';ctx.fillStyle='rgba(60,70,100,0.35)';
+    ctx.textAlign='center';
+    ctx.fillText('mendrisiocinema.ch  ·  Via Vincenzo Vela 2, Mendrisio',PW/2,PH-S2(22));
+    ctx.textAlign='left';
+    ctx.fillStyle='rgba(240,128,26,0.3)';ctx.fillRect(0,PH-S2(3),PW,S2(3));
+
+    canvases.push({canvas:cv,title:film.title});
+  }
+
+  if(!canvases.length){toast('Nessuna copertina generata','err');return;}
+
+  // ── EXPORT PDF ─────────────────────────────────────────────────────────
+  try{
+    var {jsPDF}=window.jspdf;
+    var doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+    var mmW=297,mmH=210;
+    canvases.forEach(function(item,i){
+      if(i>0)doc.addPage();
+      var dataUrl=item.canvas.toDataURL('image/jpeg',0.92);
+      doc.addImage(dataUrl,'JPEG',0,0,mmW,mmH);
+    });
+    doc.save('copertine_film_'+new Date().toISOString().slice(0,10)+'.pdf');
+    toast(canvases.length+' copertine generate','ok');
+  }catch(e){
+    // Fallback: scarica come immagini singole
+    canvases.forEach(function(item){
+      var a=document.createElement('a');
+      a.href=item.canvas.toDataURL('image/jpeg',0.92);
+      a.download=item.title.replace(/[^a-z0-9]/gi,'_').toLowerCase()+'.jpg';
+      a.click();
+    });
+    toast(canvases.length+' immagini scaricate (installa jsPDF per PDF)','ok');
+  }
+}
+window.pPDFCopertine=pPDFCopertine;
 
 
 </script>
