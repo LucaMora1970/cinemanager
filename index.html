@@ -589,7 +589,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="wlbl" id="wlbl">—</div>
     <button onclick="cw(1)">›</button>
   </div>
-  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v01/04 08:52</small>
+  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v01/04 11:00</small>
   <div class="hact">
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
     <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
@@ -5865,7 +5865,7 @@ function socialRenderCarousel(){
         var sw=iw*sc2,sh=ih*sc2;
         var sx=(W-sw)/2,sy=(H-sh)/2;
         ctx.save();
-        ctx.globalAlpha=is2BFoto?0.45:1.0;
+        ctx.globalAlpha=is2BFoto?0.65:1.0;
         ctx.drawImage(bgImg,sx,sy,sw,sh);
         ctx.restore();
       }
@@ -6073,20 +6073,24 @@ function drawLayout2BContent(ctx,film,byDay,dayOrd,DIT2,W,H,fmt,scale,S,ORA,isSt
 
   var cy=PT+S(72); // cursore verticale
 
-  // ── Regista ───────────────────────────────────────────────────────────────
+  // ── Regista — centrato ────────────────────────────────────────────────────
   if(film.director){
     ctx.font='700 '+S(17)+'px Arial';
     ctx.fillStyle='rgba(255,255,255,0.55)';
     ctx.letterSpacing=S(2)+'px';
-    ctx.fillText((film.director).toUpperCase(),PL,cy);
+    ctx.textAlign='center';
+    ctx.fillText((film.director).toUpperCase(),W/2,cy);
+    ctx.textAlign='left';
     ctx.letterSpacing='0px';
     cy+=S(30);
   }
 
-  // ── Badge novità ──────────────────────────────────────────────────────────
+  // ── Badge novità — centrato ───────────────────────────────────────────────
   ctx.font='700 '+S(16)+'px Arial';
   ctx.fillStyle=ORA;
-  ctx.fillText('— NOVITÀ IN SALA',PL,cy);
+  ctx.textAlign='center';
+  ctx.fillText('— NOVITÀ IN SALA',W/2,cy);
+  ctx.textAlign='left';
   cy+=S(28);
 
   // ── Titolo grande adattivo ───────────────────────────────────────────────
@@ -6126,9 +6130,11 @@ function drawLayout2BContent(ctx,film,byDay,dayOrd,DIT2,W,H,fmt,scale,S,ORA,isSt
   var lineH=tSize*1.05;
   ctx.font='900 '+tSize+'px Arial';
   ctx.fillStyle='#ffffff';
-  ctx.fillText(line1T,PL,cy+lineH);
-  if(line2T){ctx.fillText(line2T,PL,cy+lineH*2);}
-  if(line3T){ctx.fillText(line3T,PL,cy+lineH*3);}
+  ctx.textAlign='center';
+  ctx.fillText(line1T,W/2,cy+lineH);
+  if(line2T){ctx.fillText(line2T,W/2,cy+lineH*2);}
+  if(line3T){ctx.fillText(line3T,W/2,cy+lineH*3);}
+  ctx.textAlign='left';
   cy+=line3T?lineH*3+S(16):line2T?lineH*2+S(16):lineH+S(16);
 
   // ── Meta (durata · rating · genere) ──────────────────────────────────────
@@ -6137,7 +6143,9 @@ function drawLayout2BContent(ctx,film,byDay,dayOrd,DIT2,W,H,fmt,scale,S,ORA,isSt
     ctx.font=S(17)+'px Arial';
     ctx.fillStyle='rgba(255,255,255,0.45)';
     ctx.letterSpacing=S(1.5)+'px';
-    ctx.fillText(metaParts.join(' · ').toUpperCase(),PL,cy);
+    ctx.textAlign='center';
+    ctx.fillText(metaParts.join(' · ').toUpperCase(),W/2,cy);
+    ctx.textAlign='left';
     ctx.letterSpacing='0px';
     cy+=S(28);
   }
@@ -6147,13 +6155,15 @@ function drawLayout2BContent(ctx,film,byDay,dayOrd,DIT2,W,H,fmt,scale,S,ORA,isSt
     var castNames=film.cast.split(',').map(function(n){return n.trim();}).filter(Boolean).slice(0,5);
     ctx.font=S(16)+'px Arial';
     ctx.fillStyle='rgba(255,255,255,0.5)';
-    ctx.fillText(castNames.join(' · '),PL,cy);
+    ctx.textAlign='center';
+    ctx.fillText(castNames.join(' · '),W/2,cy);
+    ctx.textAlign='left';
     cy+=S(26);
   }
   cy+=S(8);
 
   // ── Riga arancio ──────────────────────────────────────────────────────────
-  ctx.fillStyle=ORA;ctx.fillRect(PL,cy,S(50),S(3));
+  ctx.fillStyle=ORA;ctx.fillRect(W/2-S(25),cy,S(50),S(3));
   cy+=S(24);
 
   // ── Tabella orari ─────────────────────────────────────────────────────────
@@ -6162,26 +6172,27 @@ function drawLayout2BContent(ctx,film,byDay,dayOrd,DIT2,W,H,fmt,scale,S,ORA,isSt
     var dayLabel=DIT2[di].toUpperCase();
     var times=byDay[di].times.slice().sort();
 
-    // Giorno
+    // Giorno — centrato a sinistra del centro
     ctx.font='700 '+S(32)+'px Arial';
     ctx.fillStyle='rgba(255,255,255,0.85)';
     ctx.letterSpacing=S(1)+'px';
-    ctx.fillText(dayLabel,PL,cy+S(36));
+    ctx.textAlign='left';
+    ctx.fillText(dayLabel,W/2-S(170),cy+S(36));
     ctx.letterSpacing='0px';
 
-    // Puntini tratteggiati
-    var dotsX=PL+S(58);
-    var dotsEndX=W-PR-S(110);
+    // Puntini tratteggiati — centrati
+    var dotsX=W/2-S(108);
+    var dotsEndX=W/2-S(10);
     ctx.save();ctx.setLineDash([S(2),S(5)]);
     ctx.strokeStyle='rgba(255,255,255,0.18)';ctx.lineWidth=S(1);
     ctx.beginPath();ctx.moveTo(dotsX,cy+S(24));ctx.lineTo(dotsEndX,cy+S(24));ctx.stroke();
     ctx.restore();
 
-    // Orari — tutti stessa dimensione, separati da ·
+    // Orari — centrati a destra del centro
     ctx.font='700 '+S(40)+'px "Courier New",monospace';
     ctx.fillStyle=ORA;
     ctx.textAlign='right';
-    ctx.fillText(times.join('  ·  '),W-PR,cy+S(38));
+    ctx.fillText(times.join('  ·  '),W/2+S(180),cy+S(38));
     ctx.textAlign='left';
 
     cy+=rowH;
@@ -6190,7 +6201,9 @@ function drawLayout2BContent(ctx,film,byDay,dayOrd,DIT2,W,H,fmt,scale,S,ORA,isSt
   // ── Footer ────────────────────────────────────────────────────────────────
   ctx.font=S(14)+'px Arial';
   ctx.fillStyle='rgba(255,255,255,0.25)';
-  ctx.fillText('mendrisiocinema.ch  ·  Via Vincenzo Vela 2, Mendrisio',PL,H-S(22));
+  ctx.textAlign='center';
+  ctx.fillText('mendrisiocinema.ch  ·  Via Vincenzo Vela 2, Mendrisio',W/2,H-S(22));
+  ctx.textAlign='left';
 
   // ── Corner accent ─────────────────────────────────────────────────────────
   ctx.strokeStyle='rgba(240,128,26,0.5)';ctx.lineWidth=S(3);
@@ -8368,17 +8381,27 @@ function showMatchReview(matched,unmatched){
       +'</div>';
   });
 
+  // Costruisce lista archivio per il select di associazione
+  var archiveOpts=S.films.slice().sort(function(a,b){return a.title.localeCompare(b.title,'it');});
   unmatched.forEach(function(pf,i){
+    var opts='<option value="__new__">✚ Crea come nuovo film</option>'
+      +'<option value="__skip__">✗ Non importare</option>'
+      +'<option disabled>── Associa a film in archivio ──</option>';
+    archiveOpts.forEach(function(af){
+      opts+='<option value="'+af.id+'">'+af.title+(af.release?' ('+af.release+')':'')+'</option>';
+    });
     html+='<div style="background:var(--surf2);border:1px solid rgba(232,74,74,.3);border-radius:6px;padding:8px 12px">'
       +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
       +'<span style="width:8px;height:8px;border-radius:50%;background:#e84a4a;flex-shrink:0"></span>'
       +'<span style="font-size:10px;color:#e84a4a;font-weight:700">NESSUNA CORRISPONDENZA</span>'
       +'</div>'
-      +'<div style="font-size:12px;font-weight:700">'+pf.title+'</div>'
-      +(pf.releaseIT?'<div style="font-size:10px;color:var(--txt2)">🇮🇹 '+pf.releaseIT.split('-').reverse().join('/')+'</div>':'')
-      +'<div style="font-size:10px;color:var(--txt2);margin-top:3px">Verrà importato senza locandina/trama — arricchisci manualmente dall\'archivio</div>'
+      +'<div style="font-size:12px;font-weight:700;margin-bottom:4px">'+pf.title+'</div>'
+      +(pf.releaseIT?'<div style="font-size:10px;color:var(--txt2);margin-bottom:6px">🇮🇹 '+pf.releaseIT.split('-').reverse().join('/')+(pf.distributor?' · '+pf.distributor:'')+'</div>':'')
+      +'<select class="unmatched-action" data-uidx="'+i+'" style="width:100%;font-size:11px;padding:4px 6px;border-radius:4px;border:1px solid var(--bdr);background:var(--surf);color:var(--txt)">'
+      +opts
+      +'</select>'
       +'</div>';
-  });
+  });;
 
   html+='</div>'
     +'<div style="font-size:11px;color:var(--acc);margin-top:8px">'
@@ -8412,15 +8435,21 @@ function confirmMatch(btn,confirmed){
 window.confirmMatch=confirmMatch;
 
 async function doConfirmedImport(){
-  var matched=window._matchReview?window._matchReview.matched:[];
-  var unmatched=window._matchReview?window._matchReview.unmatched:[];
-  var allItems=matched.map(function(m){return{pf:m.pf,api:m.api};})
-    .concat(unmatched.map(function(pf){return{pf:pf,api:null};}));
-  // Use live _matchReview for confirmed/rejected
-  if(window._matchReview){
-    allItems=window._matchReview.matched.map(function(m){return{pf:m.pf,api:m.api};})
-      .concat(window._matchReview.unmatched.map(function(pf){return{pf:pf,api:null};}));
-  }
+  var mr=window._matchReview||{matched:[],unmatched:[]};
+  var allItems=mr.matched.map(function(m){return{pf:m.pf,api:m.api};});
+  // Legge la scelta dal select per ogni film unmatched
+  var selects=[...document.querySelectorAll('.unmatched-action')];
+  mr.unmatched.forEach(function(pf,i){
+    var sel=selects.find(function(s){return parseInt(s.dataset.uidx)===i;});
+    var val=sel?sel.value:'__new__';
+    if(val==='__skip__')return; // non importare
+    if(val==='__new__'){
+      allItems.push({pf:pf,api:null}); // nuovo film
+    } else {
+      // Associa a film esistente in archivio → aggiorna solo SUISA/dist/data
+      allItems.push({pf:pf,api:null,existingId:val});
+    }
+  });
   await importMatched(allItems);
   co('ovImport');
   var enriched=allItems.filter(function(x){return x.api;}).length;
@@ -8446,6 +8475,10 @@ async function importMatched(items){
       existing=S.films.find(function(x){return x.title.toLowerCase().trim()===tn;});
     }
 
+    // Associazione manuale da review — usa existingId se specificato
+    if(!existing&&items[i].existingId){
+      existing=S.films.find(function(x){return x.id===items[i].existingId;});
+    }
     if(existing){
       // ── AGGIORNAMENTO: solo SUISA, distributore, data release (Ticino) ──
       var patched=Object.assign({},existing,{
