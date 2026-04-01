@@ -589,7 +589,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="wlbl" id="wlbl">—</div>
     <button onclick="cw(1)">›</button>
   </div>
-  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v01/04 14:10</small>
+  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v01/04 14:30</small>
   <div class="hact">
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
     <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
@@ -1157,6 +1157,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
       <div style="display:flex;gap:6px;align-items:center">
         <select id="social-img-fmt" onchange="socialRenderCarousel()" style="font-size:11px;padding:4px 8px">
           <option value="square">Quadrato 1:1 (1080×1080)</option>
+          <option value="portrait">Portrait 4:5 (1080×1350)</option>
           <option value="story">Story 9:16 (1080×1920)</option>
           <option value="landscape">Landscape 1.91:1 (1200×628)</option>
         </select>
@@ -3341,7 +3342,9 @@ async function svFilm(){
     ticketUrl:document.getElementById('fTicketUrl')?document.getElementById('fTicketUrl').value||'':'',
     trailer:document.getElementById('fTrailer')?normalizeTrailerId(document.getElementById('fTrailer').value||''):'',
     backdrop:document.getElementById('fBackdrop')?document.getElementById('fBackdrop').value.trim()||'':'',
-    openAir:document.getElementById('fOpenAir')?document.getElementById('fOpenAir').checked:false};
+    openAir:document.getElementById('fOpenAir')?document.getElementById('fOpenAir').checked:false,
+    tmdbId:document.getElementById('fTmdbId')?(parseInt(document.getElementById('fTmdbId').value.trim())||null):null,
+    suisa:document.getElementById('fSuisa')?document.getElementById('fSuisa').value.trim()||'':''};
   await fbSF(film);co('ovF');toast(eid?'Film aggiornato':'Film aggiunto','ok');
 }
 async function delFilm(id){
@@ -5947,9 +5950,9 @@ function socialRenderCarousel(){
   });
 
   var fmt=document.getElementById('social-img-fmt')?document.getElementById('social-img-fmt').value:'square';
-  var W=fmt==='story'?405:fmt==='landscape'?540:405;
-  var H=fmt==='story'?720:fmt==='landscape'?283:405;
-  var SCALE=fmt==='story'?1080/405:fmt==='landscape'?1200/540:1080/405;
+  var W=fmt==='story'?405:fmt==='landscape'?540:fmt==='portrait'?405:405;
+  var H=fmt==='story'?720:fmt==='landscape'?283:fmt==='portrait'?506:405;
+  var SCALE=fmt==='story'?1080/405:fmt==='landscape'?1200/540:fmt==='portrait'?1080/405:1080/405;
 
   container.innerHTML='';
 
