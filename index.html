@@ -589,7 +589,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="wlbl" id="wlbl">—</div>
     <button onclick="cw(1)">›</button>
   </div>
-  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v31/03 22:26</small>
+  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v01/04 08:47</small>
   <div class="hact">
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
     <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
@@ -5878,22 +5878,38 @@ function socialRenderCarousel(){
 
     // Sceglie immagine: tipobg→solo backdrop, altri layout→poster
     var _is2BFoto=(window._socialLayout==='tipobg');
-    var imgSrc=_is2BFoto?(film.backdrop||''):film.poster;
+    // Per tipobg: prova backdrop, poi poster come fallback, poi nero
+    var imgSrc=_is2BFoto?(film.backdrop||film.poster||''):film.poster;
     if(imgSrc){
       var img=new Image();
       img.crossOrigin='anonymous';
       img.onload=function(){drawSlide(img);};
-      img.onerror=function(){drawSlide(null);};
+      img.onerror=function(){
+        // Fallback 1: se era backdrop, prova con poster
+        if(_is2BFoto&&film.poster&&img.src!==film.poster){
+          var img2=new Image();
+          img2.crossOrigin='anonymous';
+          img2.onload=function(){drawSlide(img2);};
+          img2.onerror=function(){drawSlide(null);};
+          img2.src=film.poster;
+        // Fallback 2: prova senza crossOrigin
+        } else if(img.crossOrigin){
+          var img3=new Image();
+          img3.onload=function(){drawSlide(img3);};
+          img3.onerror=function(){drawSlide(null);};
+          img3.src=imgSrc+'?nocors=1';
+        } else {
+          drawSlide(null);
+        }
+      };
       img.src=imgSrc;
     } else {
       // Nessuna immagine disponibile
       if(!_is2BFoto){
-        // Classic senza poster: gradiente brand
         var bgGrad=ctx.createLinearGradient(0,0,W,H);
         bgGrad.addColorStop(0,'#1a1a2e');bgGrad.addColorStop(1,'#16213e');
         ctx.fillStyle=bgGrad;ctx.fillRect(0,0,W,H);
       }
-      // 2B senza backdrop: sfondo già nero dal canvas, va bene così
       drawSlide(null);
     }
 
@@ -8455,7 +8471,7 @@ async function importMatched(items){
         release:pf.releaseIT||'',
         endDate:'',
         poster:(api&&api.playbill_path&&!api.playbill_path.includes('noposter'))?api.playbill_path:'',
-        backdrop:(api&&api.backdrop_path&&!api.backdrop_path.includes('noposter'))?('https://image.tmdb.org/t/p/w780'+api.backdrop_path):'',
+        backdrop:(api&&api.backdrop_path&&!api.backdrop_path.includes('noposter'))?('https://image.tmdb.org/t/p/original'+api.backdrop_path):'',
         description:api?api.plot?api.plot.slice(0,300):'':'',
         distributor:pf.distributor||'',
         ticketUrl:api?api.film_url_for_cinema||'':'',
@@ -9484,7 +9500,7 @@ async function tmdbAutoBackdrop(filmId,tmdbId){
       .sort(function(a,b){return b.vote_average-a.vote_average;});
     var posters=(data.posters||[]).filter(function(p){return p.vote_average>0;})
       .sort(function(a,b){return b.vote_average-a.vote_average;});
-    var backdrop=backdrops.length?TMDB_IMG+'w780'+backdrops[0].file_path:'';
+    var backdrop=backdrops.length?TMDB_IMG+'original'+backdrops[0].file_path:'';
     // Aggiorna anche la locandina se quella attuale è vuota o di bassa qualità
     var poster=posters.length?TMDB_IMG+'w500'+posters[0].file_path:'';
     return {backdrop:backdrop,poster:poster};
@@ -9527,7 +9543,7 @@ async function tmdbFetchDetails(tmdbId){
     }catch(e){}
     return {
       tmdbId:tmdbId,
-      backdrop:backdrops.length?TMDB_IMG+'w780'+backdrops[0].file_path:'',
+      backdrop:backdrops.length?TMDB_IMG+'original'+backdrops[0].file_path:'',
       poster:posters.length?TMDB_IMG+'w500'+posters[0].file_path:'',
       director:director,
       cast:cast,
@@ -9606,6 +9622,27 @@ function tmdbEnrichAll(){
   })();
 }
 window.tmdbEnrichAll=tmdbEnrichAll;
+// ── Aggiorna URL backdrop esistenti da w780 a original ─────────────────────
+async function tmdbFixBackdropUrls(){
+  var toFix=S.films.filter(function(f){
+    return f.backdrop&&f.backdrop.includes('/t/p/w780/');
+  });
+  if(!toFix.length){toast('Nessun backdrop da aggiornare','ok');return;}
+  toast('Aggiorno '+toFix.length+' backdrop URLs...','ok');
+  var fixed=0;
+  for(var i=0;i<toFix.length;i++){
+    var film=toFix[i];
+    var patch=Object.assign({},film,{
+      backdrop:film.backdrop.replace('/t/p/w780/','/t/p/original/')
+    });
+    try{await fbSetDoc(db,'films',film.id,patch);fixed++;}catch(e){}
+  }
+  toast(fixed+' backdrop aggiornati a original','ok');
+  rf();
+}
+window.tmdbFixBackdropUrls=tmdbFixBackdropUrls;
+
+
 
 
 function toggleTheme(){
