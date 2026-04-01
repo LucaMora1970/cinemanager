@@ -589,7 +589,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="wlbl" id="wlbl">—</div>
     <button onclick="cw(1)">›</button>
   </div>
-  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v01/04 13:00</small>
+  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v01/04 13:35</small>
   <div class="hact">
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
     <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
@@ -5738,107 +5738,111 @@ function socialGenerate(){
   }
 
   // Raggruppa orari per film: giorno → orari principali
+  // Abbreviazioni giorni per schedule compatto
+  var _ABB=['Gi','Ve','Sa','Do','Lu','Ma','Me'];
+
   function filmScheduleSummary(film){
     var fShows=allShows.filter(function(s){return s.filmId===film.id;})
       .sort(function(a,b){return a.day.localeCompare(b.day)||a.start.localeCompare(b.start);});
     if(!fShows.length)return '';
-    // Trova orario più frequente
-    var timeCount={};
-    fShows.forEach(function(s){timeCount[s.start]=(timeCount[s.start]||0)+1;});
-    var mainTime=Object.keys(timeCount).reduce(function(a,b){return timeCount[a]>=timeCount[b]?a:b;});
-    var days2=['Gio','Ven','Sab','Dom','Lun','Mar','Mer'];
-    var showDays=[...new Set(fShows.map(function(s){return wd.indexOf(s.day);}))].filter(function(d){return d>=0;});
-    if(showDays.length>=6)return mainTime+' · ogni giorno';
-    if(showDays.length>=4)return mainTime+' · '+days2[showDays[0]]+'\u2013'+days2[showDays[showDays.length-1]];
-    return mainTime+' · '+showDays.map(function(d){return days2[d];}).join('/');
+
+    // Raggruppa per orario → lista di indici giorno
+    var byTime={};
+    fShows.forEach(function(s){
+      var di=wd.indexOf(s.day);
+      if(di<0)return;
+      if(!byTime[s.start])byTime[s.start]=[];
+      if(byTime[s.start].indexOf(di)<0)byTime[s.start].push(di);
+    });
+
+    // Per ogni orario, costruisce la stringa giorni abbreviata
+    // Raggruppa giorni consecutivi in range (es. Gi-Me), singoli separati da /
+    function daysStr(idxArr){
+      idxArr=idxArr.slice().sort(function(a,b){return a-b;});
+      if(idxArr.length===7)return 'ogni g';
+      // Trova runs consecutivi
+      var parts=[];var run=[idxArr[0]];
+      for(var k=1;k<idxArr.length;k++){
+        if(idxArr[k]===run[run.length-1]+1){run.push(idxArr[k]);}
+        else{parts.push(run);run=[idxArr[k]];}
+      }
+      parts.push(run);
+      return parts.map(function(r){
+        if(r.length>=3)return _ABB[r[0]]+'–'+_ABB[r[r.length-1]];
+        if(r.length===2)return _ABB[r[0]]+'/'+_ABB[r[1]];
+        return _ABB[r[0]];
+      }).join('/');
+    }
+
+    // Ordina orari per frequenza (più frequente prima)
+    var times=Object.keys(byTime).sort(function(a,b){
+      return byTime[b].length-byTime[a].length||a.localeCompare(b);
+    });
+
+    // Costruisce stringa compatta: "Gi-Me 20:30  Sa/Do 14:30"
+    // Separatore ◆ tra blocchi orario diversi
+    return times.map(function(t){
+      return daysStr(byTime[t])+' '+t;
+    }).join('  →  ');
   }
 
   var cinemaUrl='mendrisiocinema.ch';
 
-  // ── POST 1: Programma completo ──
+    // ── POST 1: Programma completo ──
   function buildPost1(){
     var p=_socialPlat;var t=_socialTone;
+    var d14s=wd.length?wd[0]:'';
+    var d7s=wd.length?wd[wd.length-1]:'';
     var lines=[];
-    if(p==='ig'){
-      if(t==='friendly'){
-        lines.push('\uD83C\uDFAC Questa settimana al Cinema Multisala Teatro Mendrisio!');lines.push('');
-        weekFilms.slice(0,6).forEach(function(f){
-          var sched=filmScheduleSummary(f);
-          var emoji=f.genre==='Animazione'?'\uD83C\uDF9E':f.genre==='Horror'?'\uD83D\uDC7B':f.genre==='Commedia'?'\uD83D\uDE02':f.rating==='Per tutti'?'\uD83C\uDF1F':'\uD83C\uDFA5';
-          lines.push(emoji+' '+f.title+(sched?' \u2192 '+sched:''));
-        });
-        if(weekFilms.length>6)lines.push('\u2026e altri '+(weekFilms.length-6)+' film!');
-        lines.push('');lines.push('\uD83C\uDFAB Prenota su '+cinemaUrl);lines.push('\uD83D\uDCCD Via Vincenzo Vela 2, Mendrisio');
-      }else if(t==='formale'){
-        lines.push('Cinema Multisala Teatro Mendrisio');
-        lines.push('Programmazione '+fd(days[0])+' \u2013 '+fd(days[6]));lines.push('');
-        weekFilms.forEach(function(f){
-          var sched=filmScheduleSummary(f);
-          lines.push('\u2022 '+f.title+(sched?' \u2014 '+sched:''));
-        });
-        lines.push('');lines.push('Prenotazioni: '+cinemaUrl);
-      }else{
-        lines.push('\uD83C\uDF7F In sala questa settimana:');lines.push('');
-        weekFilms.slice(0,5).forEach(function(f){
-          lines.push('\uD83C\uDFAC '+f.title+' \u2192 '+filmScheduleSummary(f));
-        });
-        lines.push('');lines.push(cinemaUrl);
+
+    // Intestazione comune
+    var nFilm=weekFilms.length;
+    var headerLine='🎬 Questa settimana '+nFilm+' film al Cinema Multisala Teatro Mendrisio!';
+    if(p==='wa')headerLine='🎬 *Questa settimana '+nFilm+' film al Cinema Multisala Teatro Mendrisio!*';
+
+    lines.push(headerLine);
+    lines.push('');
+
+    // Ordina: nuove uscite prima, poi per data release (più recente→più vecchio)
+    var ordered=weekFilms.slice().sort(function(a,b){
+      var aIsNew=a.release&&a.release>=d14s&&a.release<=d7s;
+      var bIsNew=b.release&&b.release>=d14s&&b.release<=d7s;
+      if(aIsNew&&!bIsNew)return -1;
+      if(!aIsNew&&bIsNew)return 1;
+      // Stessa release → più recente prima
+      if(a.release&&b.release)return b.release.localeCompare(a.release);
+      if(a.release)return -1;
+      if(b.release)return 1;
+      return a.title.localeCompare(b.title,'it');
+    });
+
+    ordered.forEach(function(f){
+      var aIsNew=f.release&&f.release>=d14s&&f.release<=d7s;
+      var sched=filmScheduleSummary(f);
+      var newTag=aIsNew?'🆕 ':'';
+      var titleStr=p==='wa'?'*'+f.title+'*':f.title;
+      if(t==='formale'){
+        lines.push((aIsNew?'★ ':' ▸ ')+f.title);
+        if(sched)lines.push('   '+sched);
+      } else if(t==='conciso'){
+        lines.push(newTag+f.title+(sched?' → '+sched:''));
+      } else {
+        // friendly (default)
+        lines.push(newTag+titleStr+(sched?' → '+sched:''));
       }
-    }else if(p==='fb'){
-      if(t==='friendly'){
-        lines.push('Cari amici del Cinema Multisala! \uD83C\uDF1F');lines.push('');
-        lines.push('Questa settimana ('+fd(days[0])+' \u2013 '+fd(days[6])+') vi aspetta una programmazione ricchissima:');lines.push('');
-        weekFilms.slice(0,5).forEach(function(f){
-          var dur=f.duration?Math.floor(f.duration/60)+'h'+String(f.duration%60).padStart(2,'0'):'';
-          var sched=filmScheduleSummary(f);
-          lines.push('\uD83C\uDFAC '+f.title.toUpperCase());
-          if(dur||f.rating)lines.push('   '+[dur,f.rating,f.genre].filter(Boolean).join(' \xb7 '));
-          if(sched)lines.push('   Orari: '+sched);
-          if(f.ticketUrl)lines.push('   \uD83C\uDFAB '+f.ticketUrl);
-          lines.push('');
-        });
-        lines.push('Vi aspettiamo! \uD83C\uDF9F\uFE0F\nmendrisiocinema.ch');
-      }else if(t==='formale'){
-        lines.push('Cinema Multisala Teatro Mendrisio');
-        lines.push('Programmazione settimanale '+fd(days[0])+' \u2013 '+fd(days[6]));lines.push('');
-        weekFilms.forEach(function(f){
-          var sched=filmScheduleSummary(f);
-          var dur=f.duration?Math.floor(f.duration/60)+'h'+String(f.duration%60).padStart(2,'0'):'';
-          lines.push(f.title+(dur?' ('+dur+')':'')+(f.rating?' \u2022 '+f.rating:''));
-          if(sched)lines.push('  '+sched);
-        });
-        lines.push('');lines.push('www.'+cinemaUrl);
-      }else{
-        lines.push('\uD83C\uDFAC '+weekFilms.length+' film questa settimana!');lines.push('');
-        weekFilms.slice(0,4).forEach(function(f){
-          lines.push('\u2022 '+f.title+' \u2192 '+filmScheduleSummary(f));
-        });
-        lines.push('');lines.push(cinemaUrl);
-      }
-    }else{// wa
-      if(t==='friendly'){
-        lines.push('\uD83C\uDFAC *Cinema Multisala Teatro Mendrisio*');
-        lines.push('_'+fd(days[0])+' \u2013 '+fd(days[6])+'_');lines.push('');
-        lines.push('*Film in sala:*');
-        weekFilms.slice(0,6).forEach(function(f){
-          lines.push('\u2022 *'+f.title+'* \u2192 '+filmScheduleSummary(f));
-        });
-        lines.push('');lines.push('Prenotazioni: '+cinemaUrl);
-      }else if(t==='formale'){
-        lines.push('Cinema Multisala Teatro Mendrisio');
-        lines.push('Programmazione '+fd(days[0])+' \u2013 '+fd(days[6]));lines.push('');
-        weekFilms.forEach(function(f){lines.push('\u2022 '+f.title+' \u2192 '+filmScheduleSummary(f));});
-        lines.push('');lines.push(cinemaUrl);
-      }else{
-        lines.push('\uD83C\uDFAC Mendrisio '+fd(days[0]).slice(0,5)+':');
-        weekFilms.slice(0,4).forEach(function(f){lines.push('\u2022 '+f.title+' '+filmScheduleSummary(f));});
-        lines.push(cinemaUrl);
-      }
+    });
+
+    lines.push('');
+    if(p==='fb'||p==='ig'){
+      lines.push('🎟 Prenota su '+cinemaUrl);
+      lines.push('📍 Via Vincenzo Vela 2, Mendrisio');
+    } else {
+      lines.push('Prenotazioni: '+cinemaUrl);
     }
     return lines.join('\n');
   }
 
-  // ── POST 2: Consigli per pubblico ──
+// ── POST 2: Consigli per pubblico ──
   function buildPost2(){
     var p=_socialPlat;var t=_socialTone;
     var lines=[];
