@@ -589,7 +589,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="wlbl" id="wlbl">—</div>
     <button onclick="cw(1)">›</button>
   </div>
-  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v01/04 12:15</small>
+  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v01/04 12:20</small>
   <div class="hact">
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
     <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
@@ -2838,9 +2838,9 @@ function fillF(sel){
   // wd[0] = giovedì della settimana corrente
   const wd=wdates();
   const weekStart=wd[0]; // inizio settimana corrente
-  const d6wBack=new Date(wd[0]+'T12:00:00');
-  d6wBack.setDate(d6wBack.getDate()-42); // 6 settimane indietro
-  const d6wBackStr=toLocalDate(d6wBack);
+  const d16wBack=new Date(wd[0]+'T12:00:00');
+  d16wBack.setDate(d16wBack.getDate()-112); // 16 settimane indietro
+  const d16wBackStr=toLocalDate(d16wBack);
   // Settimana corrente + 7 giorni avanti (per film che escono questa settimana)
   const weekEnd=wd[6];
 
@@ -2851,7 +2851,7 @@ function fillF(sel){
       if(_planMode)return true; // in modalità pianificazione: tutti
       // Includi: release tra 6 sett. fa e fine settimana corrente
       if(f.release){
-        if(f.release<d6wBackStr)return false; // troppo vecchio
+        if(f.release<d16wBackStr)return false; // troppo vecchio
         if(f.release>weekEnd)return false;    // troppo futuro
       }
       return true;
