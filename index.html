@@ -589,7 +589,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="wlbl" id="wlbl">—</div>
     <button onclick="cw(1)">›</button>
   </div>
-  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v01/04 14:05</small>
+  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v01/04 14:10</small>
   <div class="hact">
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
     <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
@@ -5983,7 +5983,7 @@ function socialRenderCarousel(){
         var sw=iw*sc2,sh=ih*sc2;
         var sx=(W-sw)/2,sy=0; // âncora in alto — volti/soggetti visibili
         ctx.save();
-        ctx.globalAlpha=is2BFoto?0.80:1.0;
+        ctx.globalAlpha=is2BFoto?0.90:1.0;
         ctx.drawImage(bgImg,sx,sy,sw,sh);
         ctx.restore();
       }
@@ -6236,7 +6236,7 @@ function drawLayout2BContent(ctx,film,byDay,dayOrd,DIT2,W,H,fmt,scale,S,ORA,isSt
   var footerTop=H-S(44);
   var available=footerTop-headerBottom;
   // Blocco spostato verso il basso: 65% dello spazio disponibile invece di 50%
-  var cy=headerBottom+Math.max(0,Math.min((available-blockH)*0.65,(available-blockH)));
+  var cy=headerBottom+Math.max(0,Math.min((available-blockH)*0.85,(available-blockH)));
 
   // ── Regista ───────────────────────────────────────────────────────────────
   if(film.director){
