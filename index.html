@@ -589,7 +589,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="wlbl" id="wlbl">—</div>
     <button onclick="cw(1)">›</button>
   </div>
-  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v01/04 11:30</small>
+  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v01/04 12:00</small>
   <div class="hact">
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
     <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
@@ -8382,17 +8382,11 @@ async function doPDFImport(){
   }
 
   function matchFilm(pf){
-    // Level 1: exact date match (same Italian release date)
-    var dateMatches=apiFilms.filter(function(f){
-      return f.start_date&&pf.releaseIT&&f.start_date===pf.releaseIT;
-    });
-    if(dateMatches.length===1)return{film:dateMatches[0],confidence:'high',method:'data'};
-
-    // Level 2: exact title match (case-insensitive)
+    // Level 1: exact title match (priorità massima)
     var exactMatch=apiFilms.find(function(f){return normT(f.title)===normT(pf.title);});
     if(exactMatch)return{film:exactMatch,confidence:'high',method:'titolo esatto'};
 
-    // Level 3: fuzzy word overlap > 60%
+    // Level 2: fuzzy word overlap > 60%
     var best=null;var bestScore=0;
     apiFilms.forEach(function(f){
       var score=wordOverlap(f.title,pf.title);
@@ -8400,16 +8394,26 @@ async function doPDFImport(){
     });
     if(bestScore>=0.6)return{film:best,confidence:'medium',method:'titolo simile ('+Math.round(bestScore*100)+'%)'};
 
-    // Level 4: date within ±3 days (sometimes dates differ slightly)
+    // Level 3: stessa data E titolo con almeno 1 parola in comune (>0 score)
+    // NON fa match solo per data — evita di associare film sbagliati
     if(pf.releaseIT){
-      var pDate=new Date(pf.releaseIT);
-      var closeDateMatches=apiFilms.filter(function(f){
-        if(!f.start_date)return false;
-        var diff=Math.abs(new Date(f.start_date)-pDate);
-        return diff<=3*86400000;
+      var dateMatches=apiFilms.filter(function(f){
+        return f.start_date&&f.start_date===pf.releaseIT;
       });
-      if(closeDateMatches.length===1&&wordOverlap(closeDateMatches[0].title,pf.title)>0.3){
-        return{film:closeDateMatches[0],confidence:'low',method:'data simile'};
+      // Solo se c'è UN SOLO film in biglietteria per quella data
+      // E ha qualche somiglianza di titolo
+      if(dateMatches.length===1){
+        var titleScore=wordOverlap(dateMatches[0].title,pf.title);
+        if(titleScore>0.3)return{film:dateMatches[0],confidence:'medium',method:'data+titolo ('+Math.round(titleScore*100)+'%)'};
+      }
+      // Se ci sono più film per quella data → cerca il più simile per titolo
+      if(dateMatches.length>1){
+        var bestDate=null;var bestDateScore=0;
+        dateMatches.forEach(function(f){
+          var sc=wordOverlap(f.title,pf.title);
+          if(sc>bestDateScore){bestDateScore=sc;bestDate=f;}
+        });
+        if(bestDateScore>0.4)return{film:bestDate,confidence:'medium',method:'data+titolo simile ('+Math.round(bestDateScore*100)+'%)'};
       }
     }
 
@@ -10177,15 +10181,22 @@ function propParsePaste(){
   _propPrevData=propParseTable(text);
 
   var filmCount=Object.keys(_propPrevData).length;
-  var entryCount=Object.values(_propPrevData).reduce((sum,days)=>
-    sum+Object.values(days).reduce((s,arr)=>s+arr.length,0),0);
+  var entryCount=Object.values(_propPrevData).reduce(function(sum,days){
+    return sum+Object.values(days).reduce(function(s,arr){return s+arr.length;},0);
+  },0);
 
   _propPrevWeekLabel=weekDates.length?(weekDates[0]+' — '+(weekDates[6]||weekDates[weekDates.length-1])):'';
   var prevLabel=document.getElementById('prop-prev-label');
   if(prevLabel)prevLabel.textContent=filmCount+' film · '+entryCount+' spettacoli · '+_propPrevWeekLabel;
 
-  document.getElementById('prop-parse-status').textContent=
-    `✓ Trovati ${filmCount} film con ${entryCount} spettacoli`;
+  var statusEl=document.getElementById('prop-parse-status');
+  if(filmCount>0){
+    statusEl.textContent='✓ Trovati '+filmCount+' film con '+entryCount+' spettacoli';
+    statusEl.style.color='var(--acc)';
+  } else {
+    statusEl.textContent='⚠ Nessun dato estratto — verifica il formato del testo';
+    statusEl.style.color='#e84a4a';
+  }
 
   co('ovPropPaste');
   propRender();
@@ -10195,77 +10206,123 @@ window.propParsePaste=propParsePaste;
 // ── Parser robusto della tabella ─────────────────────────────────────────
 function propParseTable(text){
   var result={};
-  var lines=text.split('\n').map(l=>l.trim());
+  var lines=text.split('\n').map(function(l){return l.trim();});
 
-  // Trova intestazione date
+  // Step 1: trova riga con 7 date gio-mer
   var weekDates=[];
   var dateLineIdx=-1;
   for(var i=0;i<lines.length;i++){
-    var dm=lines[i].match(/(\d{2}\/\d{2}\/\d{4})/g);
+    var dm=lines[i].match(/\d{2}\/\d{2}\/\d{4}/g);
     if(dm&&dm.length>=5){weekDates=dm.slice(0,7);dateLineIdx=i;break;}
   }
   if(!weekDates.length)return result;
 
-  // Converte date in iso
-  var isoWeek=weekDates.map(ds=>{var p=ds.split('/');return `${p[2]}-${p[1]}-${p[0]}`;});
-
+  // Step 2: scansiona blocchi film
+  // Ogni blocco inizia con il titolo film, poi riga "Spett.: N Inc.: N"
+  // poi righe con orari
   var currentFilm='';
-  var i=dateLineIdx+2;
+  var i=dateLineIdx+1;
 
   while(i<lines.length){
     var line=lines[i];
 
-    // Salta righe vuote, intestazioni, totali
-    if(!line||line.match(/^(Orario|Inc\.|Spett\.|Totale|Copyright|Riepilogo|Film\s)/i)
-      ||line.match(/^\d{2}\/\d{2}\/\d{4}/)){i++;continue;}
+    // Salta righe vuote e intestazioni
+    if(!line||line.length<2){i++;continue;}
+    if(line.match(/^(Orario|Inc\.|Spett\.|Film\s|Totale|Copyright|Riepilogo|Week|New\s)/i)){i++;continue;}
+    if(line.match(/^\d{2}\/\d{2}\/\d{4}/)){i++;continue;}
 
-    // Riga con "Spett.: N Inc.: N" → intestazione film con totali
-    var filmHeader=line.match(/(.+?)\s+Spett\.\s*:\s*(\d+)\s+Inc\.\s*:\s*([\d.]+)/);
-    if(filmHeader){
-      currentFilm=filmHeader[1].trim();
+    // Riga "NomeFilm\nSpett.: N Inc.: N" — intestazione con totali
+    var headerMatch=line.match(/^(.+?)\s+Spett\.\s*:\s*\d+\s+Inc\.\s*:\s*[\d.]+\s*$/);
+    if(headerMatch){
+      currentFilm=headerMatch[1].trim();
       i++;continue;
     }
 
-    // Riga solo orari+sala+dati: contiene pattern "HH:MM" e "(SALA"
+    // Riga solo "Spett.: N Inc.: N" senza titolo
+    if(line.match(/^\s*Spett\.\s*:/)){
+      // Il titolo era la riga precedente
+      if(i>0&&lines[i-1]&&!lines[i-1].match(/\d{1,2}:\d{2}/)&&lines[i-1].length>2){
+        currentFilm=lines[i-1].replace(/\([^)]*\)/g,'').trim();
+      }
+      i++;continue;
+    }
+
+    // Riga con orari e sale
     if(line.match(/\d{1,2}:\d{2}/)&&line.match(/\((TEATRO|CIAK|1908|MIGNON)/i)){
       if(!currentFilm){i++;continue;}
-      var key=currentFilm.toLowerCase().trim();
+      var key=currentFilm.toLowerCase()
+        .replace(/\s*\([^)]*\)\s*/g,' ').replace(/\s+/g,' ').trim();
       if(!result[key])result[key]={};
 
-      // Divide per colonne: ogni colonna ha orario (sala) inc spett
-      // Usa regex per trovare tutti i pattern: orario (sala) inc spett
-      var cellRe=/(\d{1,2}:\d{2})\s*\(\s*(TEATRO(?:\s*new)?|CIAK|1908|MIGNON)[^)]*\)\s*([\d.]+)\s+(\d+)/gi;
-      var match;
-      var colIdx=0;
-      var lastIdx=0;
-      while((match=cellRe.exec(line))!==null){
-        var time=match[1];
-        var sala=match[2].replace(/\s*new\s*/i,'').trim().toUpperCase();
-        var inc=parseFloat(match[3]);
-        var spett=parseInt(match[4]);
+      // Strategia: divide la riga in segmenti per giorno usando le posizioni
+      // Ogni "colonna" ha larghezza ~uniforme nella riga originale
+      // Alternativa: estrae tutti i match e li mappa per posizione relativa
+      var cellRe=/(\d{1,2}:\d{2})\s*\n?\s*\(\s*(TEATRO(?:\s*new)?|CIAK|1908|MIGNON)[^)]*\)\s*\n?\s*([\d.]+)\s+(\d+)/gi;
 
-        // Stima il giorno dalla posizione nella riga
-        var posRatio=match.index/line.length;
-        var dayIdx=Math.min(6,Math.floor(posRatio*7));
-
-        if(!result[key][dayIdx])result[key][dayIdx]=[];
-        result[key][dayIdx].push({time,sala,inc,spett});
-        colIdx++;
+      // Prova prima su riga singola
+      var cellsOnLine=[];
+      var m;
+      var singleRe=/(\d{1,2}:\d{2})\s*\(([^)]+)\)\s*([\d.]+)\s+(\d+)/gi;
+      while((m=singleRe.exec(line))!==null){
+        cellsOnLine.push({
+          pos:m.index,
+          time:m[1],
+          sala:m[2].replace(/\s*new\s*/i,'').toUpperCase().trim(),
+          inc:parseFloat(m[3]),
+          spett:parseInt(m[4])
+        });
       }
 
-      // Fallback: riga successiva potrebbe avere orario isolato per stesso film
+      if(cellsOnLine.length>0){
+        // Mappa posizione nella riga → indice giorno
+        var lineLen=Math.max(line.length,1);
+        cellsOnLine.forEach(function(cell){
+          var dayIdx=Math.min(6,Math.floor((cell.pos/lineLen)*7));
+          if(!result[key][dayIdx])result[key][dayIdx]=[];
+          result[key][dayIdx].push({
+            time:cell.time,sala:cell.sala,
+            inc:cell.inc,spett:cell.spett
+          });
+        });
+      } else {
+        // Prova a concatenare con le righe successive che potrebbero contenere altri orari
+        // (il report può spezzare su più righe)
+        var multiLine=line;
+        var j=i+1;
+        while(j<lines.length&&j<i+4){
+          var nl=lines[j];
+          if(!nl||nl.match(/Spett\.|Totale|Copyright/i))break;
+          if(!nl.match(/\d{1,2}:\d{2}/)&&!nl.match(/\(\s*(TEATRO|CIAK|1908|MIGNON)/i)&&nl.match(/^[\d.]+\s+\d+/)){
+            multiLine+=' '+nl; j++;
+          } else if(nl.match(/\d{1,2}:\d{2}/)){
+            break;
+          } else break;
+        }
+        var mRe=/(\d{1,2}:\d{2})\s*\(([^)]+)\)\s*([\d.]+)\s+(\d+)/gi;
+        while((m=mRe.exec(multiLine))!==null){
+          var sala=m[2].replace(/\s*new\s*/i,'').toUpperCase().trim();
+          var posRatio=m.index/Math.max(multiLine.length,1);
+          var dayIdx=Math.min(6,Math.floor(posRatio*7));
+          if(!result[key][dayIdx])result[key][dayIdx]=[];
+          result[key][dayIdx].push({
+            time:m[1],sala:sala,
+            inc:parseFloat(m[3]),spett:parseInt(m[4])
+          });
+        }
+      }
       i++;continue;
     }
 
-    // Riga che sembra un titolo film (no numeri, no intestazione)
+    // Riga senza orari — potrebbe essere titolo film
     if(line.length>3&&!line.match(/^[\d\s.,:/-]+$/)
       &&!line.match(/\d{1,2}:\d{2}/)
-      &&!line.match(/^(Orario|Total|Week|New|Copyright)/i)){
-      // Potrebbe essere continuazione titolo o nuovo titolo
-      // Se la riga successiva ha orari, è un titolo
-      var nextLine=lines[i+1]||'';
-      if(nextLine.match(/\d{1,2}:\d{2}/)||nextLine.match(/Spett\./)){
-        currentFilm=line.replace(/Spett\..*$/,'').replace(/Inc\..*$/,'').trim();
+      &&!line.match(/^(Totale|Riepilogo|Total)/i)){
+      // Controlla righe successive per capire se è un titolo
+      var next1=lines[i+1]||'';
+      var next2=lines[i+2]||'';
+      if(next1.match(/Spett\./)||next2.match(/Spett\./)||
+         next1.match(/\d{1,2}:\d{2}/)||next2.match(/\d{1,2}:\d{2}/)){
+        currentFilm=line.replace(/\([^)]*\)/g,'').replace(/Spett\..*$/,'').trim();
       }
     }
     i++;
