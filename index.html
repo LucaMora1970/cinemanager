@@ -589,7 +589,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="wlbl" id="wlbl">—</div>
     <button onclick="cw(1)">›</button>
   </div>
-  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v01/04 08:47</small>
+  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v01/04 08:52</small>
   <div class="hact">
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
     <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
@@ -674,6 +674,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="st">Archivio Film</div>
     <div style="display:flex;align-items:center;gap:12px">
       <button class="btn bg bs" onclick="tmdbEnrichAll()" title="Recupera backdrop e locandine TMDB per tutti i film che non le hanno" style="font-size:11px">🖼 Immagini TMDB</button>
+      <button class="btn bg bs" onclick="tmdbFixBackdropUrls()" title="Aggiorna URL backdrop da w780 a original (risolve errori 503 TMDB)" style="margin-left:4px">🔧 Fix Backdrop</button>
       <div class="toggle-wrap">
         <span>Mostra scaduti</span>
         <label class="toggle"><input type="checkbox" id="showExp" onchange="rf()"><span class="toggle-slider"></span></label>
