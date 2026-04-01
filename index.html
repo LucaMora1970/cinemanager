@@ -589,7 +589,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="wlbl" id="wlbl">—</div>
     <button onclick="cw(1)">›</button>
   </div>
-  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v01/04 12:00</small>
+  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v01/04 12:15</small>
   <div class="hact">
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
     <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
@@ -2832,37 +2832,40 @@ function fillF(sel){
   const el=document.getElementById('mFilm');
   if(!el){console.error('fillF: mFilm element not found');return;}
   el.innerHTML='<option value="">— Seleziona —</option>';
-  const today=new Date();today.setHours(0,0,0,0);
-  const todayStr=toLocalDate(today);
-  const d12=new Date(today);d12.setDate(d12.getDate()+12);
-  const d12Str=toLocalDate(d12);
-  const d60=new Date(today);d60.setDate(d60.getDate()+60);
-  const d60Str=toLocalDate(d60);
+  const todayStr=toLocalDate(new Date());
+
+  // Finestra: settimana selezionata + 6 settimane precedenti
+  // wd[0] = giovedì della settimana corrente
+  const wd=wdates();
+  const weekStart=wd[0]; // inizio settimana corrente
+  const d6wBack=new Date(wd[0]+'T12:00:00');
+  d6wBack.setDate(d6wBack.getDate()-42); // 6 settimane indietro
+  const d6wBackStr=toLocalDate(d6wBack);
+  // Settimana corrente + 7 giorni avanti (per film che escono questa settimana)
+  const weekEnd=wd[6];
 
   S.films
     .filter(f=>{
-      // Always include the currently selected film
-      if(f.id===sel)return true;
-      // Exclude scaduti (endDate < oggi) — nascosti di default
-      if(f.endDate&&f.endDate<todayStr)return false;
-      if(_planMode)return true;
-      // Exclude film con release > oggi+60gg (troppo lontani)
-      if(f.release&&f.release>d60Str)return false;
+      if(f.id===sel)return true; // sempre includi il film già selezionato
+      if(f.endDate&&f.endDate<todayStr)return false; // escludi scaduti
+      if(_planMode)return true; // in modalità pianificazione: tutti
+      // Includi: release tra 6 sett. fa e fine settimana corrente
+      if(f.release){
+        if(f.release<d6wBackStr)return false; // troppo vecchio
+        if(f.release>weekEnd)return false;    // troppo futuro
+      }
       return true;
     })
+    .sort((a,b)=>(a.release||'9999').localeCompare(b.release||'9999')||a.title.localeCompare(b.title,'it'))
     .forEach(f=>{
       const o=document.createElement('option');
       o.value=f.id;
-      const isFuture=_planMode&&f.release&&f.release>d60Str;
-      const isProssimamente=f.release&&f.release>d12Str&&f.release<=d60Str;
-      if(isFuture){
-        o.disabled=false;
-        o.textContent=`🗓 ${f.title} (${f.duration} min) — previsto ${f.release.split('-').reverse().join('/')}`;
-      } else if(isProssimamente){
-        o.disabled=true;
-        o.textContent=`⏳ ${f.title} (${f.duration} min) — uscita ${f.release.split('-').reverse().join('/')}`;
+      const isThisWeek=f.release&&f.release>=weekStart&&f.release<=weekEnd;
+      if(isThisWeek){
+        o.textContent=`🆕 ${f.title} (${f.duration} min) — uscita ${f.release.split('-').reverse().join('/')}`;
       } else {
-        o.textContent=`${f.title} (${f.duration} min)`;
+        const rel=f.release?` — ${f.release.split('-').reverse().join('/')}`:' ';
+        o.textContent=`${f.title} (${f.duration} min)${rel}`;
       }
       if(f.id===sel){o.selected=true;o.disabled=false;}
       el.appendChild(o);
@@ -5156,8 +5159,13 @@ function renderPlaylist(){
   });
   var w=document.getElementById('pl-list-all');if(!w)return;
   if(!filmOrder.length){w.innerHTML='<div class="pl-empty">Nessun film in programmazione questa settimana</div>';renderPlaylistSala();return;}
-  var trailerCandidates=S.films.filter(function(f){return !f.release||f.release>=today;})
-    .sort(function(a,b){return (a.release||'9999').localeCompare(b.release||'9999')||a.title.localeCompare(b.title,'it');});
+  var d8m=new Date();d8m.setMonth(d8m.getMonth()+8);var d8mStr=toLocalDate(d8m);
+  var trailerCandidates=S.films.filter(function(f){
+    if(!f.release)return false; // solo film con data uscita
+    if(f.release<today)return false; // escludi già usciti
+    if(f.release>d8mStr)return false; // escludi oltre 8 mesi
+    return true;
+  }).sort(function(a,b){return (a.release||'9999').localeCompare(b.release||'9999')||a.title.localeCompare(b.title,'it');});
   var html='<div class="lfc-grid">';
   filmOrder.forEach(function(fid){
     var film=S.films.find(function(f){return f.id===fid;});if(!film)return;
@@ -8240,6 +8248,8 @@ function parseProCinemaPDF(text){
     var ageM=line.match(ageRe);
     var age=ageM&&ageM[1]?ageM[1]:'';
 
+    // Esclude film senza data di uscita in Ticino (Italian Part)
+    if(!itDate.iso)return; // senza data Ticino → non importare
     films.push({title:title,suisa:suisa,genre:genre,distributor:distributor,releaseIT:itDate.iso,age:age});
   }
   return films;
