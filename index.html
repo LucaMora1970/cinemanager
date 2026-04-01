@@ -589,7 +589,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="wlbl" id="wlbl">—</div>
     <button onclick="cw(1)">›</button>
   </div>
-  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v01/04 11:15</small>
+  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v01/04 11:30</small>
   <div class="hact">
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
     <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
@@ -626,6 +626,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
   <div class="tab" id="tab-playlist" onclick="gt('playlist');renderPlaylist();">▶ Playlist</div>
   <div class="tab" id="tab-social" onclick="gt('social')">📱 Social</div>
   <div class="tab" id="tab-news" onclick="gt('news')">📰 Newsletter</div>
+  <div class="tab" id="tab-prop" onclick="gt('prop')">📊 Proposta</div>
 </div>
 
 <main>
@@ -1287,6 +1288,99 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <iframe id="news-iframe" style="width:100%;height:700px;border:1px solid var(--bdr);border-radius:8px;background:#fff"></iframe>
   </div>
 </div>
+
+<!-- PROPOSTA PROGRAMMAZIONE -->
+<div id="page-prop" class="page">
+  <div class="sh">
+    <div class="st">📊 Proposta Programmazione</div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button class="btn bg bs" onclick="propApplyToGrid()">⬇ Applica alla Programmazione</button>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:6px">
+      <span style="font-size:12px;color:var(--txt2);font-weight:600">Settimana proposta:</span>
+      <button class="btn bg bs" onclick="propShiftWeek(-1)">&#8249;</button>
+      <span id="prop-week-label" style="font-size:13px;font-weight:700;min-width:180px;text-align:center">—</span>
+      <button class="btn bg bs" onclick="propShiftWeek(1)">&#8250;</button>
+    </div>
+    <div style="width:1px;height:24px;background:var(--bdr)"></div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <span style="font-size:12px;color:var(--txt2);font-weight:600">Dati settimana precedente:</span>
+      <span id="prop-prev-label" style="font-size:11px;color:var(--acc)">nessun dato incollato</span>
+      <button class="btn bg bs" onclick="propOpenPaste()">📋 Incolla dati</button>
+      <button class="btn bd bs" onclick="propClearData()" title="Cancella dati">✕</button>
+    </div>
+  </div>
+
+  <div id="prop-grid-wrap" style="overflow-x:auto">
+    <div id="prop-grid"></div>
+  </div>
+</div>
+
+<!-- Modal incolla dati settimana precedente -->
+<div class="ov" id="ovPropPaste">
+  <div class="ovc" style="max-width:700px;width:95%">
+    <div class="ovh">
+      <div class="ovt">📋 Incolla tabella settimana precedente</div>
+      <button class="ovcl" onclick="co('ovPropPaste')">✕</button>
+    </div>
+    <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
+      <div style="font-size:12px;color:var(--txt2)">
+        Copia e incolla il testo della tabella riepilogativa settimanale dalla biglietteria.
+      </div>
+      <textarea id="prop-paste-area" style="width:100%;height:280px;font-family:monospace;font-size:11px;padding:8px;border:1px solid var(--bdr);border-radius:6px;background:var(--surf2);color:var(--txt);resize:vertical" placeholder="Incolla qui il testo della tabella riepilogativa..."></textarea>
+      <div id="prop-parse-status" style="font-size:11px;color:var(--txt2)"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn bg" onclick="propParsePaste()">&#10003; Analizza e applica</button>
+        <button class="btn" onclick="co('ovPropPaste')">Annulla</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal aggiunta spettacolo nella proposta -->
+<div class="ov" id="ovPropSlot">
+  <div class="ovc" style="max-width:420px">
+    <div class="ovh">
+      <div class="ovt">&#8853; Proposta spettacolo</div>
+      <button class="ovcl" onclick="co('ovPropSlot')">✕</button>
+    </div>
+    <div style="padding:16px;display:flex;flex-direction:column;gap:10px">
+      <div>
+        <label style="font-size:11px;color:var(--txt2);display:block;margin-bottom:4px">Giorno</label>
+        <div id="prop-slot-day" style="font-weight:700;font-size:13px"></div>
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--txt2);display:block;margin-bottom:4px">Film</label>
+        <select id="prop-slot-film" style="width:100%;padding:6px;border:1px solid var(--bdr);border-radius:6px;background:var(--surf2);color:var(--txt);font-size:12px">
+          <option value="">— Seleziona film —</option>
+        </select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>
+          <label style="font-size:11px;color:var(--txt2);display:block;margin-bottom:4px">Sala</label>
+          <select id="prop-slot-sala" style="width:100%;padding:6px;border:1px solid var(--bdr);border-radius:6px;background:var(--surf2);color:var(--txt);font-size:12px">
+            <option value="1">Teatro</option>
+            <option value="2">Ciak</option>
+            <option value="3">1908</option>
+            <option value="4">Mignon</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--txt2);display:block;margin-bottom:4px">Orario</label>
+          <input type="time" id="prop-slot-time" style="width:100%;padding:6px;border:1px solid var(--bdr);border-radius:6px;background:var(--surf2);color:var(--txt);font-size:12px">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">
+        <button class="btn ba" onclick="propAddSlot()">Aggiungi</button>
+        <button class="btn" onclick="co('ovPropSlot')">Annulla</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 
 </main>
 <div id="pout" style="display:none"></div>
@@ -2062,7 +2156,7 @@ async function fbSE(list){await setDoc(doc(db,'settings','emails'),{list});}
 async function fbSetDoc(db2,col,docId,data){await setDoc(doc(db2,col,docId),data);}
 
 // ── TABS ──────────────────────────────────────────────────
-const TABS=['prog','lista','arch','prnt','mail','book','staff','users','playlist','social','news'];
+const TABS=['prog','lista','arch','prnt','mail','book','staff','users','playlist','social','news','prop'];
 function gt(id){
   document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('on',TABS[i]===id));
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
@@ -2070,6 +2164,7 @@ function gt(id){
   var _ps=document.getElementById('perm-section');
   if(_ps)_ps.style.display=(id==='users'&&window._userRole==='admin')?'block':'none';
   if(id==='lista')rl();if(id==='arch')rf();if(id==='mail')rem();if(id==='staff'){renderAllDays();}if(id==='playlist')renderPlaylist();if(id==='social'&&typeof socialGenerate==='function')socialGenerate();if(id==='users')renderPermGrid();if(id==='news')newsInit();
+  if(id==='prop')propInit();
 }
 window.gt=gt;
 
@@ -9715,6 +9810,516 @@ syncSet('busy','Connessione…');
     if(retryBtn)retryBtn.style.display='block';
   },10000);
 })();
+// ══════════════════════════════════════════════════════════════════════════
+// MODULO PROPOSTA PROGRAMMAZIONE
+// ══════════════════════════════════════════════════════════════════════════
+var _propWeek=null;        // Date() primo giorno (giovedì) della settimana proposta
+var _propSlots={};         // {dayIdx: [{filmId,sala,time}]} — proposta utente
+var _propPrevData={};      // {filmTitleLower: {dayIdx: [{sala,time,inc,spett}]}} — dati sett. prec.
+var _propPrevWeekLabel=''; // label settimana precedente
+var _propEditDay=null;     // giorno in editing nel modal
+
+var DIT_PROP=['Gio','Ven','Sab','Dom','Lun','Mar','Mer'];
+
+function propInit(){
+  // Inizializza la settimana proposta = settimana successiva a quella corrente
+  if(!_propWeek){
+    var ws=new Date(S.ws);
+    ws.setDate(ws.getDate()+7);
+    _propWeek=ws;
+  }
+  propRender();
+}
+window.propInit=propInit;
+
+function propShiftWeek(n){
+  if(!_propWeek)_propWeek=new Date(S.ws);
+  _propWeek=new Date(_propWeek);
+  _propWeek.setDate(_propWeek.getDate()+n*7);
+  propRender();
+}
+window.propShiftWeek=propShiftWeek;
+
+function propDates(){
+  return Array.from({length:7},(_,i)=>{
+    const d=new Date(_propWeek);
+    d.setDate(d.getDate()+i);
+    return d;
+  });
+}
+
+function propDateStr(d){
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function propFd(d){
+  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+
+// ── Render della griglia proposta ─────────────────────────────────────────
+function propRender(){
+  var days=propDates();
+  // Label settimana proposta
+  var wl=document.getElementById('prop-week-label');
+  if(wl)wl.textContent=propFd(days[0])+' — '+propFd(days[6])+' '+days[6].getFullYear();
+
+  var grid=document.getElementById('prop-grid');
+  if(!grid)return;
+
+  // Raccoglie tutti i film in programmazione (corrente + archivio)
+  var allFilms=S.films.slice().sort((a,b)=>a.title.localeCompare(b.title,'it'));
+
+  // Costruisce HTML griglia
+  var html='<table style="border-collapse:collapse;width:100%;min-width:900px;font-size:11px">';
+
+  // Header giorni
+  html+='<thead><tr>';
+  html+='<th style="width:120px;padding:6px 8px;background:var(--surf2);border:1px solid var(--bdr);text-align:left;font-size:11px;color:var(--txt2)">SALA / FILM</th>';
+  days.forEach((d,i)=>{
+    html+='<th style="padding:6px 8px;background:var(--surf2);border:1px solid var(--bdr);text-align:center;min-width:110px">';
+    html+=`<div style="font-weight:700;color:var(--txt)">${DIT_PROP[i]} ${propFd(d)}</div>`;
+    html+='</th>';
+  });
+  html+='</tr></thead><tbody>';
+
+  // Righe per sala
+  Object.keys(SALE).forEach(salaId=>{
+    var sala=SALE[salaId];
+    // Raccoglie tutti gli slot proposta per questa sala
+    var salaSlots={};
+    days.forEach((_,di)=>{
+      salaSlots[di]=(_propSlots[di]||[]).filter(s=>s.sala===salaId);
+    });
+
+    // Conta righe necessarie (max spettacoli per giorno in questa sala)
+    var maxRows=Math.max(1,...days.map((_,di)=>Math.max(1,salaSlots[di].length)));
+
+    for(var row=0;row<maxRows;row++){
+      html+='<tr>';
+      if(row===0){
+        html+=`<td rowspan="${maxRows}" style="padding:6px 8px;border:1px solid var(--bdr);background:var(--surf2);font-weight:700;color:${sala.col};vertical-align:top">${sala.n}</td>`;
+      }
+      days.forEach((_,di)=>{
+        var slot=salaSlots[di][row]||null;
+        var film=slot?allFilms.find(f=>f.id===slot.filmId):null;
+
+        // Dati settimana precedente per questa cella
+        var prevData=propGetPrevData(film?film.title:'',di,salaId,slot?slot.time:'');
+
+        html+='<td style="padding:4px;border:1px solid var(--bdr);vertical-align:top;min-height:60px;position:relative">';
+
+        if(slot&&film){
+          // Slot con film proposto
+          html+=`<div style="background:${sala.col}22;border:1px solid ${sala.col}66;border-radius:4px;padding:4px 6px;margin-bottom:2px;position:relative">`;
+          html+=`<div style="font-weight:700;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px">${film.title}</div>`;
+          html+=`<div style="color:var(--txt2);font-size:10px">${slot.time}</div>`;
+          html+=`<button onclick="propRemoveSlot(${di},'${salaId}',${salaSlots[di].indexOf(slot)})" style="position:absolute;top:2px;right:2px;background:none;border:none;cursor:pointer;color:var(--txt2);font-size:10px;padding:0 2px" title="Rimuovi">✕</button>`;
+          html+='</div>';
+        }
+
+        // Dati settimana precedente (se disponibili)
+        if(prevData.length){
+          prevData.forEach(pd=>{
+            html+=`<div style="background:rgba(240,128,26,.08);border:1px solid rgba(240,128,26,.2);border-radius:3px;padding:2px 5px;margin-top:2px;font-size:10px;color:var(--txt2)">`;
+            html+=`<span style="font-weight:600;color:var(--txt)">${pd.time}</span>`;
+            if(pd.filmTitle) html+=` <span style="font-size:9px">${pd.filmTitle.slice(0,18)}</span>`;
+            html+=`<br>`;
+            if(pd.spett>0) html+=`<span style="color:var(--acc)">👥${pd.spett}</span> `;
+            if(pd.inc>0)   html+=`<span>💰${pd.inc.toFixed(0)}.-</span>`;
+            else html+=`<span style="color:#e84a4a">vuoto</span>`;
+            html+='</div>';
+          });
+        }
+
+        // Pulsante aggiungi
+        html+=`<button onclick="propOpenSlotModal(${di},'${salaId}')" style="margin-top:3px;width:100%;padding:2px;background:transparent;border:1px dashed var(--bdr);border-radius:3px;cursor:pointer;color:var(--txt2);font-size:10px;display:block">+ aggiungi</button>`;
+        html+='</td>';
+      });
+      html+='</tr>';
+    }
+  });
+
+  html+='</tbody></table>';
+  grid.innerHTML=html;
+}
+window.propRender=propRender;
+
+// ── Dati settimana precedente per una cella ───────────────────────────────
+function propGetPrevData(filmTitle,dayIdx,salaId,time){
+  if(!Object.keys(_propPrevData).length)return[];
+  var salaN=SALE[salaId]?SALE[salaId].n:'';
+  var results=[];
+
+  // Cerca per titolo film se specificato
+  if(filmTitle){
+    var fk=filmTitle.toLowerCase().trim();
+    var fd=_propPrevData[fk];
+    if(fd&&fd[dayIdx]){
+      fd[dayIdx].forEach(pd=>{
+        if(!salaN||pd.sala.toLowerCase().includes(salaN.toLowerCase())||salaN.toLowerCase().includes(pd.sala.toLowerCase())){
+          results.push({...pd,filmTitle:filmTitle});
+        }
+      });
+    }
+  }
+
+  // Se nessun film specifico, mostra tutti i dati di quella sala/giorno
+  if(!filmTitle){
+    Object.keys(_propPrevData).forEach(fk=>{
+      var fd=_propPrevData[fk];
+      if(fd&&fd[dayIdx]){
+        fd[dayIdx].forEach(pd=>{
+          if(!salaN||pd.sala.toLowerCase().includes(salaN.toLowerCase())||salaN.toLowerCase().includes(pd.sala.toLowerCase())){
+            results.push({...pd,filmTitle:fk});
+          }
+        });
+      }
+    });
+  }
+
+  return results;
+}
+
+// ── Modal aggiunta slot ───────────────────────────────────────────────────
+function propOpenSlotModal(dayIdx,salaId){
+  _propEditDay={dayIdx,salaId};
+  var days=propDates();
+  var dd=document.getElementById('prop-slot-day');
+  if(dd)dd.textContent=DIT_PROP[dayIdx]+' '+propFd(days[dayIdx]);
+  // Popola select film
+  var sel=document.getElementById('prop-slot-film');
+  if(sel){
+    var films=S.films.slice().sort((a,b)=>a.title.localeCompare(b.title,'it'));
+    sel.innerHTML='<option value="">— Seleziona film —</option>';
+    films.forEach(f=>{
+      sel.innerHTML+=`<option value="${f.id}">${f.title}</option>`;
+    });
+  }
+  // Sala pre-selezionata
+  var ss=document.getElementById('prop-slot-sala');
+  if(ss)ss.value=salaId;
+  // Orario default 20:30
+  var st=document.getElementById('prop-slot-time');
+  if(st)st.value='20:30';
+  document.getElementById('ovPropSlot').classList.add('on');
+}
+window.propOpenSlotModal=propOpenSlotModal;
+
+function propAddSlot(){
+  if(!_propEditDay)return;
+  var filmId=document.getElementById('prop-slot-film').value;
+  var sala=document.getElementById('prop-slot-sala').value;
+  var time=document.getElementById('prop-slot-time').value;
+  if(!filmId||!time){toast('Seleziona film e orario','err');return;}
+  var di=_propEditDay.dayIdx;
+  if(!_propSlots[di])_propSlots[di]=[];
+  _propSlots[di].push({filmId,sala,time});
+  co('ovPropSlot');
+  propRender();
+}
+window.propAddSlot=propAddSlot;
+
+function propRemoveSlot(dayIdx,salaId,idx){
+  if(!_propSlots[dayIdx])return;
+  var salaSlots=_propSlots[dayIdx].filter(s=>s.sala===salaId);
+  var slot=salaSlots[idx];
+  if(!slot)return;
+  _propSlots[dayIdx]=_propSlots[dayIdx].filter(s=>s!==slot);
+  propRender();
+}
+window.propRemoveSlot=propRemoveSlot;
+
+// ── Parse tabella settimana precedente ───────────────────────────────────
+function propOpenPaste(){
+  document.getElementById('prop-paste-area').value='';
+  document.getElementById('prop-parse-status').textContent='';
+  document.getElementById('ovPropPaste').classList.add('on');
+}
+window.propOpenPaste=propOpenPaste;
+
+function propParsePaste(){
+  var text=document.getElementById('prop-paste-area').value.trim();
+  if(!text||text.length<50){
+    document.getElementById('prop-parse-status').textContent='⚠ Testo troppo breve o vuoto';
+    return;
+  }
+
+  var data={};
+  var lines=text.split('\n').map(l=>l.trim()).filter(l=>l.length>0);
+
+  // Rileva intestazione con date (es. "26/03/2026")
+  var dateLineIdx=-1;
+  var weekDates=[];
+  for(var i=0;i<lines.length;i++){
+    var dates=lines[i].match(/\d{2}\/\d{2}\/\d{4}/g);
+    if(dates&&dates.length>=5){
+      dateLineIdx=i;
+      weekDates=dates.slice(0,7); // max 7 giorni
+      break;
+    }
+  }
+
+  if(!weekDates.length){
+    document.getElementById('prop-parse-status').textContent='⚠ Non riesco a trovare la riga con le date (es. 26/03/2026)';
+    return;
+  }
+
+  // Mappa giorno → indice colonna (0=gio, 1=ven, ... 6=mer)
+  // Le date nel report sono già in ordine Gio→Mer
+  var dayMap={}; // dateStr → colIdx
+  weekDates.forEach((ds,i)=>{
+    var parts=ds.split('/');
+    var iso=`${parts[2]}-${parts[1]}-${parts[0]}`;
+    dayMap[iso]=i;
+  });
+
+  // Parso blocco per blocco: ogni film ha una sezione con nome e poi righe con orari
+  var currentFilm=null;
+  var filmDataBuffer=[];
+
+  function flushFilm(){
+    if(!currentFilm||!filmDataBuffer.length)return;
+    var key=currentFilm.toLowerCase().trim();
+    if(!data[key])data[key]={};
+    filmDataBuffer.forEach(entry=>{
+      if(!data[key][entry.dayIdx])data[key][entry.dayIdx]=[];
+      // Evita duplicati
+      var exists=data[key][entry.dayIdx].find(e=>e.time===entry.time&&e.sala===entry.sala);
+      if(!exists)data[key][entry.dayIdx].push(entry);
+    });
+    filmDataBuffer=[];
+  }
+
+  // Pattern orario: es. "20:30" o "18:00"
+  var timeRe=/\b(\d{1,2}:\d{2})\b/;
+  // Pattern sala: es. "(CIAK)" o "(TEATRO" o "(1908)" o "(MIGNON)"
+  var salaRe=/\((TEATRO|CIAK|1908|MIGNON)[^)]*\)/i;
+  // Pattern incasso: numero decimale es. "152.0" o "22.8"
+  var incRe=/^(\d+\.\d+|\d+)$/;
+
+  for(var li=dateLineIdx+2;li<lines.length;li++){
+    var line=lines[li];
+
+    // Rileva nuova sezione film: riga con solo il titolo (o "Spett.: N Inc.: N")
+    if(line.match(/Spett\.\s*:\s*\d+/)&&line.match(/Inc\.\s*:\s*[\d.]+/)){
+      // Riga totali film — ignora
+      continue;
+    }
+
+    // Riga con orari: contiene almeno un orario e una sala
+    if(timeRe.test(line)&&salaRe.test(line)){
+      // Questa riga appartiene al film corrente
+      // Divide in token
+      var tokens=line.split(/\s+/);
+      var dayEntries=[];
+
+      // Cerca sequenze: orario + (SALA) + incasso + spettatori
+      var ti=0;
+      while(ti<tokens.length){
+        var tmatch=tokens[ti]&&tokens[ti].match(/^(\d{1,2}:\d{2})$/);
+        if(tmatch){
+          var time=tmatch[1];
+          var sala='';var inc=0;var spett=0;
+          // Cerca sala nei prossimi token
+          for(var tj=ti+1;tj<Math.min(ti+4,tokens.length);tj++){
+            var sm=tokens[tj].match(/^\((TEATRO|CIAK|1908|MIGNON)/i);
+            if(sm){sala=sm[1].toUpperCase();break;}
+          }
+          // Cerca incasso e spettatori
+          var numCount=0;
+          for(var tj=ti+1;tj<Math.min(ti+8,tokens.length);tj++){
+            if(tokens[tj].match(/^\d+\.?\d*$/)&&!tokens[tj].match(/^\d{4}$/)){
+              if(numCount===0)inc=parseFloat(tokens[tj]);
+              else if(numCount===1)spett=parseInt(tokens[tj]);
+              numCount++;
+              if(numCount>=2)break;
+            }
+          }
+          if(sala){dayEntries.push({time,sala,inc,spett});}
+          ti++;
+        } else {
+          ti++;
+        }
+      }
+
+      // Associa ogni entry al giorno corretto
+      // La riga ha gli orari in ordine Gio→Mer, una colonna per giorno
+      // Ogni colonna ha: orario (sala) incasso spett — ma alcune colonne possono essere vuote
+      if(currentFilm&&dayEntries.length){
+        // Strategia: distribuisce le entry sulle date della settimana
+        // cercando la data nel contesto della riga precedente o usando l'ordine
+        dayEntries.forEach((entry,ei)=>{
+          // Per semplicità: usa l'indice day dalla posizione nella riga
+          // (funziona perché le colonne sono sempre Gio→Mer)
+          var dayIdx=ei; // approssimazione — verrà raffinata
+          filmDataBuffer.push({...entry,dayIdx});
+        });
+      }
+      continue;
+    }
+
+    // Rileva titolo film: riga senza orari che non è una riga totali
+    if(!timeRe.test(line)&&!line.match(/^[-\s]+$/)&&line.length>3){
+      // Controlla se è un titolo (non una riga di numeri o intestazioni)
+      if(!line.match(/^[\d\s.,-]+$/)&&!line.match(/^(Orario|Inc\.|Spett\.|Totale|Copyright|Riepilogo|Week|Film)/i)){
+        // Nuova sezione film
+        if(currentFilm)flushFilm();
+        // Rimuove "(TEATRO new)" e altri artefatti
+        currentFilm=line.replace(/\([^)]+\)/g,'').replace(/new$/i,'').trim();
+        filmDataBuffer=[];
+      }
+    }
+  }
+  flushFilm();
+
+  // Secondo parsing più robusto: cerca pattern "FILMNAME\nOrario1 (SALA) inc spett Orario2..."
+  // Riparse il testo cercando blocchi film
+  _propPrevData=propParseTable(text);
+
+  var filmCount=Object.keys(_propPrevData).length;
+  var entryCount=Object.values(_propPrevData).reduce((sum,days)=>
+    sum+Object.values(days).reduce((s,arr)=>s+arr.length,0),0);
+
+  _propPrevWeekLabel=weekDates.length?(weekDates[0]+' — '+(weekDates[6]||weekDates[weekDates.length-1])):'';
+  var prevLabel=document.getElementById('prop-prev-label');
+  if(prevLabel)prevLabel.textContent=filmCount+' film · '+entryCount+' spettacoli · '+_propPrevWeekLabel;
+
+  document.getElementById('prop-parse-status').textContent=
+    `✓ Trovati ${filmCount} film con ${entryCount} spettacoli`;
+
+  co('ovPropPaste');
+  propRender();
+}
+window.propParsePaste=propParsePaste;
+
+// ── Parser robusto della tabella ─────────────────────────────────────────
+function propParseTable(text){
+  var result={};
+  var lines=text.split('\n').map(l=>l.trim());
+
+  // Trova intestazione date
+  var weekDates=[];
+  var dateLineIdx=-1;
+  for(var i=0;i<lines.length;i++){
+    var dm=lines[i].match(/(\d{2}\/\d{2}\/\d{4})/g);
+    if(dm&&dm.length>=5){weekDates=dm.slice(0,7);dateLineIdx=i;break;}
+  }
+  if(!weekDates.length)return result;
+
+  // Converte date in iso
+  var isoWeek=weekDates.map(ds=>{var p=ds.split('/');return `${p[2]}-${p[1]}-${p[0]}`;});
+
+  var currentFilm='';
+  var i=dateLineIdx+2;
+
+  while(i<lines.length){
+    var line=lines[i];
+
+    // Salta righe vuote, intestazioni, totali
+    if(!line||line.match(/^(Orario|Inc\.|Spett\.|Totale|Copyright|Riepilogo|Film\s)/i)
+      ||line.match(/^\d{2}\/\d{2}\/\d{4}/)){i++;continue;}
+
+    // Riga con "Spett.: N Inc.: N" → intestazione film con totali
+    var filmHeader=line.match(/(.+?)\s+Spett\.\s*:\s*(\d+)\s+Inc\.\s*:\s*([\d.]+)/);
+    if(filmHeader){
+      currentFilm=filmHeader[1].trim();
+      i++;continue;
+    }
+
+    // Riga solo orari+sala+dati: contiene pattern "HH:MM" e "(SALA"
+    if(line.match(/\d{1,2}:\d{2}/)&&line.match(/\((TEATRO|CIAK|1908|MIGNON)/i)){
+      if(!currentFilm){i++;continue;}
+      var key=currentFilm.toLowerCase().trim();
+      if(!result[key])result[key]={};
+
+      // Divide per colonne: ogni colonna ha orario (sala) inc spett
+      // Usa regex per trovare tutti i pattern: orario (sala) inc spett
+      var cellRe=/(\d{1,2}:\d{2})\s*\(\s*(TEATRO(?:\s*new)?|CIAK|1908|MIGNON)[^)]*\)\s*([\d.]+)\s+(\d+)/gi;
+      var match;
+      var colIdx=0;
+      var lastIdx=0;
+      while((match=cellRe.exec(line))!==null){
+        var time=match[1];
+        var sala=match[2].replace(/\s*new\s*/i,'').trim().toUpperCase();
+        var inc=parseFloat(match[3]);
+        var spett=parseInt(match[4]);
+
+        // Stima il giorno dalla posizione nella riga
+        var posRatio=match.index/line.length;
+        var dayIdx=Math.min(6,Math.floor(posRatio*7));
+
+        if(!result[key][dayIdx])result[key][dayIdx]=[];
+        result[key][dayIdx].push({time,sala,inc,spett});
+        colIdx++;
+      }
+
+      // Fallback: riga successiva potrebbe avere orario isolato per stesso film
+      i++;continue;
+    }
+
+    // Riga che sembra un titolo film (no numeri, no intestazione)
+    if(line.length>3&&!line.match(/^[\d\s.,:/-]+$/)
+      &&!line.match(/\d{1,2}:\d{2}/)
+      &&!line.match(/^(Orario|Total|Week|New|Copyright)/i)){
+      // Potrebbe essere continuazione titolo o nuovo titolo
+      // Se la riga successiva ha orari, è un titolo
+      var nextLine=lines[i+1]||'';
+      if(nextLine.match(/\d{1,2}:\d{2}/)||nextLine.match(/Spett\./)){
+        currentFilm=line.replace(/Spett\..*$/,'').replace(/Inc\..*$/,'').trim();
+      }
+    }
+    i++;
+  }
+
+  return result;
+}
+window.propParseTable=propParseTable;
+
+function propClearData(){
+  _propPrevData={};
+  _propPrevWeekLabel='';
+  var el=document.getElementById('prop-prev-label');
+  if(el)el.textContent='nessun dato incollato';
+  propRender();
+}
+window.propClearData=propClearData;
+
+// ── Applica proposta alla griglia programmazione ─────────────────────────
+async function propApplyToGrid(){
+  var days=propDates();
+  var count=0;
+  for(var di=0;di<7;di++){
+    var slots=_propSlots[di]||[];
+    var dateStr=propDateStr(days[di]);
+    for(var j=0;j<slots.length;j++){
+      var s=slots[j];
+      var show={
+        id:uid(),
+        filmId:s.filmId,
+        day:dateStr,
+        start:s.time,
+        end:'',
+        sala:s.sala,
+        notes:''
+      };
+      try{
+        await fbSetDoc(db,'shows',show.id,show);
+        count++;
+      }catch(e){}
+    }
+  }
+  if(count){
+    toast(count+' spettacoli aggiunti alla programmazione','ok');
+    // Aggiorna la settimana corrente alla settimana proposta
+    S.ws=new Date(_propWeek);
+    uwl();
+  }else{
+    toast('Nessuno spettacolo da applicare — aggiungi prima gli slot','err');
+  }
+}
+window.propApplyToGrid=propApplyToGrid;
+
+
 </script>
 </body>
 </html>
