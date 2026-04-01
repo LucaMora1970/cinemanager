@@ -589,7 +589,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="wlbl" id="wlbl">—</div>
     <button onclick="cw(1)">›</button>
   </div>
-  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v01/04 12:25</small>
+  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v01/04 13:00</small>
   <div class="hact">
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
     <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
@@ -6120,18 +6120,18 @@ window.drawLayout2B=drawLayout2B;
 function drawLayout2BContent(ctx,film,byDay,dayOrd,DIT2,W,H,fmt,scale,S,ORA,isStory){
   var isTypoBg=(window._socialLayout==='tipobg');
 
-  // ── Sfondo: nero puro per tipo, gradient dissolvenza per tipobg ──────────
+  // ── Sfondo / dissolvenza ──────────────────────────────────────────────────
   if(!isTypoBg){
     ctx.fillStyle='#0d0d0d';
     ctx.fillRect(0,0,W,H);
   } else {
-    // Dissolvenza verticale sopra il backdrop già disegnato nel canvas
+    // Dissolvenza completa: leggera in cima, nera alla base
     var bdGrad=ctx.createLinearGradient(0,0,0,H);
-    bdGrad.addColorStop(0,'rgba(10,10,18,0.20)');
-    bdGrad.addColorStop(0.30,'rgba(10,10,18,0.45)');
-    bdGrad.addColorStop(0.55,'rgba(10,10,18,0.82)');
-    bdGrad.addColorStop(0.75,'rgba(10,10,18,0.96)');
-    bdGrad.addColorStop(1.0,'rgba(10,10,18,1.00)');
+    bdGrad.addColorStop(0,   'rgba(8,8,16,0.10)');
+    bdGrad.addColorStop(0.25,'rgba(8,8,16,0.35)');
+    bdGrad.addColorStop(0.55,'rgba(8,8,16,0.75)');
+    bdGrad.addColorStop(0.80,'rgba(8,8,16,0.95)');
+    bdGrad.addColorStop(1.0, 'rgba(8,8,16,1.00)');
     ctx.fillStyle=bdGrad;
     ctx.fillRect(0,0,W,H);
   }
@@ -6143,12 +6143,6 @@ function drawLayout2BContent(ctx,film,byDay,dayOrd,DIT2,W,H,fmt,scale,S,ORA,isSt
   ctx.beginPath();ctx.arc(W*0.05,H*0.95,S(340),0,Math.PI*2);ctx.stroke();
   ctx.restore();
 
-  // ── Linee geometriche ─────────────────────────────────────────────────────
-  ctx.save();ctx.globalAlpha=0.06;ctx.strokeStyle=ORA;ctx.lineWidth=S(1);
-  ctx.beginPath();ctx.moveTo(0,H*0.42);ctx.lineTo(W,H*0.42);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(W*0.44,0);ctx.lineTo(W*0.44,H);ctx.stroke();
-  ctx.restore();
-
   // ── Banda arancio superiore ───────────────────────────────────────────────
   ctx.fillStyle=ORA;ctx.globalAlpha=0.9;ctx.fillRect(0,0,W,S(4));
   ctx.fillStyle=ORA;ctx.globalAlpha=0.35;ctx.fillRect(0,H-S(3),W,S(3));
@@ -6156,62 +6150,47 @@ function drawLayout2BContent(ctx,film,byDay,dayOrd,DIT2,W,H,fmt,scale,S,ORA,isSt
 
   var PL=S(52);  // padding left
   var PR=S(52);  // padding right
-  var PT=S(52);  // padding top
+  var PT=S(36);  // padding top header
 
-  // ── Logo cinema (in alto a sinistra) ──────────────────────────────────────
-  // ── Logo cinema — usa _logoImg precaricato all'avvio ──────────────────────
-  var logoH=S(40);
+  // ── HEADER: CINEMA MULTISALA TEATRO (sx) + MENDRISIO (dx) ────────────────
+  ctx.font='700 '+S(14)+'px Arial';
+  ctx.letterSpacing=S(2)+'px';
+  // Sinistra: logo img o testo
+  var logoH=S(32);
   if(typeof _logoImg!=='undefined'&&_logoImg&&_logoImg.naturalWidth>0){
     var lw=Math.round(logoH*(_logoImg.naturalWidth/_logoImg.naturalHeight));
     ctx.drawImage(_logoImg,PL,PT,lw,logoH);
-  }else{
-    ctx.font='700 '+S(20)+'px Arial';ctx.fillStyle=ORA;
-    ctx.fillText('CINEMA',PL,PT+S(26));
-  }
-  // ── Nome cinema (in alto a destra) ────────────────────────────────────────
-  ctx.font='700 '+S(13)+'px Arial';
-  ctx.fillStyle='rgba(255,255,255,0.30)';
-  ctx.textAlign='right';
-  ctx.fillText('TEATRO',W-PR,PT+S(16));
-  ctx.fillText('MENDRISIO',W-PR,PT+S(32));
-  ctx.textAlign='left';
-
-  var cy=PT+S(72); // cursore verticale
-
-  // ── Regista — centrato ────────────────────────────────────────────────────
-  if(film.director){
-    ctx.font='700 '+S(17)+'px Arial';
-    ctx.fillStyle='rgba(255,255,255,0.55)';
-    ctx.letterSpacing=S(2)+'px';
-    ctx.textAlign='center';
-    ctx.fillText((film.director).toUpperCase(),W/2,cy);
+  } else {
+    ctx.fillStyle=ORA;
     ctx.textAlign='left';
-    ctx.letterSpacing='0px';
-    cy+=S(30);
+    ctx.fillText('CINEMA',PL,PT+S(14));
+    ctx.font='500 '+S(11)+'px Arial';
+    ctx.fillStyle='rgba(255,255,255,0.55)';
+    ctx.fillText('MULTISALA TEATRO',PL,PT+S(28));
   }
-
-  // ── Badge novità — centrato ───────────────────────────────────────────────
-  ctx.font='700 '+S(16)+'px Arial';
-  ctx.fillStyle=ORA;
-  ctx.textAlign='center';
-  ctx.fillText('— NOVITÀ IN SALA',W/2,cy);
+  // Destra: MENDRISIO
+  ctx.font='700 '+S(13)+'px Arial';
+  ctx.fillStyle='rgba(255,255,255,0.35)';
+  ctx.textAlign='right';
+  ctx.fillText('MENDRISIO',W-PR,PT+S(22));
   ctx.textAlign='left';
-  cy+=S(28);
+  ctx.letterSpacing='0px';
 
-  // ── Titolo grande adattivo ───────────────────────────────────────────────
+  // ── CALCOLO ALTEZZA BLOCCO TESTI per centratura verticale ─────────────────
+  // Stima altezza di ogni elemento prima di disegnare
+  var blockH=0;
+  if(film.director)blockH+=S(30); // regista
+  blockH+=S(28); // badge novità
+
+  // Titolo: calcola quante righe servono
   var titleUP=film.title.toUpperCase();
   var titleWords=titleUP.split(' ');
   var maxW=W-PL-PR;
-  // Cerca il font size ottimale (da 82 scende fino a 44)
-  var tSize=S(82);
-  var line1T='',line2T='',line3T='';
-  for(var ts=82;ts>=44;ts-=6){
-    tSize=S(ts);
-    ctx.font='900 '+tSize+'px Arial';
-    if(ctx.measureText(titleUP).width<=maxW){
-      line1T=titleUP;line2T='';line3T='';break;
-    }
-    // Prova 2 righe
+  var tSize=S(82),line1T=titleUP,line2T='',line3T='',lineH;
+  ctx.font='900 '+S(82)+'px Arial';
+  for(var ts=82;ts>=38;ts-=6){
+    tSize=S(ts);ctx.font='900 '+tSize+'px Arial';
+    if(ctx.measureText(titleUP).width<=maxW){line1T=titleUP;line2T='';line3T='';break;}
     var found2=false;
     for(var split=1;split<titleWords.length;split++){
       var l1=titleWords.slice(0,split).join(' ');
@@ -6221,7 +6200,6 @@ function drawLayout2BContent(ctx,film,byDay,dayOrd,DIT2,W,H,fmt,scale,S,ORA,isSt
       }
     }
     if(found2)break;
-    // Prova 3 righe
     if(titleWords.length>=3){
       var t3=Math.ceil(titleWords.length/3);
       var la=titleWords.slice(0,t3).join(' ');
@@ -6232,87 +6210,118 @@ function drawLayout2BContent(ctx,film,byDay,dayOrd,DIT2,W,H,fmt,scale,S,ORA,isSt
       }
     }
   }
-  var lineH=tSize*1.05;
+  lineH=tSize*1.05;
+  blockH+=line3T?lineH*3+S(16):line2T?lineH*2+S(16):lineH+S(16);
+
+  var metaParts=[film.duration?Math.floor(film.duration/60)+'h'+String(film.duration%60).padStart(2,'0'):null,film.rating,film.genre].filter(Boolean);
+  if(metaParts.length)blockH+=S(28);
+  if(film.cast)blockH+=S(26);
+  blockH+=S(8)+S(3)+S(24); // spazio + riga arancio + margine
+  blockH+=dayOrd.length*S(50); // orari
+
+  // Centro verticale disponibile (sotto header, sopra footer)
+  var headerBottom=PT+S(52);
+  var footerTop=H-S(44);
+  var available=footerTop-headerBottom;
+  // Posizione Y di partenza del blocco: centrata
+  var cy=headerBottom+Math.max(0,(available-blockH)/2);
+
+  // ── Regista ───────────────────────────────────────────────────────────────
+  if(film.director){
+    ctx.font='700 '+S(17)+'px Arial';
+    ctx.fillStyle='rgba(255,255,255,0.55)';
+    ctx.letterSpacing=S(2)+'px';
+    ctx.textAlign='left';
+    ctx.fillText((film.director).toUpperCase(),PL,cy);
+    ctx.letterSpacing='0px';
+    cy+=S(30);
+  }
+
+  // ── Badge novità ──────────────────────────────────────────────────────────
+  ctx.font='700 '+S(16)+'px Arial';
+  ctx.fillStyle=ORA;
+  ctx.textAlign='left';
+  ctx.fillText('— NOVITÀ IN SALA',PL,cy);
+  cy+=S(28);
+
+  // ── Titolo grande ─────────────────────────────────────────────────────────
   ctx.font='900 '+tSize+'px Arial';
   ctx.fillStyle='#ffffff';
-  ctx.textAlign='center';
-  ctx.fillText(line1T,W/2,cy+lineH);
-  if(line2T){ctx.fillText(line2T,W/2,cy+lineH*2);}
-  if(line3T){ctx.fillText(line3T,W/2,cy+lineH*3);}
   ctx.textAlign='left';
+  ctx.fillText(line1T,PL,cy+lineH);
+  if(line2T)ctx.fillText(line2T,PL,cy+lineH*2);
+  if(line3T)ctx.fillText(line3T,PL,cy+lineH*3);
   cy+=line3T?lineH*3+S(16):line2T?lineH*2+S(16):lineH+S(16);
 
-  // ── Meta (durata · rating · genere) ──────────────────────────────────────
-  var metaParts=[film.duration?Math.floor(film.duration/60)+'h'+String(film.duration%60).padStart(2,'0'):null,film.rating,film.genre].filter(Boolean);
+  // ── Meta ──────────────────────────────────────────────────────────────────
   if(metaParts.length){
     ctx.font=S(17)+'px Arial';
     ctx.fillStyle='rgba(255,255,255,0.45)';
     ctx.letterSpacing=S(1.5)+'px';
-    ctx.textAlign='center';
-    ctx.fillText(metaParts.join(' · ').toUpperCase(),W/2,cy);
     ctx.textAlign='left';
+    ctx.fillText(metaParts.join(' · ').toUpperCase(),PL,cy);
     ctx.letterSpacing='0px';
     cy+=S(28);
   }
 
-  // ── Cast (max 5 nomi) ─────────────────────────────────────────────────────
+  // ── Cast ──────────────────────────────────────────────────────────────────
   if(film.cast){
     var castNames=film.cast.split(',').map(function(n){return n.trim();}).filter(Boolean).slice(0,5);
     ctx.font=S(16)+'px Arial';
     ctx.fillStyle='rgba(255,255,255,0.5)';
-    ctx.textAlign='center';
-    ctx.fillText(castNames.join(' · '),W/2,cy);
     ctx.textAlign='left';
+    ctx.fillText(castNames.join(' · '),PL,cy);
     cy+=S(26);
   }
   cy+=S(8);
 
   // ── Riga arancio ──────────────────────────────────────────────────────────
-  ctx.fillStyle=ORA;ctx.fillRect(W/2-S(25),cy,S(50),S(3));
+  ctx.fillStyle=ORA;ctx.fillRect(PL,cy,S(50),S(3));
   cy+=S(24);
 
-  // ── Tabella orari ─────────────────────────────────────────────────────────
-  var rowH=S(50);
+  // ── Tabella orari: giorno sx, orario dx, NON centrati ─────────────────────
   dayOrd.forEach(function(di){
     var dayLabel=DIT2[di].toUpperCase();
     var times=byDay[di].times.slice().sort();
 
-    // Giorno — centrato a sinistra del centro
-    ctx.font='700 '+S(32)+'px Arial';
+    // Giorno — allineato a sinistra
+    ctx.font='700 '+S(28)+'px Arial';
     ctx.fillStyle='rgba(255,255,255,0.85)';
     ctx.letterSpacing=S(1)+'px';
     ctx.textAlign='left';
-    ctx.fillText(dayLabel,W/2-S(170),cy+S(36));
+    ctx.fillText(dayLabel,PL,cy+S(32));
     ctx.letterSpacing='0px';
 
-    // Puntini tratteggiati — centrati
-    var dotsX=W/2-S(108);
-    var dotsEndX=W/2-S(10);
+    // Puntini tratteggiati
+    var dayLabelW=ctx.measureText(dayLabel).width;
+    ctx.letterSpacing='0px';
+    var dotsX=PL+dayLabelW+S(12);
+    var dotsEndX=W-PR-S(120);
     ctx.save();ctx.setLineDash([S(2),S(5)]);
     ctx.strokeStyle='rgba(255,255,255,0.18)';ctx.lineWidth=S(1);
-    ctx.beginPath();ctx.moveTo(dotsX,cy+S(24));ctx.lineTo(dotsEndX,cy+S(24));ctx.stroke();
+    ctx.beginPath();ctx.moveTo(dotsX,cy+S(20));ctx.lineTo(dotsEndX,cy+S(20));ctx.stroke();
     ctx.restore();
 
-    // Orari — centrati a destra del centro
-    ctx.font='700 '+S(40)+'px "Courier New",monospace';
+    // Orari — allineati a destra
+    ctx.font='700 '+S(34)+'px "Courier New",monospace';
     ctx.fillStyle=ORA;
     ctx.textAlign='right';
-    ctx.fillText(times.join('  ·  '),W/2+S(180),cy+S(38));
+    ctx.fillText(times.join('  ·  '),W-PR,cy+S(34));
     ctx.textAlign='left';
 
-    cy+=rowH;
+    cy+=S(50);
   });
 
-  // ── Footer ────────────────────────────────────────────────────────────────
-  ctx.font=S(14)+'px Arial';
-  ctx.fillStyle='rgba(255,255,255,0.25)';
+  // ── Footer centrato ───────────────────────────────────────────────────────
+  ctx.font=S(13)+'px Arial';
+  ctx.fillStyle='rgba(255,255,255,0.22)';
   ctx.textAlign='center';
-  ctx.fillText('mendrisiocinema.ch  ·  Via Vincenzo Vela 2, Mendrisio',W/2,H-S(22));
+  ctx.fillText('mendrisiocinema.ch  ·  Via Vincenzo Vela 2, Mendrisio',W/2,H-S(20));
   ctx.textAlign='left';
 
   // ── Corner accent ─────────────────────────────────────────────────────────
   ctx.strokeStyle='rgba(240,128,26,0.5)';ctx.lineWidth=S(3);
-  ctx.beginPath();ctx.moveTo(W-PR,H-S(42));ctx.lineTo(W-PR,H-S(22));ctx.lineTo(W-PR-S(20),H-S(22));ctx.stroke();
+  ctx.beginPath();ctx.moveTo(W-PR,H-S(40));ctx.lineTo(W-PR,H-S(20));ctx.lineTo(W-PR-S(20),H-S(20));ctx.stroke();
 }
 window.drawLayout2BContent=drawLayout2BContent;
 
