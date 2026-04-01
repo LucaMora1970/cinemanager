@@ -589,7 +589,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="wlbl" id="wlbl">—</div>
     <button onclick="cw(1)">›</button>
   </div>
-  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v01/04 15:15</small>
+  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v01/04 15:30</small>
   <div class="hact">
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
     <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
@@ -1591,13 +1591,13 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
       <div class="fr"><label class="flb">Fine programmazione</label><input type="date" id="fEndDate"></div>
       <div class="fr"><label class="flb">URL Locandina</label>
         <div style="display:flex;gap:6px;align-items:center">
-          <input type="url" id="fPoster" placeholder="https://…" style="flex:1">
+          <input type="text" id="fPoster" placeholder="https://…" style="flex:1">
           <button type="button" class="btn bg bs" onclick="tmdbFetchImages()" title="Recupera da TMDB" style="white-space:nowrap;font-size:11px">🎬 TMDB</button>
         </div>
       </div>
       <div class="fr"><label class="flb">Foto di scena (backdrop)</label>
         <div style="display:flex;gap:6px;align-items:center">
-          <input type="url" id="fBackdrop" placeholder="https://image.tmdb.org/…" style="flex:1" oninput="tmdbUpdateBackdropPreview()">
+          <input type="text" id="fBackdrop" placeholder="https://image.tmdb.org/…" style="flex:1" oninput="tmdbUpdateBackdropPreview()">
           <div id="fBackdropPreview" style="width:80px;height:45px;border-radius:4px;overflow:hidden;border:1px solid var(--bdr);flex-shrink:0;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--txt2)">anteprima</div>
         </div>
         <div id="fBackdropGallery" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"></div>
@@ -1609,7 +1609,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
           <button type="button" class="btn bg bs" onclick="tmdbFetchImages()" style="font-size:11px">🎬 Carica immagini</button>
         </div>
       </div>
-      <div class="fr"><label class="flb">Link Biglietteria</label><input type="url" id="fTicketUrl" placeholder="https://multisala.mendrisiocinema.ch/film/…"></div>
+      <div class="fr"><label class="flb">Link Biglietteria</label><input type="text" id="fTicketUrl" placeholder="https://multisala.mendrisiocinema.ch/film/…"></div>
       <div class="fr"><label class="flb">Trailer YouTube (ID o URL completo)</label><input type="text" id="fTrailer" placeholder="es. bTaytqYtib0 oppure URL completo"></div>
     </div>
     <div class="fr"><label class="flb">Descrizione</label><textarea id="fDes"></textarea></div>
@@ -9669,7 +9669,8 @@ async function tmdbFetchImages(){
         img.style='width:120px;height:68px;object-fit:cover;border-radius:4px;cursor:pointer;border:2px solid transparent;transition:border-color .15s';
         img.title='Clicca per selezionare · '+Math.round(bd.vote_average*10)/10+' ⭐';
         img.addEventListener('click',function(){
-          document.getElementById('fBackdrop').value=imgUrl;
+          var el=document.getElementById('fBackdrop');
+          if(el){el.value=imgUrl;el.dispatchEvent(new Event('input'));}
           gallery.querySelectorAll('img').forEach(function(i){i.style.borderColor='transparent';});
           img.style.borderColor='#f0801a';
           tmdbUpdateBackdropPreview();
