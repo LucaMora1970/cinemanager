@@ -589,7 +589,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="wlbl" id="wlbl">—</div>
     <button onclick="cw(1)">›</button>
   </div>
-  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v01/04 14:30</small>
+  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v01/04 15:00</small>
   <div class="hact">
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
     <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
@@ -686,6 +686,16 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
       <button class="btn bg" id="bo-batch-btn" onclick="batchBoxOffice()" style="font-size:12px">📊 Box Office</button>
     </div>
   </div>
+  <!-- Barra di ricerca -->
+  <div style="margin-bottom:20px">
+    <div style="position:relative;max-width:420px">
+      <input type="text" id="arch-search" placeholder="🔍  Cerca film per titolo, regista, genere, distributore..." oninput="renderArchSections()" autocomplete="off"
+        style="width:100%;padding:9px 14px 9px 14px;border:1.5px solid var(--bdr);border-radius:8px;background:var(--surf2);color:var(--txt);font-size:13px;box-sizing:border-box;outline:none">
+      <button onclick="document.getElementById('arch-search').value='';renderArchSections()" id="arch-search-clear"
+        style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--txt2);font-size:16px;padding:2px 6px;display:none">✕</button>
+    </div>
+  </div>
+
   <div id="arch-upcoming" style="margin-bottom:32px"></div>
   <div id="arch-current" style="margin-bottom:32px"></div>
   <div id="arch-coming" style="margin-bottom:32px"></div>
@@ -2590,6 +2600,22 @@ window.rl=rl;
 // ── FILMS ─────────────────────────────────────────────────
 // ── ARCHIVIO SEZIONI: Prossima uscita + In programma ──
 function renderArchSections(){
+  // ── Filtro ricerca ──────────────────────────────────────────────────────
+  var searchEl=document.getElementById('arch-search');
+  var searchQ=(searchEl?searchEl.value:'').toLowerCase().trim();
+  // Mostra/nasconde pulsante clear
+  var clearBtn=document.getElementById('arch-search-clear');
+  if(clearBtn)clearBtn.style.display=searchQ?'block':'none';
+  // Funzione filtro: true se il film matcha la query
+  function matchSearch(f){
+    if(!searchQ)return true;
+    return (f.title||'').toLowerCase().includes(searchQ)
+      ||(f.director||'').toLowerCase().includes(searchQ)
+      ||(f.genre||'').toLowerCase().includes(searchQ)
+      ||(f.distributor||'').toLowerCase().includes(searchQ)
+      ||(f.cast||'').toLowerCase().includes(searchQ);
+  }
+
   var today=new Date();today.setHours(0,0,0,0);
   var todayStr=toLocalDate(today);
 
@@ -2636,6 +2662,23 @@ function renderArchSections(){
     // Sort by release descending (most recent first)
     return (b.release||'').localeCompare(a.release||'');
   });
+
+  // ── Se c'è query ricerca → sezione unica risultati ──────────────────────
+  if(searchQ){
+    var allFiltered=S.films.filter(function(f){return matchSearch(f);})
+      .sort(function(a,b){return a.title.localeCompare(b.title,'it');});
+    ['arch-upcoming','arch-inweek','arch-prossimamente','arch-current',
+     'arch-coming','arch-past','arch-rest','arch-nodate'].forEach(function(id){
+      var el=document.getElementById(id);if(el)el.innerHTML='';
+    });
+    var resEl=document.getElementById('arch-upcoming');
+    if(resEl){
+      resEl.innerHTML=allFiltered.length
+        ?'<div style="font-size:12px;color:var(--txt2);margin-bottom:14px">'+allFiltered.length+' film trovati per «<b style="color:var(--txt)">'+searchQ+'</b>»</div><div class="fg2">'+allFiltered.map(function(f){return archMiniCard(f);}).join('')+'</div>'
+        :'<div style="color:var(--txt2);font-size:13px;padding:20px 0">Nessun film trovato per «'+searchQ+'»</div>';
+    }
+    return;
+  }
 
   function renderSection(elId,title,badge,badgeStyle,films){
     var el=document.getElementById(elId);
@@ -6074,6 +6117,12 @@ function drawLayout2B(ctx,film,fShows,wd,days,W,H,fmt,withBackdrop){
   var isStory=fmt==='story';
   var scale=W/1080;
   var S=function(n){return Math.round(n*scale);};
+  // Film nuovo = release nella settimana corrente o 1 giorno prima
+  var _weekStart=wd&&wd.length?wd[0]:'';
+  var _weekEnd=wd&&wd.length?wd[wd.length-1]:'';
+  var _dayBefore='';
+  if(_weekStart){var _d=new Date(_weekStart+'T12:00:00');_d.setDate(_d.getDate()-1);_dayBefore=toLocalDate(_d);}
+  var isNew=film.release&&film.release>=_dayBefore&&film.release<=_weekEnd;
 
   // ── Sfondo nero (solo per layout tipo puro)
   var isTypoBg=(window._socialLayout==='tipobg');
@@ -6116,24 +6165,24 @@ function drawLayout2B(ctx,film,fShows,wd,days,W,H,fmt,withBackdrop){
       grad.addColorStop(0.75,'rgba(10,10,18,0.96)');
       grad.addColorStop(1,'rgba(10,10,18,1.0)');
       ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
-      drawLayout2BContent(ctx,film,byDay,dayOrd,DIT2,W,H,fmt,scale,S,ORA,isStory);
+      drawLayout2BContent(ctx,film,byDay,dayOrd,DIT2,W,H,fmt,scale,S,ORA,isStory,isNew);
     };
     img.onerror=function(){
-      drawLayout2BContent(ctx,film,byDay,dayOrd,DIT2,W,H,fmt,scale,S,ORA,isStory);
+      drawLayout2BContent(ctx,film,byDay,dayOrd,DIT2,W,H,fmt,scale,S,ORA,isStory,isNew);
     };
     img.src=film.backdrop;
     // Timeout fallback nel caso l'immagine non carichi
     setTimeout(function(){
-      if(!loaded)drawLayout2BContent(ctx,film,byDay,dayOrd,DIT2,W,H,fmt,scale,S,ORA,isStory);
+      if(!loaded)drawLayout2BContent(ctx,film,byDay,dayOrd,DIT2,W,H,fmt,scale,S,ORA,isStory,isNew);
     },3000);
     return; // il resto verrà disegnato in onload
   }
 
-  drawLayout2BContent(ctx,film,byDay,dayOrd,DIT2,W,H,fmt,scale,S,ORA,isStory);
+  drawLayout2BContent(ctx,film,byDay,dayOrd,DIT2,W,H,fmt,scale,S,ORA,isStory,isNew);
 }
 window.drawLayout2B=drawLayout2B;
 
-function drawLayout2BContent(ctx,film,byDay,dayOrd,DIT2,W,H,fmt,scale,S,ORA,isStory){
+function drawLayout2BContent(ctx,film,byDay,dayOrd,DIT2,W,H,fmt,scale,S,ORA,isStory,isNew){
   var isTypoBg=(window._socialLayout==='tipobg');
 
   // ── Sfondo / dissolvenza ──────────────────────────────────────────────────
@@ -6194,8 +6243,8 @@ function drawLayout2BContent(ctx,film,byDay,dayOrd,DIT2,W,H,fmt,scale,S,ORA,isSt
   // ── CALCOLO ALTEZZA BLOCCO TESTI per centratura verticale ─────────────────
   // Stima altezza di ogni elemento prima di disegnare
   var blockH=0;
-  if(film.director)blockH+=S(30); // regista
-  blockH+=S(28); // badge novità
+  if(film.director)blockH+=S(34); // regista
+  blockH+=S(32); // badge novità/ancora
 
   // Titolo: calcola quante righe servono
   var titleUP=film.title.toUpperCase();
@@ -6229,8 +6278,8 @@ function drawLayout2BContent(ctx,film,byDay,dayOrd,DIT2,W,H,fmt,scale,S,ORA,isSt
   blockH+=line3T?lineH*3+S(28):line2T?lineH*2+S(28):lineH+S(28);
 
   var metaParts=[film.duration?Math.floor(film.duration/60)+'h'+String(film.duration%60).padStart(2,'0'):null,film.rating,film.genre].filter(Boolean);
-  if(metaParts.length)blockH+=S(28);
-  if(film.cast)blockH+=S(26);
+  if(metaParts.length)blockH+=S(34);
+  if(film.cast)blockH+=S(30);
   blockH+=S(8)+S(3)+S(24); // spazio + riga arancio + margine
   blockH+=dayOrd.length*S(50); // orari
 
@@ -6239,25 +6288,25 @@ function drawLayout2BContent(ctx,film,byDay,dayOrd,DIT2,W,H,fmt,scale,S,ORA,isSt
   var footerTop=H-S(44);
   var available=footerTop-headerBottom;
   // Blocco spostato verso il basso: 65% dello spazio disponibile invece di 50%
-  var cy=headerBottom+Math.max(0,Math.min((available-blockH)*0.85,(available-blockH)));
+  var cy=headerBottom+Math.max(0,Math.min((available-blockH)*0.95,(available-blockH)));
 
   // ── Regista ───────────────────────────────────────────────────────────────
   if(film.director){
-    ctx.font='700 '+S(17)+'px Arial';
+    ctx.font='700 '+S(21)+'px Arial';
     ctx.fillStyle='rgba(255,255,255,0.55)';
     ctx.letterSpacing=S(2)+'px';
     ctx.textAlign='left';
     ctx.fillText((film.director).toUpperCase(),PL,cy);
     ctx.letterSpacing='0px';
-    cy+=S(30);
+    cy+=S(34);
   }
 
-  // ── Badge novità ──────────────────────────────────────────────────────────
-  ctx.font='700 '+S(16)+'px Arial';
+  // ── Badge: NOVITÀ IN SALA o ANCORA IN SALA ───────────────────────────────
+  ctx.font='700 '+S(20)+'px Arial';
   ctx.fillStyle=ORA;
   ctx.textAlign='left';
-  ctx.fillText('— NOVITÀ IN SALA',PL,cy);
-  cy+=S(28);
+  ctx.fillText(isNew?'— NOVITÀ IN SALA':'— ANCORA IN SALA',PL,cy);
+  cy+=S(32);
 
   // ── Titolo grande ─────────────────────────────────────────────────────────
   ctx.font='900 '+tSize+'px Arial';
@@ -6270,23 +6319,23 @@ function drawLayout2BContent(ctx,film,byDay,dayOrd,DIT2,W,H,fmt,scale,S,ORA,isSt
 
   // ── Meta ──────────────────────────────────────────────────────────────────
   if(metaParts.length){
-    ctx.font=S(17)+'px Arial';
+    ctx.font=S(21)+'px Arial';
     ctx.fillStyle='rgba(255,255,255,0.45)';
     ctx.letterSpacing=S(1.5)+'px';
     ctx.textAlign='left';
     ctx.fillText(metaParts.join(' · ').toUpperCase(),PL,cy);
     ctx.letterSpacing='0px';
-    cy+=S(28);
+    cy+=S(34);
   }
 
   // ── Cast ──────────────────────────────────────────────────────────────────
   if(film.cast){
     var castNames=film.cast.split(',').map(function(n){return n.trim();}).filter(Boolean).slice(0,5);
-    ctx.font=S(16)+'px Arial';
+    ctx.font=S(20)+'px Arial';
     ctx.fillStyle='rgba(255,255,255,0.5)';
     ctx.textAlign='left';
     ctx.fillText(castNames.join(' · '),PL,cy);
-    cy+=S(26);
+    cy+=S(30);
   }
   cy+=S(8);
 
