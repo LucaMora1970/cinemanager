@@ -589,7 +589,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="wlbl" id="wlbl">—</div>
     <button onclick="cw(1)">›</button>
   </div>
-  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v01/04 16:00</small>
+  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v01/04 16:10</small>
   <div class="hact">
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
     <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
@@ -10631,7 +10631,7 @@ async function pPDFCopertine(){
     if(metaParts.length)blockH+=S2(32);
     if(film.cast)blockH+=S2(30);
     blockH+=S2(8)+S2(3)+S2(30); // spazio+riga+margine
-    blockH+=showDays.length*S2(88); // righe orario RADDOPPIATE
+    blockH+=showDays.length*S2(68); // righe orario
 
     var headerBot=S2(80);var footerTop=PH-S2(60);
     var avail=footerTop-headerBot;
@@ -10684,10 +10684,10 @@ async function pPDFCopertine(){
       var dName=dayNames[day]||'';
 
       // Giorno in NERO — font raddoppiato S(28)→S(56)
-      ctx.font='700 '+S2(56)+'px Arial';
+      ctx.font='700 '+S2(50)+'px Arial';
       ctx.fillStyle='#111827';ctx.letterSpacing=S2(1)+'px';
       ctx.textAlign='left';
-      ctx.fillText(dName.toUpperCase(),PL,cy+S2(56));
+      ctx.fillText(dName.toUpperCase(),PL,cy+S2(50));
       ctx.letterSpacing='0px';
 
       // Puntini tratteggiati
@@ -10696,16 +10696,16 @@ async function pPDFCopertine(){
       var dotsX=PL+dayW+S2(16);var dotsEnd=orarioRight-S2(180);
       ctx.save();ctx.setLineDash([S2(3),S2(8)]);
       ctx.strokeStyle='rgba(30,40,80,0.18)';ctx.lineWidth=S2(1.5);
-      ctx.beginPath();ctx.moveTo(dotsX,cy+S2(36));ctx.lineTo(Math.max(dotsX+S2(20),dotsEnd),cy+S2(36));ctx.stroke();
+      ctx.beginPath();ctx.moveTo(dotsX,cy+S2(32));ctx.lineTo(Math.max(dotsX+S2(20),dotsEnd),cy+S2(32));ctx.stroke();
       ctx.restore();
 
       // Orario in ARANCIO Courier — font raddoppiato S(34)→S(68)
-      ctx.font='700 '+S2(68)+'px "Courier New",monospace';
+      ctx.font='700 '+S2(56)+'px "Courier New",monospace';
       ctx.fillStyle=ORA;ctx.textAlign='right';
-      ctx.fillText(times.join('  →  '),orarioRight,cy+S2(60));
+      ctx.fillText(times.join('  →  '),orarioRight,cy+S2(54));
       ctx.textAlign='left';
 
-      cy+=S2(88);
+      cy+=S2(68);
     });
 
     // ── FOOTER ─────────────────────────────────────────────────────────────
