@@ -589,7 +589,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="wlbl" id="wlbl">—</div>
     <button onclick="cw(1)">›</button>
   </div>
-  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v01/04 18:30</small>
+  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v01/04 18:45</small>
   <div class="hact">
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
     <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
@@ -10596,29 +10596,55 @@ async function pPDFCopertine(){
     var badgeText=isNew?'— NOVITÀ IN SALA'
       :('— Programma dal '+fmtShort(firstDay)+' al '+fmtShort(lastDay));
 
-    // Adatta dimensione titolo alla larghezza (80% canvas)
+    // Adatta titolo: max 193px min 91px, controlla larghezza E altezza
     var maxTW=PW*0.80-PL-S2(20);
     var tUP=film.title.toUpperCase();
     var tWords=tUP.split(' ');
-    var tSize=S2(90);var l1=tUP,l2='',l3='',lH;
-    for(var ts=90;ts>=28;ts-=4){
-      tSize=S2(ts);ctx.font='900 '+tSize+'px Arial';lH=tSize*1.05;
-      if(ctx.measureText(tUP).width<=maxTW){l1=tUP;l2='';l3='';break;}
+
+    // Altezza disponibile per il titolo (da cyTitle fino a inizio zona orari)
+    // restH = badge+regia+meta+riga+orari (senza titolo)
+    var metaParts=[film.duration?Math.floor(film.duration/60)+'h'+String(film.duration%60).padStart(2,'0'):null,film.rating,film.genre].filter(Boolean);
+    var restH=S2(32)+(film.director?S2(38):0)
+      +(metaParts.length?S2(32):0)
+      +S2(8)+S2(3)+S2(30)
+      +showDays.length*S2(40);
+    var cyTitle=S2(80)+S2(24); // headerBot + margine
+    var maxTitleH=footerTop-cyTitle-restH-S2(40); // spazio verticale max per il titolo
+
+    var tSize=193;var l1=tUP,l2='',l3='',lH,titleH;
+    for(var tpx=193;tpx>=91;tpx-=4){
+      tSize=tpx;ctx.font='900 '+tpx+'px Arial';lH=tpx*1.05;
+      // Prova 1 riga
+      if(ctx.measureText(tUP).width<=maxTW){
+        l1=tUP;l2='';l3='';titleH=lH;
+        if(titleH<=maxTitleH)break;
+        continue; // titolo largo ok ma troppo alto? impossibile su 1 riga, riduci
+      }
+      // Prova 2 righe
       var found2=false;
       for(var sp=1;sp<tWords.length;sp++){
         var la=tWords.slice(0,sp).join(' '),lb=tWords.slice(sp).join(' ');
-        if(ctx.measureText(la).width<=maxTW&&ctx.measureText(lb).width<=maxTW){l1=la;l2=lb;l3='';found2=true;break;}
+        if(ctx.measureText(la).width<=maxTW&&ctx.measureText(lb).width<=maxTW){
+          l1=la;l2=lb;l3='';titleH=lH*2;found2=true;break;
+        }
       }
-      if(found2)break;
+      if(found2&&titleH<=maxTitleH)break;
+      // Prova 3 righe
       if(tWords.length>=3){
         var t3=Math.ceil(tWords.length/3);
-        l1=tWords.slice(0,t3).join(' ');l2=tWords.slice(t3,t3*2).join(' ');l3=tWords.slice(t3*2).join(' ');break;
+        var la3=tWords.slice(0,t3).join(' ');
+        var lb3=tWords.slice(t3,t3*2).join(' ');
+        var lc3=tWords.slice(t3*2).join(' ');
+        if(ctx.measureText(la3).width<=maxTW){
+          l1=la3;l2=lb3;l3=lc3;titleH=lH*3;
+          if(titleH<=maxTitleH)break;
+        }
       }
     }
     lH=tSize*1.05;
-    var titleH=l3?lH*3:l2?lH*2:lH;
+    titleH=l3?lH*3:l2?lH*2:lH;
 
-    // ── TITOLO subito sotto header (posizione fissa) ──────────────────────
+        // ── TITOLO subito sotto header (posizione fissa) ──────────────────────
     var cyTitle=headerBot+S2(24);
     ctx.font='900 '+tSize+'px Arial';ctx.fillStyle='#111827';
     ctx.fillText(l1,PL,cyTitle+lH);
@@ -10627,11 +10653,7 @@ async function pPDFCopertine(){
     var afterTitle=cyTitle+titleH+S2(36);
 
     // ── BADGE + REGIA + META + ORARI centrati tra afterTitle e footerTop ─
-    var metaParts=[film.duration?Math.floor(film.duration/60)+'h'+String(film.duration%60).padStart(2,'0'):null,film.rating,film.genre].filter(Boolean);
-    var restH=S2(32)+(film.director?S2(38):0)
-      +(metaParts.length?S2(32):0)
-      +S2(8)+S2(3)+S2(30)
-      +showDays.length*S2(40);
+    // metaParts e restH già calcolati nel blocco titolo
     var restAvail=footerTop-afterTitle;
     var cy=afterTitle+Math.max(0,(restAvail-restH)*0.3);
 
