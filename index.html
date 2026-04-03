@@ -589,7 +589,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="wlbl" id="wlbl">—</div>
     <button onclick="cw(1)">›</button>
   </div>
-  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v01/04 16:45</small>
+  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v01/04 17:00</small>
   <div class="hact">
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
     <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
@@ -10671,63 +10671,85 @@ async function pPDFCopertine(){
     // ── RIGA ARANCIO ───────────────────────────────────────────────────────
     ctx.fillStyle=ORA;ctx.fillRect(PL,cy,S2(60),S2(3));cy+=S2(30);
 
-    // ── ORARI: GIO 5/4 → 20:30 → 22:15 allineati con colonne fisse ───────────
-    // Pre-calcola larghezza colonna giorno+data (max tra tutti i giorni)
+    // ── ORARI: colonne fisse, max larghezza PW*0.95 ──────────────────────────
+    // Larghezza totale disponibile per orari: da PL fino al 95% del canvas
+    var orariMaxX=Math.round(PW*0.95);
+    var orariW=orariMaxX-PL;
+
+    // Font
     var fontG='700 '+S2(50)+'px Arial';
-    var fontD='500 '+S2(38)+'px Arial';
-    var fontO='700 '+S2(56)+'px "Courier New",monospace';
-    var fontArr='700 '+S2(50)+'px Arial';
+    var fontD='500 '+S2(36)+'px Arial';
+    var fontArr='700 '+S2(48)+'px Arial';
+    var fontO='700 '+S2(52)+'px "Courier New",monospace';
 
-    // Colonna 1: giorno (es GIO) — larghezza fissa basata su DOM
-    ctx.font=fontG;ctx.letterSpacing=S2(1)+'px';
-    var colDayW=ctx.measureText('MER').width+S2(4); // MER è il più largo
-    ctx.letterSpacing='0px';
+    // Colonne fisse in S2 (proporzionali al canvas 3508px)
+    var colDay =S2(155); // GIO/VEN/SAB/DOM/LUN/MAR/MER
+    var colDate=S2(100); // 5/4
+    var colArr =S2(70);  // →
+    var xDay =PL;
+    var xDate=xDay+colDay;
+    var xArr =xDate+colDate;
+    var xTime=xArr+colArr; // inizio zona orari
 
-    // Colonna 2: data (es 5/4) — larghezza fissa
-    ctx.font=fontD;
-    var colDateW=ctx.measureText('00/00').width+S2(8);
+    // Slot orari: spazio rimanente / max slots
+    var maxSlots=1;
+    showDays.forEach(function(d){
+      if(byDay[d]&&byDay[d].length>maxSlots)maxSlots=byDay[d].length;
+    });
+    var slotAvail=orariMaxX-xTime;
+    var slotW=Math.floor(slotAvail/maxSlots);
 
-    // Freccia — larghezza fissa
-    ctx.font=fontArr;
-    var arrW=ctx.measureText('→').width+S2(16);
-
-    // Colonne iniziali
-    var xDay=PL;
-    var xDate=xDay+colDayW+S2(12);
-    var xArr=xDate+colDateW+S2(8);
-    var xTime=xArr+arrW;
+    // Se con frecce tra slot si sfora, tralascia le frecce
+    ctx.font=fontO;
+    var oneTimeW=ctx.measureText('20:30').width;
+    var arrowSepW=ctx.measureText(' → ').width;
+    var withArrows=(xTime+maxSlots*oneTimeW+(maxSlots-1)*arrowSepW)<=orariMaxX;
 
     showDays.forEach(function(day){
       var times=byDay[day].slice().sort();
       var dName=dayNames[day]||'';
-      // Numero e mese dalla data
       var dayParts=day.split('-');
       var dateLabel=parseInt(dayParts[2])+'/'+parseInt(dayParts[1]);
-      var timesStr=times.join('  →  ');
       var baseY=cy+S2(52);
 
-      // ── Ombra leggera sotto il blocco per leggibilità sull'immagine ──
       ctx.save();
-      ctx.shadowColor='rgba(255,255,255,0.85)';
-      ctx.shadowBlur=S2(18);
+      ctx.shadowColor='rgba(255,255,255,0.88)';
+      ctx.shadowBlur=S2(20);
 
-      // Giorno in NERO
+      // Giorno — NERO, colonna fissa
       ctx.font=fontG;ctx.letterSpacing=S2(1)+'px';
       ctx.fillStyle='#111827';ctx.textAlign='left';
       ctx.fillText(dName.toUpperCase(),xDay,baseY);
       ctx.letterSpacing='0px';
 
-      // Data in grigio scuro
-      ctx.font=fontD;ctx.fillStyle='rgba(20,30,60,0.55)';
-      ctx.fillText(dateLabel,xDate,baseY-S2(4));
+      // Data — grigio scuro, colonna fissa
+      ctx.font=fontD;ctx.fillStyle='rgba(20,30,60,0.5)';
+      ctx.fillText(dateLabel,xDate,baseY-S2(3));
 
-      // Freccia allineata in arancio
-      ctx.font=fontArr;ctx.fillStyle=ORA;
-      ctx.fillText('→',xArr,baseY);
+      // Freccia separatrice — arancio, centrata nella sua colonna
+      ctx.font=fontArr;ctx.fillStyle='#f0801a';
+      ctx.textAlign='center';
+      ctx.fillText('→',xArr+Math.round(colArr/2),baseY);
+      ctx.textAlign='left';
 
-      // Orari in ARANCIO Courier
-      ctx.font=fontO;ctx.fillStyle=ORA;
-      ctx.fillText(timesStr,xTime,baseY);
+      // Orari — NERI, ogni slot nella sua colonna fissa
+      ctx.font=fontO;ctx.fillStyle='#111827';
+      if(withArrows&&times.length>1){
+        // Orari con frecce tra di loro ma in slot fissi
+        times.forEach(function(t,ti){
+          ctx.fillText(t,xTime+ti*slotW,baseY);
+          if(ti<times.length-1){
+            ctx.fillStyle='#f0801a';
+            ctx.fillText('→',xTime+ti*slotW+oneTimeW+S2(12),baseY);
+            ctx.fillStyle='#111827';
+          }
+        });
+      } else {
+        // Senza frecce: solo orari in colonne fisse
+        times.forEach(function(t,ti){
+          ctx.fillText(t,xTime+ti*slotW,baseY);
+        });
+      }
 
       ctx.restore();
       cy+=S2(40);
