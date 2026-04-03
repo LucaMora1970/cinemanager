@@ -589,7 +589,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="wlbl" id="wlbl">—</div>
     <button onclick="cw(1)">›</button>
   </div>
-  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v01/04 16:30</small>
+  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v01/04 16:45</small>
   <div class="hact">
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
     <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
@@ -10640,10 +10640,15 @@ async function pPDFCopertine(){
       ctx.letterSpacing='0px';cy+=S2(38);
     }
 
-    // ── BADGE ──────────────────────────────────────────────────────────────
+    // ── BADGE sopra regia ────────────────────────────────────────────────
     var isNew=film.release&&film.release>=wd[0]&&film.release<=wd[6];
+    // Calcola date programma (prima e ultima data in showDays)
+    var firstDay=showDays[0]||'';var lastDay=showDays[showDays.length-1]||firstDay;
+    function fmtShort(d){if(!d)return '';var p=d.split('-');return p[2]+'/'+p[1];}
+    var badgeText=isNew?'— NOVITÀ IN SALA'
+      :('— Programma dal '+fmtShort(firstDay)+' al '+fmtShort(lastDay));
     ctx.font='700 '+S2(20)+'px Arial';ctx.fillStyle=ORA;
-    ctx.fillText(isNew?'— NOVITÀ IN SALA':'— ANCORA IN SALA',PL,cy);cy+=S2(36);
+    ctx.fillText(badgeText,PL,cy);cy+=S2(32);
 
     // ── TITOLO ─────────────────────────────────────────────────────────────
     ctx.font='900 '+tSize+'px Arial';ctx.fillStyle='#111827';
@@ -10666,47 +10671,65 @@ async function pPDFCopertine(){
     // ── RIGA ARANCIO ───────────────────────────────────────────────────────
     ctx.fillStyle=ORA;ctx.fillRect(PL,cy,S2(60),S2(3));cy+=S2(30);
 
-    // ── ORARI: tutto su una riga — GIO → 20:30 → 22:00 da sx a dx ───────────
+    // ── ORARI: GIO 5/4 → 20:30 → 22:15 allineati con colonne fisse ───────────
+    // Pre-calcola larghezza colonna giorno+data (max tra tutti i giorni)
+    var fontG='700 '+S2(50)+'px Arial';
+    var fontD='500 '+S2(38)+'px Arial';
+    var fontO='700 '+S2(56)+'px "Courier New",monospace';
+    var fontArr='700 '+S2(50)+'px Arial';
+
+    // Colonna 1: giorno (es GIO) — larghezza fissa basata su DOM
+    ctx.font=fontG;ctx.letterSpacing=S2(1)+'px';
+    var colDayW=ctx.measureText('MER').width+S2(4); // MER è il più largo
+    ctx.letterSpacing='0px';
+
+    // Colonna 2: data (es 5/4) — larghezza fissa
+    ctx.font=fontD;
+    var colDateW=ctx.measureText('00/00').width+S2(8);
+
+    // Freccia — larghezza fissa
+    ctx.font=fontArr;
+    var arrW=ctx.measureText('→').width+S2(16);
+
+    // Colonne iniziali
+    var xDay=PL;
+    var xDate=xDay+colDayW+S2(12);
+    var xArr=xDate+colDateW+S2(8);
+    var xTime=xArr+arrW;
+
     showDays.forEach(function(day){
       var times=byDay[day].slice().sort();
       var dName=dayNames[day]||'';
+      // Numero e mese dalla data
+      var dayParts=day.split('-');
+      var dateLabel=parseInt(dayParts[2])+'/'+parseInt(dayParts[1]);
+      var timesStr=times.join('  →  ');
+      var baseY=cy+S2(52);
 
-      // Font giorno e orario
-      var fontG='700 '+S2(50)+'px Arial';
-      var fontO='700 '+S2(56)+'px "Courier New",monospace';
-
-      // Misura giorno
-      ctx.font=fontG;ctx.letterSpacing=S2(1)+'px';
-      var dayW=ctx.measureText(dName.toUpperCase()).width;
-      ctx.letterSpacing='0px';
-
-      // Misura freccia
-      var arrow=' → ';
-      ctx.font=fontO;
-      var arrW=ctx.measureText(arrow).width;
-
-      // Misura orari
-      var timesStr=times.join(' → ');
-      var timeW=ctx.measureText(timesStr).width;
-
-      // Posizione Y baseline
-      var baseY=cy+S2(50);
+      // ── Ombra leggera sotto il blocco per leggibilità sull'immagine ──
+      ctx.save();
+      ctx.shadowColor='rgba(255,255,255,0.85)';
+      ctx.shadowBlur=S2(18);
 
       // Giorno in NERO
       ctx.font=fontG;ctx.letterSpacing=S2(1)+'px';
       ctx.fillStyle='#111827';ctx.textAlign='left';
-      ctx.fillText(dName.toUpperCase(),PL,baseY);
+      ctx.fillText(dName.toUpperCase(),xDay,baseY);
       ctx.letterSpacing='0px';
 
-      // Spazio minimo + freccia separatrice in arancio
-      var xAfterDay=PL+dayW+S2(18);
+      // Data in grigio scuro
+      ctx.font=fontD;ctx.fillStyle='rgba(20,30,60,0.55)';
+      ctx.fillText(dateLabel,xDate,baseY-S2(4));
+
+      // Freccia allineata in arancio
+      ctx.font=fontArr;ctx.fillStyle=ORA;
+      ctx.fillText('→',xArr,baseY);
+
+      // Orari in ARANCIO Courier
       ctx.font=fontO;ctx.fillStyle=ORA;
-      ctx.fillText('→',xAfterDay,baseY);
-      var xAfterArrow=xAfterDay+ctx.measureText('→').width+S2(18);
+      ctx.fillText(timesStr,xTime,baseY);
 
-      // Orari in ARANCIO Courier — da xAfterArrow
-      ctx.fillText(timesStr,xAfterArrow,baseY);
-
+      ctx.restore();
       cy+=S2(40);
     });
 
