@@ -589,7 +589,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="wlbl" id="wlbl">—</div>
     <button onclick="cw(1)">›</button>
   </div>
-  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v01/04 18:50</small>
+  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v03/04 09:00</small>
   <div class="hact">
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
     <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
@@ -915,7 +915,14 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
 <div id="page-book" class="page">
   <div class="sh">
     <div class="st">Prenotazioni</div>
-    <button class="btn ba" id="btnAddBook" onclick="openBook()">＋ Nuova Prenotazione</button>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn ba" id="btnAddBook" onclick="openBook()">＋ Nuova Prenotazione</button>
+      <label class="btn bg" style="cursor:pointer;font-size:12px" title="Importa CSV Cinetourdate">
+        ⬆ Importa CSV
+        <input type="file" accept=".csv" onchange="importCinetourCSV(this)" style="display:none">
+      </label>
+      <button class="btn bg" style="font-size:12px" onclick="exportBookingsCSV()" title="Esporta prenotazioni CSV">⬇ Esporta CSV</button>
+    </div>
   </div>
   <div class="ctl">
     <div class="fg"><span class="fl">Filtro:</span>
@@ -10811,6 +10818,163 @@ async function pPDFCopertine(){
   }
 }
 window.pPDFCopertine=pPDFCopertine;
+
+
+// ══════════════════════════════════════════════════════════════════════════
+// IMPORT CSV CINETOURDATE → Prenotazioni (tipo openair)
+// ══════════════════════════════════════════════════════════════════════════
+async function importCinetourCSV(input){
+  const file=input.files[0];if(!file)return;
+  input.value='';
+  const text=await file.text();
+  // Parse CSV robusto (gestisce virgolette e campi con virgole interne)
+  function parseCSV(txt){
+    const rows=[];
+    const lines=txt.split(/\r?\n/).filter(function(l){return l.trim();});
+    lines.forEach(function(line){
+      const fields=[];let cur='';let inQ=false;
+      for(var i=0;i<line.length;i++){
+        const ch=line[i];
+        if(ch==='"'){
+          if(inQ&&line[i+1]==='"'){cur+='"';i++;}
+          else inQ=!inQ;
+        } else if(ch===','&&!inQ){
+          fields.push(cur.replace(/^\["|"\]$/g,'').replace(/^"|"$/g,'').trim());cur='';
+        } else cur+=ch;
+      }
+      fields.push(cur.replace(/^\["|"\]$/g,'').replace(/^"|"$/g,'').trim());
+      rows.push(fields);
+    });
+    return rows;
+  }
+
+  const rows=parseCSV(text);
+  if(rows.length<2){toast('CSV vuoto o non valido','err');return;}
+
+  // Header → indice colonne
+  const hdr=rows[0].map(function(h){return h.replace(/^\uFEFF/,'').trim();});
+  function col(name){return hdr.indexOf(name);}
+  const iData=col('Data'),iOra=col('Ora'),iTitolo=col('Titolo'),
+        iLoc=col('Località'),iReg=col('Regione'),iOrg=col('Organizzatore'),
+        iStatus=col('Status Meteo'),iPren=col('Prenotazione posti'),
+        iCod=col('Codice'),iId=col('ID'),iVia=col('Via'),iGrat=col('Gratuita o Pagamento');
+
+  // Existing IDs per evitare duplicati
+  const existIds=new Set((S.bookings||[]).map(function(b){return b.cinetourId||'';}));
+
+  let imported=0,skipped=0;
+  for(var ri=1;ri<rows.length;ri++){
+    const r=rows[ri];
+    if(!r||r.length<5||!r[iData])continue;
+
+    // Data: "2026-08-07T19:00:00Z" → "2026-08-07"
+    const rawDate=r[iData]||'';
+    const dateStr=rawDate.slice(0,10);
+    if(!dateStr||dateStr==='undefined')continue;
+
+    const cinetourId=r[iId]||'';
+    if(cinetourId&&existIds.has(cinetourId)){skipped++;continue;}
+
+    // Orario dal campo Ora oppure dall'orario nella Data
+    let startTime=r[iOra]||'';
+    if(!startTime&&rawDate.length>=16){
+      // Estrae dall'ISO: "2026-08-07T19:00:00Z" → "19:00" (ora UTC, ticino = +2)
+      const hh=parseInt(rawDate.slice(11,13))+2;
+      const mm=rawDate.slice(14,16);
+      startTime=String(hh).padStart(2,'0')+':'+mm;
+    }
+    startTime=startTime.slice(0,5);
+
+    const filmTitle=r[iTitolo]||'';
+    const location=(r[iLoc]||'').replace(/\s+$/,'');
+    const regione=r[iReg]||'';
+    const org=r[iOrg]||'';
+    const via=r[iVia]||'';
+    const status=r[iStatus]||'';
+    const pren=r[iPren]||'';
+    const grat=r[iGrat]||'';
+    const codice=r[iCod]||'';
+
+    // Costruisce nota
+    var noteParts=[];
+    if(regione)noteParts.push('Regione: '+regione);
+    if(grat)noteParts.push(grat);
+    if(status)noteParts.push('Meteo: '+status);
+    if(pren)noteParts.push(pren);
+    if(codice)noteParts.push('Cod. '+codice);
+
+    const book={
+      id:uid(),
+      cinetourId:cinetourId,
+      name:filmTitle||(location||'Open Air '+dateStr),
+      type:'openair',
+      sala:'OA1',
+      filmId:'',
+      oaFilmTitle:filmTitle,
+      oaDistributor:'',
+      location:location+(via?' — '+via:''),
+      postazione:'CineTour Open Air',
+      linkedShowId:'',
+      contact:org,
+      seats:0,
+      note:noteParts.join(' · '),
+      dates:[{date:dateStr,start:startTime,end:''}],
+      createdBy:currentUser?currentUser.email:'import-csv',
+      createdAt:new Date().toISOString(),
+      cinetourCodice:codice,
+      cinetourRegione:regione
+    };
+    await setDoc(doc(db,'bookings',book.id),book);
+    existIds.add(cinetourId);
+    imported++;
+  }
+  toast('Importate '+imported+' date'+( skipped?' · '+skipped+' già presenti':''),'ok');
+}
+window.importCinetourCSV=importCinetourCSV;
+
+// ══════════════════════════════════════════════════════════════════════════
+// EXPORT CSV prenotazioni → download
+// ══════════════════════════════════════════════════════════════════════════
+function exportBookingsCSV(){
+  const books=S.bookings||[];
+  if(!books.length){toast('Nessuna prenotazione da esportare','err');return;}
+
+  // Intestazione CSV
+  const hdrs=['Data','Orario','Titolo Film','Location','Regione','Organizzatore',
+              'Tipo','Posti','Note','Sala','Codice Cinetour','ID','Creato il'];
+
+  function esc(v){
+    v=String(v||'');
+    if(v.includes(',')||v.includes('"')||v.includes('\n'))return '"'+v.replace(/"/g,'""')+'"';
+    return v;
+  }
+
+  const rows=[hdrs.map(esc).join(',')];
+  books.forEach(function(b){
+    (b.dates||[{date:'',start:'',end:''}]).forEach(function(d){
+      rows.push([
+        d.date||'', d.start||'',
+        b.oaFilmTitle||b.name||'',
+        b.location||'',
+        b.cinetourRegione||'',
+        b.contact||'',
+        b.type||'', b.seats||0,
+        b.note||'', b.sala||'',
+        b.cinetourCodice||b.cinetourId||'',
+        b.id||'',
+        (b.createdAt||'').slice(0,10)
+      ].map(esc).join(','));
+    });
+  });
+
+  const blob=new Blob(['\uFEFF'+rows.join('\n')],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='prenotazioni_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();URL.revokeObjectURL(url);
+  toast('CSV esportato ('+rows.length-1+' righe)','ok');
+}
+window.exportBookingsCSV=exportBookingsCSV;
 
 
 </script>
