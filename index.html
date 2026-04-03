@@ -589,7 +589,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="wlbl" id="wlbl">—</div>
     <button onclick="cw(1)">›</button>
   </div>
-  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v01/04 16:10</small>
+  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v01/04 16:20</small>
   <div class="hact">
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
     <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
@@ -10594,24 +10594,19 @@ async function pPDFCopertine(){
     var ORA='#f0801a';
 
     // ── HEADER ─────────────────────────────────────────────────────────────
-    ctx.font='700 '+S2(14)+'px Arial';
-    ctx.fillStyle=ORA;ctx.letterSpacing=S2(2)+'px';
-    ctx.textAlign='left';ctx.fillText('CINEMA',PL,S2(38));
-    ctx.font='500 '+S2(11)+'px Arial';
-    ctx.fillStyle='rgba(40,50,80,0.5)';ctx.letterSpacing=S2(1.5)+'px';
-    ctx.fillText('MULTISALA TEATRO',PL,S2(54));
-    ctx.letterSpacing='0px';
+    // Header: CINEMA MULTISALA TEATRO MENDRISIO su una riga
     ctx.font='700 '+S2(13)+'px Arial';
-    ctx.fillStyle='rgba(255,255,255,0.35)';ctx.textAlign='right';
-    ctx.fillText('MENDRISIO',PW-PL,S2(46));
+    ctx.fillStyle=ORA;ctx.letterSpacing=S2(2)+'px';
     ctx.textAlign='left';
+    ctx.fillText('CINEMA MULTISALA TEATRO MENDRISIO',PL,S2(42));
+    ctx.letterSpacing='0px';ctx.textAlign='left';
 
     // ── CALCOLO BLOCCO TESTI (centrato verticalmente) ──────────────────────
     var blockH=0;
     if(film.director)blockH+=S2(38);
     blockH+=S2(36); // badge
     // Titolo
-    var maxTW=PW*0.52-PL-S2(20);
+    var maxTW=PW*0.80-PL-S2(20);
     var tUP=film.title.toUpperCase();
     var tWords=tUP.split(' ');
     var tSize=S2(90);var l1=tUP,l2='',l3='';
@@ -10629,9 +10624,9 @@ async function pPDFCopertine(){
     blockH+=l3?lH*3+S2(28):l2?lH*2+S2(28):lH+S2(28);
     var metaParts=[film.duration?Math.floor(film.duration/60)+'h'+String(film.duration%60).padStart(2,'0'):null,film.rating,film.genre].filter(Boolean);
     if(metaParts.length)blockH+=S2(32);
-    if(film.cast)blockH+=S2(30);
+    // cast rimosso
     blockH+=S2(8)+S2(3)+S2(30); // spazio+riga+margine
-    blockH+=showDays.length*S2(68); // righe orario
+    blockH+=showDays.length*S2(30); // righe orario
 
     var headerBot=S2(80);var footerTop=PH-S2(60);
     var avail=footerTop-headerBot;
@@ -10705,7 +10700,7 @@ async function pPDFCopertine(){
       ctx.fillText(times.join('  →  '),orarioRight,cy+S2(54));
       ctx.textAlign='left';
 
-      cy+=S2(68);
+      cy+=S2(30);
     });
 
     // ── FOOTER ─────────────────────────────────────────────────────────────
