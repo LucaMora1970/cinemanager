@@ -589,7 +589,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="wlbl" id="wlbl">—</div>
     <button onclick="cw(1)">›</button>
   </div>
-  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v01/04 18:00</small>
+  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v01/04 18:15</small>
   <div class="hact">
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
     <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
@@ -10550,7 +10550,8 @@ async function pPDFCopertine(){
           var iw=img.naturalWidth,ih=img.naturalHeight;
           var sc2=Math.max(PW/iw,PH/ih);
           var sw=iw*sc2,sh=ih*sc2;
-          var sx=(PW-sw)/2,sy=0;
+          // Sposta il backdrop verso dx del 12% per liberare zona sx
+          var sx=(PW-sw)/2+Math.round(PW*0.12),sy=0;
           ctx.drawImage(img,sx,sy,sw,sh);
           resolve();
         };
@@ -10561,12 +10562,12 @@ async function pPDFCopertine(){
 
     // Dissolvenza bianca sx
     var gLR=ctx.createLinearGradient(0,0,PW,0);
-    gLR.addColorStop(0,'rgba(255,255,255,1)');
-    gLR.addColorStop(0.30,'rgba(255,255,255,0.97)');
-    gLR.addColorStop(0.50,'rgba(255,255,255,0.70)');
-    gLR.addColorStop(0.65,'rgba(255,255,255,0.25)');
-    gLR.addColorStop(0.78,'rgba(255,255,255,0)');
-    gLR.addColorStop(1,'rgba(255,255,255,0)');
+    gLR.addColorStop(0,   'rgba(255,255,255,1)');
+    gLR.addColorStop(0.38,'rgba(255,255,255,0.97)');
+    gLR.addColorStop(0.55,'rgba(255,255,255,0.70)');
+    gLR.addColorStop(0.70,'rgba(255,255,255,0.25)');
+    gLR.addColorStop(0.82,'rgba(255,255,255,0)');
+    gLR.addColorStop(1,   'rgba(255,255,255,0)');
     ctx.fillStyle=gLR;ctx.fillRect(0,0,PW,PH);
     var gT=ctx.createLinearGradient(0,0,0,PH);
     gT.addColorStop(0,'rgba(255,255,255,0.55)');
@@ -10584,84 +10585,67 @@ async function pPDFCopertine(){
     ctx.fillText('CINEMA MULTISALA TEATRO MENDRISIO',PL,S2(42));
     ctx.letterSpacing='0px';
 
-    // ── CALCOLO BLOCCO TESTI ────────────────────────────────────────────────
-    var headerBot=S2(80);var footerTop=PH-S2(50);
-    var avail=footerTop-headerBot;
+    // ── LAYOUT: titolo fisso sotto header, badge+regia+orari centrati ───────
+    var headerBot=S2(80);
+    var footerTop=PH-S2(50);
 
-    var metaParts=[film.duration?Math.floor(film.duration/60)+'h'+String(film.duration%60).padStart(2,'0'):null,film.rating,film.genre].filter(Boolean);
-
-    // Altezza fissa (badge + regia + meta + riga + margine + orari)
-    var fixedH=S2(32)+S2(32)                    // badge + spazio verso regia
-      +(film.director?S2(28):0)                 // regia — stessa interlinea di titolo→meta
-      +(metaParts.length?S2(32):0)              // meta
-      +S2(8)+S2(3)+S2(30)                       // spazio+riga+margine
-      +showDays.length*S2(40);                  // righe orario
-
-    // Date programma
+    // Date programma e badge
     var firstDay=showDays[0]||'';var lastDay=showDays[showDays.length-1]||firstDay;
     function fmtShort(d){if(!d)return '';var p=d.split('-');return p[2]+'/'+p[1];}
     var isNew=film.release&&film.release>=wd[0]&&film.release<=wd[6];
-    var badgeText=isNew?'— NOVITÀ IN SALA':'— Programma dal '+fmtShort(firstDay)+' al '+fmtShort(lastDay);
+    var badgeText=isNew?'— NOVITÀ IN SALA'
+      :('— Programma dal '+fmtShort(firstDay)+' al '+fmtShort(lastDay));
 
-    // Adatta titolo: riduce finché ogni riga entra in maxTW E blockH <= avail
+    // Adatta dimensione titolo alla larghezza (80% canvas)
     var maxTW=PW*0.80-PL-S2(20);
     var tUP=film.title.toUpperCase();
     var tWords=tUP.split(' ');
-    var tSize=S2(90);var l1=tUP,l2='',l3='',lH,blockH;
-    for(var ts=90;ts>=22;ts-=4){
-      tSize=S2(ts);ctx.font='900 '+tSize+'px Arial';
-      lH=tSize*1.05;
-      var ok=false;
-      // 1 riga
-      if(ctx.measureText(tUP).width<=maxTW){l1=tUP;l2='';l3='';ok=true;}
-      // 2 righe
-      if(!ok){
-        for(var sp=1;sp<tWords.length;sp++){
-          var la=tWords.slice(0,sp).join(' '),lb=tWords.slice(sp).join(' ');
-          if(ctx.measureText(la).width<=maxTW&&ctx.measureText(lb).width<=maxTW){
-            l1=la;l2=lb;l3='';ok=true;break;
-          }
-        }
+    var tSize=S2(90);var l1=tUP,l2='',l3='',lH;
+    for(var ts=90;ts>=28;ts-=4){
+      tSize=S2(ts);ctx.font='900 '+tSize+'px Arial';lH=tSize*1.05;
+      if(ctx.measureText(tUP).width<=maxTW){l1=tUP;l2='';l3='';break;}
+      var found2=false;
+      for(var sp=1;sp<tWords.length;sp++){
+        var la=tWords.slice(0,sp).join(' '),lb=tWords.slice(sp).join(' ');
+        if(ctx.measureText(la).width<=maxTW&&ctx.measureText(lb).width<=maxTW){l1=la;l2=lb;l3='';found2=true;break;}
       }
-      // 3 righe — split bilanciato
-      if(!ok&&tWords.length>=3){
-        outer: for(var s1=1;s1<tWords.length-1;s1++){
-          for(var s2=s1+1;s2<tWords.length;s2++){
-            var r1=tWords.slice(0,s1).join(' ');
-            var r2=tWords.slice(s1,s2).join(' ');
-            var r3=tWords.slice(s2).join(' ');
-            if(ctx.measureText(r1).width<=maxTW&&ctx.measureText(r2).width<=maxTW&&ctx.measureText(r3).width<=maxTW){
-              l1=r1;l2=r2;l3=r3;ok=true;break outer;
-            }
-          }
-        }
+      if(found2)break;
+      if(tWords.length>=3){
+        var t3=Math.ceil(tWords.length/3);
+        l1=tWords.slice(0,t3).join(' ');l2=tWords.slice(t3,t3*2).join(' ');l3=tWords.slice(t3*2).join(' ');break;
       }
-      if(!ok){l1=tUP;l2='';l3='';}
-      var titleH=l3?lH*3:l2?lH*2:lH;
-      blockH=fixedH+titleH+S2(28);
-      if(ok&&blockH<=avail)break;
     }
+    lH=tSize*1.05;
+    var titleH=l3?lH*3:l2?lH*2:lH;
 
-    var cy=headerBot+Math.max(0,(avail-blockH)*0.5);
+    // ── TITOLO subito sotto header (posizione fissa) ──────────────────────
+    var cyTitle=headerBot+S2(24);
+    ctx.font='900 '+tSize+'px Arial';ctx.fillStyle='#111827';
+    ctx.fillText(l1,PL,cyTitle+lH);
+    if(l2)ctx.fillText(l2,PL,cyTitle+lH*2);
+    if(l3)ctx.fillText(l3,PL,cyTitle+lH*3);
+    var afterTitle=cyTitle+titleH+S2(36);
+
+    // ── BADGE + REGIA + META + ORARI centrati tra afterTitle e footerTop ─
+    var metaPartsH=[film.duration?Math.floor(film.duration/60)+'h'+String(film.duration%60).padStart(2,'0'):null,film.rating,film.genre].filter(Boolean);
+    var restH=S2(32)+(film.director?S2(38):0)
+      +(metaPartsH.length?S2(32):0)
+      +S2(8)+S2(3)+S2(30)
+      +showDays.length*S2(40);
+    var restAvail=footerTop-afterTitle;
+    var cy=afterTitle+Math.max(0,(restAvail-restH)*0.3);
 
     // ── BADGE ────────────────────────────────────────────────────────────────
     ctx.font='700 '+S2(20)+'px Arial';ctx.fillStyle=ORA;
-    ctx.textAlign='left';ctx.fillText(badgeText,PL,cy);cy+=S2(32);
+    ctx.fillText(badgeText,PL,cy);cy+=S2(32);
 
-    // ── REGISTA (interlinea = S2(28), uguale a titolo→meta) ─────────────────
+    // ── REGISTA ───────────────────────────────────────────────────────────────
     if(film.director){
       ctx.font='700 '+S2(21)+'px Arial';
       ctx.fillStyle='rgba(20,30,60,0.55)';ctx.letterSpacing=S2(2)+'px';
       ctx.fillText(film.director.toUpperCase(),PL,cy);
-      ctx.letterSpacing='0px';cy+=S2(28);
+      ctx.letterSpacing='0px';cy+=S2(38);
     }
-
-    // ── TITOLO ───────────────────────────────────────────────────────────────
-    ctx.font='900 '+tSize+'px Arial';ctx.fillStyle='#111827';
-    ctx.fillText(l1,PL,cy+lH);
-    if(l2)ctx.fillText(l2,PL,cy+lH*2);
-    if(l3)ctx.fillText(l3,PL,cy+lH*3);
-    cy+=l3?lH*3+S2(28):l2?lH*2+S2(28):lH+S2(28);
 
     // ── META ─────────────────────────────────────────────────────────────────
     if(metaParts.length){
