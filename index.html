@@ -589,7 +589,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="wlbl" id="wlbl">—</div>
     <button onclick="cw(1)">›</button>
   </div>
-  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v01/04 17:45</small>
+  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v01/04 18:00</small>
   <div class="hact">
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
     <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
@@ -10679,19 +10679,35 @@ async function pPDFCopertine(){
     // ── ORARI: colonne per fascia oraria, font adattivo alla larghezza ───────
     var orariMaxX=Math.round(PW*0.95);
 
-    // ── Raccoglie orari unici e ordina (colonne globali) ───────────────────
-    var allTimes=[];
+    // ── Raggruppa orari in fasce da 45 min ────────────────────────────────
+    // Converte "HH:MM" in minuti
+    function toMin(t){var p=t.split(':');return parseInt(p[0])*60+parseInt(p[1]);}
+    // Raccoglie tutti gli orari distinti presenti
+    var rawTimes=[];
     showDays.forEach(function(d){
-      (byDay[d]||[]).forEach(function(t){if(allTimes.indexOf(t)<0)allTimes.push(t);});
+      (byDay[d]||[]).forEach(function(t){if(rawTimes.indexOf(t)<0)rawTimes.push(t);});
     });
-    allTimes.sort();
+    rawTimes.sort();
 
-    // ── Collassa slot vuoti: tiene solo le colonne usate da almeno un giorno
-    // Già garantito da allTimes — ma calcola per ogni colonna se è "usata"
-    // da più di zero giorni (allTimes contiene solo orari presenti)
-    // Verifica che ogni orario in allTimes sia presente in almeno 1 giorno
-    var usedTimes=allTimes.filter(function(t){
-      return showDays.some(function(d){return (byDay[d]||[]).indexOf(t)>=0;});
+    // Raggruppa in fasce da 45 min: ogni orario viene assegnato
+    // alla fascia del primo orario entro 45 min da lui
+    var fasceRep=[]; // rappresentante di ogni fascia (primo orario della fascia)
+    var timeToFascia={}; // orario → rappresentante fascia
+    rawTimes.forEach(function(t){
+      var m=toMin(t);
+      var found=false;
+      for(var fi=0;fi<fasceRep.length;fi++){
+        if(Math.abs(toMin(fasceRep[fi])-m)<=45){
+          timeToFascia[t]=fasceRep[fi];found=true;break;
+        }
+      }
+      if(!found){fasceRep.push(t);timeToFascia[t]=t;}
+    });
+    // usedTimes = rappresentanti delle fasce usate (colonne reali)
+    var usedTimes=fasceRep.filter(function(r){
+      return showDays.some(function(d){
+        return (byDay[d]||[]).some(function(t){return timeToFascia[t]===r;});
+      });
     });
     var nCols=usedTimes.length||1;
 
@@ -10700,7 +10716,7 @@ async function pPDFCopertine(){
     var xDay=PL,xDate=xDay+colDay,xArr=xDate+colDate,xTime=xArr+colArr;
     var slotAreaW=orariMaxX-xTime;
 
-    // ── Font orari adattivo: riduce se nCols*slotW > slotAreaW ────────────
+    // ── Font orari adattivo ────────────────────────────────────────────────
     var fontO,slotW,oneTimeW;
     for(var fos=52;fos>=22;fos-=4){
       fontO='700 '+S2(fos)+'px "Courier New",monospace';
@@ -10710,9 +10726,9 @@ async function pPDFCopertine(){
       if(nCols*slotW<=slotAreaW)break;
     }
 
-    // ── Posizione X di ogni fascia oraria (solo colonne usate) ─────────────
+    // ── X di ogni fascia (colonna) ─────────────────────────────────────────
     var colX={};
-    usedTimes.forEach(function(t,ti){colX[t]=xTime+ti*slotW;});
+    usedTimes.forEach(function(r,ri){colX[r]=xTime+ri*slotW;});
 
     var fontG='700 '+S2(50)+'px Arial';
     var fontD='500 '+S2(36)+'px Arial';
@@ -10744,10 +10760,12 @@ async function pPDFCopertine(){
       ctx.fillText('→',xArr+Math.round(colArr/2),baseY);
       ctx.textAlign='left';
 
-      // Orari — NERI, nella colonna della fascia (slot vuoti collassati)
+      // Orari — NERI, allineati alla colonna della propria fascia
       ctx.font=fontO;ctx.fillStyle='#111827';
       times.forEach(function(t){
-        if(colX[t]!==undefined)ctx.fillText(t,colX[t],baseY);
+        var fascia=timeToFascia[t];
+        var x=colX[fascia];
+        if(x!==undefined)ctx.fillText(t,x,baseY);
       });
 
       ctx.restore();
