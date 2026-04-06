@@ -610,7 +610,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="wlbl" id="wlbl">—</div>
     <button onclick="cw(1)">›</button>
   </div>
-  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v06/04 10:30</small>
+  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v06/04 11:00</small>
   <div class="hact">
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
     <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
@@ -1790,13 +1790,13 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
           <label class="flb">📅 Data e Ora *</label>
           <div style="display:flex;gap:7px;margin-bottom:6px">
             <input type="date" id="bDateInputManual" style="flex:2;min-width:130px" onchange="this.setAttribute('value',this.value)" oninput="this.setAttribute('value',this.value)">
-            <input type="time" id="bStart" value="21:00" list="oaTimeList" style="flex:1;min-width:90px">
-            <datalist id="oaTimeList"><option value="20:30"><option value="20:45"><option value="21:00"><option value="21:15"></datalist>
+            <input type="time" id="bOAStart" value="21:00" list="oaTimeListOA" style="flex:1;min-width:90px">
+            <datalist id="oaTimeListOA"><option value="20:30"><option value="20:45"><option value="21:00"><option value="21:15"></datalist>
             <span style="align-self:center;color:var(--txt2);font-size:12px;flex-shrink:0">→</span>
-            <input type="time" id="bEnd" value="23:00" style="flex:1;min-width:90px">
+            <input type="time" id="bOAEnd" value="23:00" style="flex:1;min-width:90px">
             <button type="button" class="btn ba" onclick="addBookDate()">＋</button>
           </div>
-          <div class="date-chips" id="bDates"></div>
+          <div class="date-chips" id="bOADates"></div>
           <div style="font-size:10px;color:var(--txt2);margin-top:4px">Aggiungi tutte le date della stagione</div>
         </div>
 
@@ -1828,12 +1828,12 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
 
         <!-- Nome Evento -->
         <div class="fr"><label class="flb">🎪 Nome Evento *</label>
-          <input type="text" id="bName" placeholder="Es. CineTour Estate 2026, Notte del Cinema...">
+          <input type="text" id="bOAName" placeholder="Es. CineTour Estate 2026, Notte del Cinema...">
         </div>
 
         <!-- Contatto -->
         <div class="fr"><label class="flb">📞 Contatto (tel / email)</label>
-          <input type="text" id="bContact" placeholder="Tel o email del referente">
+          <input type="text" id="bOAContact" placeholder="Tel o email del referente">
         </div>
 
         <!-- Film prenotato e scaricato -->
@@ -1864,7 +1864,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
 
         <!-- Note -->
         <div class="fr"><label class="flb">📝 Note</label>
-          <textarea id="bNote" placeholder="Richieste tecniche, allestimento, note organizzative..."></textarea>
+          <textarea id="bOANote" placeholder="Richieste tecniche, allestimento, note organizzative..."></textarea>
         </div>
 
       </div><!-- fine box OA -->
@@ -5065,6 +5065,9 @@ function editBook(id){
     if(document.getElementById('bOACliente'))document.getElementById('bOACliente').value=b.oaCliente||'';
     if(document.getElementById('bOAFilm')&&b.filmId)document.getElementById('bOAFilm').value=b.filmId;
     if(document.getElementById('bOAFilmFree'))document.getElementById('bOAFilmFree').value=b.oaFilmTitle||'';
+    if(document.getElementById('bOAName'))document.getElementById('bOAName').value=b.name||'';
+    if(document.getElementById('bOAContact'))document.getElementById('bOAContact').value=b.contact||'';
+    if(document.getElementById('bOANote'))document.getElementById('bOANote').value=b.note||'';
     // Radios
     const pVal=b.oaPrenotato||'no';
     const pEl=document.querySelector('input[name="bOAPrenotato"][value="'+pVal+'"]');
@@ -5149,7 +5152,9 @@ function renderBDates(){
 function removeBD(el){removeBookDate(el.dataset.date);}
 window.removeBD=removeBD;
 async function svBook(){
-  const name=document.getElementById('bName').value.trim();
+  const bType0=document.getElementById('bType').value;
+  const isOA0=bType0==='openair';
+  const name=(isOA0?document.getElementById('bOAName'):document.getElementById('bName'))?.value.trim()||'';
   if(!name){toast('Inserisci il nome evento','err');return;}
   const mode=document.getElementById('bMode').value;
   const linkedShowId=document.getElementById('bLinkedShowId').value;
@@ -5195,9 +5200,9 @@ async function svBook(){
     oaFilmTitle:oaFilmTitle,
     oaDistributor:oaDistributor,
     linkedShowId:linkedShowId||'',
-    contact:document.getElementById('bContact').value,
+    contact:(isOA?document.getElementById('bOAContact'):document.getElementById('bContact'))?.value||'',
     seats:parseInt(document.getElementById('bSeats').value)||0,
-    note:document.getElementById('bNote').value,
+    note:(isOA?document.getElementById('bOANote'):document.getElementById('bNote'))?.value||'',
     dates,
     createdBy:currentUser?currentUser.email:'',
     createdAt:new Date().toISOString()
