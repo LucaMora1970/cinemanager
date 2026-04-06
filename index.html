@@ -610,7 +610,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="wlbl" id="wlbl">—</div>
     <button onclick="cw(1)">›</button>
   </div>
-  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v06/04 10:00</small>
+  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v06/04 10:15</small>
   <div class="hact">
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
     <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
@@ -1789,7 +1789,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
         <div class="fr">
           <label class="flb">📅 Data e Ora *</label>
           <div style="display:flex;gap:7px;margin-bottom:6px">
-            <input type="date" id="bDateInput" style="flex:2;min-width:130px" onchange="this.setAttribute('value',this.value)" oninput="this.setAttribute('value',this.value)">
+            <input type="date" id="bDateInputManual" style="flex:2;min-width:130px" onchange="this.setAttribute('value',this.value)" oninput="this.setAttribute('value',this.value)">
             <input type="time" id="bStart" value="21:00" list="oaTimeList" style="flex:1;min-width:90px">
             <datalist id="oaTimeList"><option value="20:30"><option value="20:45"><option value="21:00"><option value="21:15"></datalist>
             <span style="align-self:center;color:var(--txt2);font-size:12px;flex-shrink:0">→</span>
@@ -5096,20 +5096,18 @@ function editBook(id){
   document.getElementById('ovBook').classList.add('on');
 }
 function addBookDate(){
-  const el=document.getElementById('bDateInput');
+  // Sceglie il campo data corretto in base al tipo evento
+  const isOA=document.getElementById('bType').value==='openair';
+  const el=document.getElementById(isOA?'bDateInput':'bDateInputManual');
+  if(!el){toast('Campo data non trovato','err');return;}
   // Legge il valore in tutti i modi possibili per compatibilità mobile/iOS
   let d=el.value||'';
   if(!d&&el.valueAsDate){
-    // iOS Safari: valueAsDate è disponibile anche quando .value è vuoto
     const vd=el.valueAsDate;
-    // valueAsDate è in UTC — convertiamo in locale
     const local=new Date(vd.getTime()+vd.getTimezoneOffset()*60000);
     d=local.getFullYear()+'-'+String(local.getMonth()+1).padStart(2,'0')+'-'+String(local.getDate()).padStart(2,'0');
   }
-  if(!d){
-    // Ultimo tentativo: leggi l'attributo value dell'HTML
-    d=el.getAttribute('value')||'';
-  }
+  if(!d){d=el.getAttribute('value')||'';}
   const s=document.getElementById('bStart').value;
   const e=document.getElementById('bEnd').value;
   if(!d){toast('Seleziona una data','err');return;}
@@ -5117,7 +5115,7 @@ function addBookDate(){
   _bDates.push({date:d,start:s,end:e});
   _bDates.sort((a,b)=>a.date.localeCompare(b.date));
   renderBDates();
-  el.value=''; // reset campo dopo aggiunta
+  el.value='';el.removeAttribute('value');
 }
 function removeBookDate(date){
   _bDates=_bDates.filter(x=>x.date!==date);
