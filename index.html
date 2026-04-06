@@ -284,11 +284,31 @@ select option{background:var(--surf2);}
 
 /* modal */
 .ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:200;
-  align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+  align-items:center;justify-content:center;backdrop-filter:blur(4px);
+  padding:12px;box-sizing:border-box;}
 .ov.on{display:flex;}
 .modal{background:var(--surf);border:1px solid var(--bdr);border-radius:12px;padding:26px;
-  width:520px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:var(--shd);}
+  width:520px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:var(--shd);
+  box-sizing:border-box;}
 .modal-wide{width:680px;}
+/* ── Mobile: modal centrato, scrollabile, non appiccicato al fondo ── */
+@media(max-width:600px){
+  .ov{align-items:flex-start;padding:12px 8px;overflow-y:auto;}
+  .ov.on{display:flex;}
+  .modal,.modal-wide{
+    width:100%;max-width:100%;
+    min-height:unset;max-height:none;
+    margin:auto;
+    border-radius:16px;
+    padding:20px 16px;
+    box-shadow:none;
+    position:relative;
+  }
+  /* Centra verticalmente se il contenuto è corto */
+  .ov{align-items:center;}
+  /* Ma se il modal è più alto del viewport, allinea in alto con margine */
+  .modal{margin:env(safe-area-inset-top,12px) auto env(safe-area-inset-bottom,12px);}
+}
 .mtitle{font-family:var(--serif,serif);font-size:19px;font-weight:700;margin-bottom:18px;}
 .fr{margin-bottom:13px;}
 .flb{display:block;font-size:11px;color:var(--txt2);margin-bottom:5px;font-family:monospace;text-transform:uppercase;}
@@ -589,7 +609,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="wlbl" id="wlbl">—</div>
     <button onclick="cw(1)">›</button>
   </div>
-  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v03/04 09:15</small>
+  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v03/04 10:00</small>
   <div class="hact">
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
     <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
@@ -2632,8 +2652,8 @@ function renderArchSections(){
   var today=new Date();today.setHours(0,0,0,0);
   var todayStr=toLocalDate(today);
 
-  // +7 days: new releases window
-  var in7=new Date(today);in7.setDate(in7.getDate()+7);
+  // +21 days: new releases window
+  var in7=new Date(today);in7.setDate(in7.getDate()+21);
   var in7Str=toLocalDate(in7);
 
   // +10 days: prossimamente window (from tomorrow to +10)
@@ -2649,7 +2669,7 @@ function renderArchSections(){
   // All film IDs currently in shows (any date)
   var allShowFilmIds=new Set(S.shows.map(function(s){return s.filmId;}));
 
-  // ── SECTION: Nuove uscite (oggi + prossimi 7 gg) ──
+  // ── SECTION: Nuove uscite (oggi + prossimi 21 gg) ──
   var upcoming=S.films.filter(function(f){
     return f.release&&f.release>=todayStr&&f.release<=in7Str;
   }).sort(function(a,b){return a.release.localeCompare(b.release);});
@@ -2672,8 +2692,8 @@ function renderArchSections(){
     var isExpired=f.endDate?f.endDate<todayStr:(f.release&&f.release<todayStr&&!hasFutureShow);
     return isExpired&&!hasFutureShow;
   }).sort(function(a,b){
-    // Sort by release descending (most recent first)
-    return (b.release||'').localeCompare(a.release||'');
+    // Dal più vicino al più lontano (ascendente)
+    return (a.release||'').localeCompare(b.release||'');
   });
 
   // ── Se c'è query ricerca → sezione unica risultati ──────────────────────
@@ -2706,7 +2726,7 @@ function renderArchSections(){
     el.innerHTML=html;
   }
 
-  renderSection('arch-upcoming','🆕 Nuove uscite — prossimi 7 giorni',
+  renderSection('arch-upcoming','🆕 Nuove uscite — prossimi 21 giorni',
     upcoming.length+' film','background:rgba(232,200,74,.15);color:var(--acc)',upcoming);
 
   renderSection('arch-current','🎬 In programma questa settimana',
@@ -2764,6 +2784,13 @@ function rf(){
   const w=document.getElementById('fw');
   const showExp=document.getElementById('showExp')?.checked||false;
   let films=showExp?S.films:S.films.filter(f=>filmStatus(f)!=='exp');
+  // Ordina: dal più vicino (release più alta) al più lontano
+  films=films.slice().sort(function(a,b){
+    var ar=a.release||'';var br=b.release||'';
+    if(!ar&&!br)return a.title.localeCompare(b.title,'it');
+    if(!ar)return 1;if(!br)return -1;
+    return br.localeCompare(ar); // decrescente = più recente prima
+  });
   if(!films.length){
     w.innerHTML=`<div class="empty"><div class="ei2">🎭</div><div class="et">${S.films.length?'Nessun film attivo':'Archivio vuoto'}</div></div>`;return;
   }
@@ -6120,6 +6147,34 @@ function socialRenderCarousel(){
   });
 }
 window.socialRenderCarousel=socialRenderCarousel;
+
+// ── Mobile: centra il modal quando la tastiera virtuale appare ────────────
+if('visualViewport' in window){
+  window.visualViewport.addEventListener('resize',function(){
+    document.querySelectorAll('.ov.on').forEach(function(ov){
+      var modal=ov.querySelector('.modal');
+      if(!modal)return;
+      var vvh=window.visualViewport.height;
+      var mh=modal.getBoundingClientRect().height;
+      if(mh<vvh){
+        // Il modal ci sta — centralo nella viewport visibile
+        var top=Math.max(12,Math.round((vvh-mh)/2));
+        modal.style.marginTop=top+'px';
+      } else {
+        // Il modal è più alto — inizia dall'alto con margine
+        modal.style.marginTop='12px';
+      }
+    });
+  });
+  // Focus su input dentro modal → scrolla per mostrarlo
+  document.addEventListener('focusin',function(e){
+    var modal=e.target.closest?.('.modal');
+    if(!modal)return;
+    setTimeout(function(){
+      e.target.scrollIntoView({block:'center',behavior:'smooth'});
+    },300);
+  });
+}
 
 // ── LAYOUT 2B: Tipografico con orari ───────────────────────────────────────
 function drawLayout2B(ctx,film,fShows,wd,days,W,H,fmt,withBackdrop){
