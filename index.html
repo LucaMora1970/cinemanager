@@ -610,7 +610,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
     <div class="wlbl" id="wlbl">—</div>
     <button onclick="cw(1)">›</button>
   </div>
-  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v06/04 11:00</small>
+  <small style="font-size:9px;color:var(--txt2);opacity:.4;position:absolute;top:2px;left:50%;transform:translateX(-50%)">v06/04 12:00</small>
   <div class="hact">
     <div class="sync" id="syncInd"><span class="sync-dot"></span><span id="syncTxt">Connessione…</span></div>
     <div id="userInfo" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--txt2)"><img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--acc)" src="" alt=""><span id="userName"></span><button class="btn bg bs" onclick="signOutGoogle()" style="font-size:11px">Esci</button></div>
@@ -754,6 +754,7 @@ textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);
       <h3>🪧 Cartelli Film (A4 orizzontale)</h3>
       <p style="font-size:12px;color:var(--txt2);margin-bottom:10px">Una pagina per film: tabella verde con orari + locandina. Da vetrina.</p>
       <button class="btn ba" onclick="pPDF('cartelli')">⬇ Scarica PDF</button>
+      <button class="btn bg" onclick="pPDF('cards-new',true)" style="margin-top:6px">⬁ Cartello dinamico (3×3)</button>
     </div>
     <div class="ps" style="grid-column:1/-1">
       <h3>🎞 Copertine Film — A4 Landscape (3508×2480)</h3>
@@ -3768,16 +3769,32 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:8.5px;color:#111;backgroun
 
 /* ── SCHEDE FILM (CARDS) ── */
 .cards-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
-.film-card{border:1px solid #e0e0e0;border-top:2.5px solid #f0801a;border-radius:3px;overflow:hidden;break-inside:avoid;page-break-inside:avoid;}
-.fc-header{background:#fff;padding:5px 8px 3px;border-bottom:1px solid #eee;}
-.fc-title{font-size:10px;font-weight:700;line-height:1.2;color:#f0801a;}
-.fc-meta{font-size:7px;color:#aaa;margin-top:2px;line-height:1.4;}
-.fc-body{padding:4px 8px;}
-.fc-day{display:flex;align-items:baseline;gap:4px;margin-bottom:3px;}
-.fc-day-name{font-size:7.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#555;min-width:52px;flex-shrink:0;}
-.fc-slots{display:flex;flex-wrap:wrap;gap:3px;}
-.fc-slot{background:#fff5ee;border:1px solid #f0801a;border-radius:2px;padding:1px 5px;font-size:8px;font-weight:700;color:#f0801a;white-space:nowrap;}
-.fc-slot-sala{font-size:7px;font-weight:400;color:#888;margin-left:2px;}
+.film-card{border:1px solid #ddd;border-top:3px solid #f0801a;border-radius:3px;overflow:hidden;break-inside:avoid;page-break-inside:avoid;display:flex;flex-direction:column;}
+.fc-header{padding:5px 8px 4px;border-bottom:1px solid #eee;}
+.fc-title{font-size:11px;font-weight:800;line-height:1.2;color:#f0801a;}
+.fc-meta{font-size:7px;color:#aaa;margin-top:2px;}
+.fc-body{flex:1;display:grid;grid-template-columns:repeat(3,1fr);gap:0;}
+.fc-slot-block{display:flex;flex-direction:column;justify-content:center;align-items:center;padding:6px 4px;border:0.5px solid #f0f0f0;text-align:center;flex:1;}
+.fc-slot-block:nth-child(3n+1){border-left:none;}
+.fc-slot-block:nth-child(3n){border-right:none;}
+.fc-slot-day{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#333;line-height:1.1;width:100%;}
+.fc-slot-date{font-size:8px;color:#888;line-height:1.1;width:100%;}
+.fc-slot-time{font-size:16px;font-weight:800;color:#f0801a;line-height:1.1;margin-top:3px;width:100%;}
+.fc-slot-sala{font-size:8px;font-weight:600;color:#555;line-height:1.1;width:100%;}
+/* ── CARTELLO DINAMICO (cards-new) ── */
+.cn-page{width:100%;height:100vh;display:flex;flex-direction:column;page-break-after:always;break-after:page;box-sizing:border-box;padding:10mm;}
+.cn-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6mm;border-bottom:2px solid #f0801a;padding-bottom:3mm;}
+.cn-logo{height:10mm;width:auto;}
+.cn-cinema{font-size:9pt;color:#888;letter-spacing:.5px;text-transform:uppercase;}
+.cn-title{font-size:24pt;font-weight:900;color:#111;line-height:1.1;margin-bottom:2mm;}
+.cn-meta{font-size:8pt;color:#999;margin-bottom:4mm;}
+.cn-grid{flex:1;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:3mm;}
+.cn-slot{display:flex;flex-direction:column;justify-content:center;align-items:center;border:1.5px solid #f0801a;border-radius:4px;text-align:center;padding:3mm;}
+.cn-slot.empty{border-color:#eee;opacity:.3;}
+.cn-day{font-size:11pt;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:#222;line-height:1;}
+.cn-date{font-size:9pt;color:#888;margin-top:1mm;line-height:1;}
+.cn-time{font-size:28pt;font-weight:900;color:#f0801a;margin-top:2mm;line-height:1;font-variant-numeric:tabular-nums;}
+.cn-sala{font-size:9pt;font-weight:700;color:#555;margin-top:1mm;line-height:1;}
 @page{size:A4 portrait;margin:15mm;}
 @page cartello{size:A4 landscape;margin:12mm;}
 
@@ -4232,6 +4249,53 @@ async function pPDF(type, landscape){
   }
 
 
+  else if(type==='cards-new'){
+    const LOGO_TAG='<img class="cn-logo" src="'+LOGO+'" alt="">';
+    const DAB2=['Gio','Ven','Sab','Dom','Lun','Mar','Mer'];
+    [...S.films].sort((a,b)=>a.title.localeCompare(b.title,'it')).forEach(function(f){
+      const fS=allShows.filter(s=>s.filmId===f.id);if(!fS.length)return;
+      const meta=[f.distributor,f.duration?durFmt(f.duration):'',f.rating,f.genre].filter(Boolean).join(' · ');
+      // Raggruppa per giorno
+      const byDay={};
+      fS.forEach(function(s){if(!byDay[s.day])byDay[s.day]=[];byDay[s.day].push(s);});
+      // Costruisce array slot (max 9)
+      const slots=[];
+      Object.keys(byDay).sort().forEach(function(ds){
+        const di=wd.indexOf(ds);
+        const dayName=di>=0?DAB2[di]:'?';
+        const dayDate=di>=0?String(days[di].getDate()).padStart(2,'0')+'/'+String(days[di].getMonth()+1).padStart(2,'0'):'';
+        byDay[ds].sort((a,b)=>a.start.localeCompare(b.start)).forEach(function(s){
+          slots.push({dayName,dayDate,start:s.start,sala:sn(s.sala)});
+        });
+      });
+      while(slots.length<9)slots.push(null);
+      // Calcola font size ottimale per l'orario in base al numero di slot pieni
+      const filledCount=slots.filter(Boolean).length;
+      const timeSize=filledCount<=3?48:filledCount<=6?36:28;
+      const daySize=filledCount<=3?16:filledCount<=6?13:11;
+      const dateSize=filledCount<=3?13:filledCount<=6?10:9;
+      const salaSize=filledCount<=3?13:filledCount<=6?10:9;
+
+      html+='<div class="cn-page">';
+      html+='<div class="cn-header">'+LOGO_TAG+'<span class="cn-cinema">Cinema Multisala Teatro Mendrisio</span></div>';
+      html+='<div class="cn-title">'+f.title+'</div>';
+      html+='<div class="cn-meta">'+meta+'</div>';
+      html+='<div class="cn-grid">';
+      slots.slice(0,9).forEach(function(sl){
+        if(sl){
+          html+='<div class="cn-slot">'
+            +'<div class="cn-day" style="font-size:'+daySize+'pt">'+sl.dayName+'</div>'
+            +'<div class="cn-date" style="font-size:'+dateSize+'pt">'+sl.dayDate+'</div>'
+            +'<div class="cn-time" style="font-size:'+timeSize+'pt">'+sl.start+'</div>'
+            +'<div class="cn-sala" style="font-size:'+salaSize+'pt">'+sl.sala+'</div>'
+            +'</div>';
+        } else {
+          html+='<div class="cn-slot empty"><div class="cn-time" style="font-size:'+timeSize+'pt;color:#ddd">—</div></div>';
+        }
+      });
+      html+='</div></div>';
+    });
+  }
   else if(type==='cards'){
     html=hdr('Programma Settimanale — Cinema Multisala Teatro Mendrisio');
     html+='<div class="cards-grid">';
@@ -4244,19 +4308,32 @@ async function pPDF(type, landscape){
         if(!byDay[s.day])byDay[s.day]=[];
         byDay[s.day].push(s);
       });
+      // Raccoglie tutti gli slot ordinati per data+orario
+      const allSlots=[];
+      Object.keys(byDay).sort().forEach(function(ds){
+        const di=wd.indexOf(ds);
+        const dayName=di>=0?DAB[di]:'?';
+        const dayDate=di>=0?String(days[di].getDate()).padStart(2,'0')+'/'+String(days[di].getMonth()+1).padStart(2,'0'):'';
+        byDay[ds].forEach(function(s){
+          allSlots.push({dayName,dayDate,start:s.start,sala:sn(s.sala)});
+        });
+      });
+      // Riempi fino a 9 slot (griglia 3x3)
+      while(allSlots.length<9)allSlots.push(null);
       html+='<div class="film-card">'
         +'<div class="fc-header"><div class="fc-title">'+f.title+'</div><div class="fc-meta">'+meta+'</div></div>'
         +'<div class="fc-body">';
-      Object.keys(byDay).sort().forEach(function(ds){
-        const di=wd.indexOf(ds);
-        const dayLabel=di>=0?DAB[di]+' '+String(days[di].getDate()).padStart(2,'0')+'/'+String(days[di].getMonth()+1).padStart(2,'0'):'?';
-        html+='<div class="fc-day">'
-          +'<span class="fc-day-name">'+dayLabel+'</span>'
-          +'<div class="fc-slots">';
-        byDay[ds].forEach(function(s){
-          html+='<span class="fc-slot">'+s.start+'<span class="fc-slot-sala">'+sn(s.sala)+'</span></span>';
-        });
-        html+='</div></div>';
+      allSlots.slice(0,9).forEach(function(sl){
+        if(sl){
+          html+='<div class="fc-slot-block">'
+            +'<div class="fc-slot-day">'+sl.dayName+'</div>'
+            +'<div class="fc-slot-date">'+sl.dayDate+'</div>'
+            +'<div class="fc-slot-time">'+sl.start+'</div>'
+            +'<div class="fc-slot-sala">'+sl.sala+'</div>'
+            +'</div>';
+        } else {
+          html+='<div class="fc-slot-block" style="opacity:.15"><div class="fc-slot-day">—</div></div>';
+        }
       });
       html+='</div></div>';
     });
